@@ -49,7 +49,8 @@ keymaster_error_t TranslateLastOpenSslError(bool log_message) {
 
     int reason = ERR_GET_REASON(error);
     switch (ERR_GET_LIB(error)) {
-
+    case ERR_LIB_USER:
+        return static_cast<keymaster_error_t>(reason);
     case ERR_LIB_EVP:
         return TranslateEvpError(reason);
 #if defined(OPENSSL_IS_BORINGSSL)
