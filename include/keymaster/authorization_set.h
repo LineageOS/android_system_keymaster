@@ -159,6 +159,11 @@ class AuthorizationSet : public Serializable, public keymaster_key_param_set_t {
     /**
      * Returns the nth element of the set.
      */
+    keymaster_key_param_t& operator[](int n);
+
+    /**
+     * Returns the nth element of the set.
+     */
     keymaster_key_param_t operator[](int n) const;
 
     /**

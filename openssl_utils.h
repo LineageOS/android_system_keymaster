@@ -20,6 +20,7 @@
 #include <openssl/bn.h>
 #include <openssl/evp.h>
 #include <openssl/ec.h>
+#include <openssl/engine.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
@@ -59,6 +60,10 @@ struct EC_Delete {
     void operator()(EC_KEY* p) { EC_KEY_free(p); }
 };
 
+struct ENGINE_Delete {
+    void operator()(ENGINE* p) { ENGINE_free(p); }
+};
+
 /**
  * Many OpenSSL APIs take ownership of an argument on success but don't free the argument on
  * failure. This means we need to tell our scoped pointers when we've transferred ownership, without
@@ -79,6 +84,8 @@ keymaster_error_t KeyMaterialToEvpKey(keymaster_key_format_t key_format,
                                       UniquePtr<EVP_PKEY, EVP_PKEY_Delete>* evp_pkey);
 
 keymaster_error_t EvpKeyToKeyMaterial(const EVP_PKEY* evp_pkey, KeymasterKeyBlob* key_blob);
+
+size_t ec_group_size_bits(EC_KEY* ec_key);
 
 }  // namespace keymaster
 

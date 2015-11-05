@@ -17,14 +17,15 @@
 #ifndef SYSTEM_KEYMASTER_SOFT_KEYMASTER_DEVICE_H_
 #define SYSTEM_KEYMASTER_SOFT_KEYMASTER_DEVICE_H_
 
-#include <stdlib.h>
+#include <cstdlib>
+#include <map>
+#include <vector>
 
 #include <hardware/keymaster0.h>
 #include <hardware/keymaster1.h>
 
 #include <keymaster/android_keymaster.h>
-#include <keymaster/keymaster_context.h>
-#include <keymaster/logger.h>
+#include <keymaster/soft_keymaster_context.h>
 
 #include <UniquePtr.h>
 
@@ -45,19 +46,28 @@ class AuthorizationSet;
  */
 class SoftKeymasterDevice {
   public:
-    /**
-     * Create a SoftKeymasterDevice wrapping the specified HW keymaster0 device, which may be NULL.
-     *
-     * Uses SoftKeymaserContext.
-     */
-    SoftKeymasterDevice(keymaster0_device_t* keymaster0_device = nullptr);
+    SoftKeymasterDevice();
+
+    // Public only for testing.
+    SoftKeymasterDevice(SoftKeymasterContext* context);
 
     /**
-     * Create a SoftKeymasterDevice that uses the specified KeymasterContext.
-     *
-     * TODO(swillden): Refactor SoftKeymasterDevice construction to make all components injectable.
+     * Set SoftKeymasterDevice to wrap the speicified HW keymaster0 device.  Takes ownership of the
+     * specified device (will call keymaster0_device->common.close());
      */
-    SoftKeymasterDevice(KeymasterContext* context);
+    keymaster_error_t SetHardwareDevice(keymaster0_device_t* keymaster0_device);
+
+    /**
+     * Set SoftKeymasterDevice to wrap specified HW keymaster1 device.  Takes ownership of the
+     * specified device (will call keymaster1_device->common.close());
+     */
+    keymaster_error_t SetHardwareDevice(keymaster1_device_t* keymaster1_device);
+
+    /**
+     * Returns true if a keymaster1_device_t has been set as the hardware device, and if that
+     * hardware device should be used directly.
+     */
+    bool Keymaster1DeviceIsGood();
 
     hw_device_t* hw_device();
     keymaster1_device_t* keymaster_device();
@@ -68,7 +78,13 @@ class SoftKeymasterDevice {
     }
 
   private:
-    void initialize(keymaster0_device_t* keymaster0_device);
+    void initialize_device_struct();
+    bool FindUnsupportedDigest(keymaster_algorithm_t algorithm, keymaster_purpose_t purpose,
+                               const AuthorizationSet& params,
+                               keymaster_digest_t* unsupported) const;
+    bool RequiresSoftwareDigesting(keymaster_algorithm_t algorithm, keymaster_purpose_t purpose,
+                                   const AuthorizationSet& params) const;
+    bool KeyRequiresSoftwareDigesting(const AuthorizationSet& key_description) const;
 
     static void StoreDefaultNewKeyParams(keymaster_algorithm_t algorithm,
                                          AuthorizationSet* auth_set);
@@ -81,28 +97,6 @@ class SoftKeymasterDevice {
      * These static methods are the functions referenced through the function pointers in
      * keymaster_device.
      */
-
-    // keymaster0 APIs
-    static int generate_keypair(const keymaster1_device_t* dev, const keymaster_keypair_t key_type,
-                                const void* key_params, uint8_t** keyBlob, size_t* keyBlobLength);
-    static int import_keypair(const struct keymaster1_device* dev, const uint8_t* key,
-                              const size_t key_length, uint8_t** key_blob, size_t* key_blob_length);
-    static int get_keypair_public(const keymaster1_device_t* dev, const uint8_t* key_blob,
-                                  const size_t key_blob_length, uint8_t** x509_data,
-                                  size_t* x509_data_length);
-    static int delete_keypair(const struct keymaster1_device* dev, const uint8_t* key_blob,
-                              const size_t key_blob_length);
-    static int delete_all(const struct keymaster1_device* dev);
-    static int sign_data(const keymaster1_device_t* dev, const void* signing_params,
-                         const uint8_t* key_blob, const size_t key_blob_length, const uint8_t* data,
-                         const size_t data_length, uint8_t** signed_data,
-                         size_t* signed_data_length);
-    static int verify_data(const keymaster1_device_t* dev, const void* signing_params,
-                           const uint8_t* key_blob, const size_t key_blob_length,
-                           const uint8_t* signed_data, const size_t signed_data_length,
-                           const uint8_t* signature, const size_t signature_length);
-
-    // keymaster1 APIs.
     static keymaster_error_t get_supported_algorithms(const keymaster1_device_t* dev,
                                                       keymaster_algorithm_t** algorithms,
                                                       size_t* algorithms_length);
@@ -160,20 +154,33 @@ class SoftKeymasterDevice {
                                    const keymaster_key_param_set_t* in_params,
                                    keymaster_key_param_set_t* out_params,
                                    keymaster_operation_handle_t* operation_handle);
-    static keymaster_error_t
-    update(const keymaster1_device_t* dev, keymaster_operation_handle_t operation_handle,
-           const keymaster_key_param_set_t* in_params, const keymaster_blob_t* input,
-           size_t* input_consumed, keymaster_key_param_set_t* out_params, keymaster_blob_t* output);
-    static keymaster_error_t
-    finish(const keymaster1_device_t* dev, keymaster_operation_handle_t operation_handle,
-           const keymaster_key_param_set_t* in_params, const keymaster_blob_t* signature,
-           keymaster_key_param_set_t* out_params, keymaster_blob_t* output);
+    static keymaster_error_t update(const keymaster1_device_t* dev,  //
+                                    keymaster_operation_handle_t operation_handle,
+                                    const keymaster_key_param_set_t* in_params,
+                                    const keymaster_blob_t* input, size_t* input_consumed,
+                                    keymaster_key_param_set_t* out_params,
+                                    keymaster_blob_t* output);
+    static keymaster_error_t finish(const keymaster1_device_t* dev,  //
+                                    keymaster_operation_handle_t operation_handle,
+                                    const keymaster_key_param_set_t* in_params,
+                                    const keymaster_blob_t* signature,
+                                    keymaster_key_param_set_t* out_params,
+                                    keymaster_blob_t* output);
+
     static keymaster_error_t abort(const keymaster1_device_t* dev,
                                    keymaster_operation_handle_t operation_handle);
 
+    typedef std::map<std::pair<keymaster_algorithm_t, keymaster_purpose_t>,
+                     std::vector<keymaster_digest_t>> DigestMap;
+
     keymaster1_device_t device_;
-    keymaster0_device_t* wrapped_device_;
+    keymaster0_device_t* wrapped_km0_device_;
+    keymaster1_device_t* wrapped_km1_device_;
+    DigestMap km1_device_digests_;
+    SoftKeymasterContext* context_;
     UniquePtr<AndroidKeymaster> impl_;
+    std::string module_name_;
+    hw_module_t updated_module_;
 };
 
 }  // namespace keymaster

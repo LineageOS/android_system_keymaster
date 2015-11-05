@@ -31,8 +31,7 @@ namespace keymaster {
 
 EcdsaKeymaster0KeyFactory::EcdsaKeymaster0KeyFactory(const SoftKeymasterContext* context,
                                                      const Keymaster0Engine* engine)
-    : EcKeyFactory(context), engine_(engine), soft_context_(context) {
-}
+    : EcKeyFactory(context), engine_(engine) {}
 
 keymaster_error_t EcdsaKeymaster0KeyFactory::GenerateKey(const AuthorizationSet& key_description,
                                                          KeymasterKeyBlob* key_blob,
@@ -97,6 +96,7 @@ keymaster_error_t EcdsaKeymaster0KeyFactory::ImportKey(
 }
 
 keymaster_error_t EcdsaKeymaster0KeyFactory::LoadKey(const KeymasterKeyBlob& key_material,
+                                                     const AuthorizationSet& additional_params,
                                                      const AuthorizationSet& hw_enforced,
                                                      const AuthorizationSet& sw_enforced,
                                                      UniquePtr<Key>* key) const {
@@ -104,7 +104,7 @@ keymaster_error_t EcdsaKeymaster0KeyFactory::LoadKey(const KeymasterKeyBlob& key
         return KM_ERROR_OUTPUT_PARAMETER_NULL;
 
     if (sw_enforced.GetTagCount(TAG_ALGORITHM) == 1)
-        return super::LoadKey(key_material, hw_enforced, sw_enforced, key);
+        return super::LoadKey(key_material, additional_params, hw_enforced, sw_enforced, key);
 
     unique_ptr<EC_KEY, EC_Delete> ec_key(engine_->BlobToEcKey(key_material));
     if (!ec_key)
@@ -122,23 +122,6 @@ keymaster_error_t EcdsaKeymaster0KeyFactory::LoadKey(const KeymasterKeyBlob& key
 EcKeymaster0Key::EcKeymaster0Key(EC_KEY* ec_key, const AuthorizationSet& hw_enforced,
                                  const AuthorizationSet& sw_enforced,
                                  const Keymaster0Engine* engine, keymaster_error_t* error)
-    : EcKey(ec_key, hw_enforced, sw_enforced, error), engine_(engine) {
-}
-
-keymaster_error_t EcKeymaster0Key::key_material(UniquePtr<uint8_t[]>* material,
-                                                size_t* size) const {
-    if (!engine_)
-        return super::key_material(material, size);
-
-    const keymaster_key_blob_t* blob = engine_->EcKeyToBlob(key());
-    if (!blob)
-        return KM_ERROR_UNKNOWN_ERROR;
-
-    *size = blob->key_material_size;
-    material->reset(dup_buffer(blob->key_material, *size));
-    if (!material->get())
-        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-    return KM_ERROR_OK;
-}
+    : EcKey(ec_key, hw_enforced, sw_enforced, error), engine_(engine) {}
 
 }  // namespace keymaster

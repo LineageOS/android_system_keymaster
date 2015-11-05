@@ -91,16 +91,17 @@ keymaster_error_t EcdsaOperation::InitDigest() {
     }
 }
 
+inline size_t min(size_t a, size_t b) {
+    return (a < b) ? a : b;
+}
+
 keymaster_error_t EcdsaOperation::StoreData(const Buffer& input, size_t* input_consumed) {
     if (!data_.reserve((EVP_PKEY_bits(ecdsa_key_) + 7) / 8))
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 
-    // If the write fails, it's because input length exceeds key size.
-    if (!data_.write(input.peek_read(), input.available_read())) {
-        LOG_E("Input too long: cannot sign %u bytes of data with %u-bit ECDSA key",
-              input.available_read() + data_.available_read(), EVP_PKEY_bits(ecdsa_key_));
-        return KM_ERROR_INVALID_INPUT_LENGTH;
-    }
+    if (!data_.write(input.peek_read(), min(data_.available_write(), input.available_read())))
+        return KM_ERROR_UNKNOWN_ERROR;
+
     *input_consumed = input.available_read();
     return KM_ERROR_OK;
 }

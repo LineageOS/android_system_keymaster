@@ -25,28 +25,6 @@
 
 namespace keymaster {
 
-keymaster_error_t AsymmetricKey::key_material(UniquePtr<uint8_t[]>* material, size_t* size) const {
-    if (material == NULL || size == NULL)
-        return KM_ERROR_OUTPUT_PARAMETER_NULL;
-
-    UniquePtr<EVP_PKEY, EVP_PKEY_Delete> pkey(EVP_PKEY_new());
-    if (pkey.get() == NULL)
-        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-
-    if (!InternalToEvp(pkey.get()))
-        return TranslateLastOpenSslError();
-
-    *size = i2d_PrivateKey(pkey.get(), NULL /* key_data*/);
-    if (*size <= 0)
-        return TranslateLastOpenSslError();
-
-    material->reset(new (std::nothrow) uint8_t[*size]);
-    uint8_t* tmp = material->get();
-    i2d_PrivateKey(pkey.get(), &tmp);
-
-    return KM_ERROR_OK;
-}
-
 keymaster_error_t AsymmetricKey::formatted_key_material(keymaster_key_format_t format,
                                                         UniquePtr<uint8_t[]>* material,
                                                         size_t* size) const {

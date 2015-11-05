@@ -29,11 +29,6 @@ class Key {
     virtual ~Key() {}
 
     /**
-     * Return a copy of raw key material, in the key's preferred binary format.
-     */
-    virtual keymaster_error_t key_material(UniquePtr<uint8_t[]>*, size_t* size) const = 0;
-
-    /**
      * Return a copy of raw key material, in the specified format.
      */
     virtual keymaster_error_t formatted_key_material(keymaster_key_format_t format,

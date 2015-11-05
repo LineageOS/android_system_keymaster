@@ -191,6 +191,15 @@ int AuthorizationSet::find(keymaster_tag_t tag, int begin) const {
 }
 
 keymaster_key_param_t empty;
+keymaster_key_param_t& AuthorizationSet::operator[](int at) {
+    if (is_valid() == OK && at < (int)elems_size_) {
+        return elems_[at];
+    }
+    memset(&empty, 0, sizeof(empty));
+    return empty;
+}
+
+
 keymaster_key_param_t AuthorizationSet::operator[](int at) const {
     if (is_valid() == OK && at < (int)elems_size_) {
         return elems_[at];

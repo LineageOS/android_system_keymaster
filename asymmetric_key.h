@@ -29,7 +29,6 @@ class AsymmetricKey : public Key {
                   keymaster_error_t* error)
         : Key(hw_enforced, sw_enforced, error) {}
 
-    keymaster_error_t key_material(UniquePtr<uint8_t[]>* material, size_t* size) const override;
     keymaster_error_t formatted_key_material(keymaster_key_format_t format,
                                              UniquePtr<uint8_t[]>* material,
                                              size_t* size) const override;

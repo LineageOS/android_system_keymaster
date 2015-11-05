@@ -49,13 +49,13 @@ class RsaKeymaster0KeyFactory : public RsaKeyFactory {
                                 AuthorizationSet* sw_enforced) const override;
 
     keymaster_error_t LoadKey(const KeymasterKeyBlob& key_material,
+                              const AuthorizationSet& additional_params,
                               const AuthorizationSet& hw_enforced,
                               const AuthorizationSet& sw_enforced,
                               UniquePtr<Key>* key) const override;
 
   private:
     const Keymaster0Engine* engine_;
-    const SoftKeymasterContext* soft_context_;
 };
 
 class RsaKeymaster0Key : public RsaKey {
@@ -65,8 +65,6 @@ class RsaKeymaster0Key : public RsaKey {
     RsaKeymaster0Key(RSA* rsa_key, const AuthorizationSet& hw_enforced,
                      const AuthorizationSet& sw_enforced, const Keymaster0Engine* engine,
                      keymaster_error_t* error);
-
-    keymaster_error_t key_material(UniquePtr<uint8_t[]>* material, size_t* size) const override;
 
   private:
     const Keymaster0Engine* engine_;

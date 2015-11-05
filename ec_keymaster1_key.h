@@ -14,29 +14,33 @@
  * limitations under the License.
  */
 
-#ifndef SYSTEM_KEYMASTER_EC_KEYMASTER0_KEY_H_
-#define SYSTEM_KEYMASTER_EC_KEYMASTER0_KEY_H_
+#ifndef SYSTEM_KEYMASTER_EC_KEYMASTER1_KEY_H_
+#define SYSTEM_KEYMASTER_EC_KEYMASTER1_KEY_H_
 
-#include <openssl/ec_key.h>
+#include <openssl/ecdsa.h>
 
+#include <hardware/keymaster1.h>
+#include <keymaster/android_keymaster_utils.h>
+#include <keymaster/logger.h>
 #include <keymaster/ec_key_factory.h>
+#include <keymaster/soft_keymaster_context.h>
 
 #include "ec_key.h"
+#include "keymaster1_engine.h"
 
 namespace keymaster {
 
-class Keymaster0Engine;
 class SoftKeymasterContext;
 
 /**
- * An EcdsaKeyFactory which can delegate key generation, importing and loading operations to a
- * keymaster0-backed OpenSSL engine.
+ * EcdsaKeymaster1KeyFactory is a KeyFactory that creates and loads keys which are actually backed
+ * by a hardware keymaster1 module, but which does not support all keymaster1 digests.  During
+ * generation or import any unsupported digests in the key description are silently replaced with
+ * KM_DIGEST_NONE.
  */
-class EcdsaKeymaster0KeyFactory : public EcKeyFactory {
-    typedef EcKeyFactory super;
-
+class EcdsaKeymaster1KeyFactory : public EcKeyFactory {
   public:
-    EcdsaKeymaster0KeyFactory(const SoftKeymasterContext* context, const Keymaster0Engine* engine);
+    EcdsaKeymaster1KeyFactory(const SoftKeymasterContext* context, const Keymaster1Engine* engine);
 
     keymaster_error_t GenerateKey(const AuthorizationSet& key_description,
                                   KeymasterKeyBlob* key_blob, AuthorizationSet* hw_enforced,
@@ -54,22 +58,25 @@ class EcdsaKeymaster0KeyFactory : public EcKeyFactory {
                               const AuthorizationSet& sw_enforced,
                               UniquePtr<Key>* key) const override;
 
+    OperationFactory* GetOperationFactory(keymaster_purpose_t purpose) const override;
+
   private:
-    const Keymaster0Engine* engine_;
+    const Keymaster1Engine* engine_;
+
+    std::unique_ptr<OperationFactory> sign_factory_;
+    std::unique_ptr<OperationFactory> verify_factory_;
 };
 
-class EcKeymaster0Key : public EcKey {
-    typedef EcKey super;
-
+class EcdsaKeymaster1Key : public EcKey {
   public:
-    EcKeymaster0Key(EC_KEY* ec_key, const AuthorizationSet& hw_enforced,
-                    const AuthorizationSet& sw_enforced, const Keymaster0Engine* engine,
-                    keymaster_error_t* error);
+    EcdsaKeymaster1Key(EC_KEY* ecdsa_key, const AuthorizationSet& hw_enforced,
+                       const AuthorizationSet& sw_enforced, const Keymaster1Engine* engine,
+                       keymaster_error_t* error);
 
   private:
-    const Keymaster0Engine* engine_;
+    const Keymaster1Engine* engine_;
 };
 
 }  // namespace keymaster
 
-#endif  // SYSTEM_KEYMASTER_EC_KEYMASTER0_KEY_H_
+#endif  // SYSTEM_KEYMASTER_ECDSA_KEYMASTER1_KEY_H_

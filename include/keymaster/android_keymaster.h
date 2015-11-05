@@ -77,6 +77,8 @@ class AndroidKeymaster {
     void AbortOperation(const AbortOperationRequest& request, AbortOperationResponse* response);
     void GetVersion(const GetVersionRequest& request, GetVersionResponse* response);
 
+    bool has_operation(keymaster_operation_handle_t op_handle) const;
+
   private:
     keymaster_error_t LoadKey(const keymaster_key_blob_t& key_blob,
                               const AuthorizationSet& additional_params,

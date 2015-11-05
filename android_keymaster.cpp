@@ -275,8 +275,10 @@ void AndroidKeymaster::UpdateOperation(const UpdateOperationRequest& request,
         response->error = context_->enforcement_policy()->AuthorizeOperation(
             operation->purpose(), operation->key_id(), operation->authorizations(),
             request.additional_params, request.op_handle, false /* is_begin_operation */);
-        if (response->error != KM_ERROR_OK)
+        if (response->error != KM_ERROR_OK) {
+            operation_table_->Delete(request.op_handle);
             return;
+        }
     }
 
     response->error =
@@ -302,8 +304,10 @@ void AndroidKeymaster::FinishOperation(const FinishOperationRequest& request,
         response->error = context_->enforcement_policy()->AuthorizeOperation(
             operation->purpose(), operation->key_id(), operation->authorizations(),
             request.additional_params, request.op_handle, false /* is_begin_operation */);
-        if (response->error != KM_ERROR_OK)
+        if (response->error != KM_ERROR_OK) {
+            operation_table_->Delete(request.op_handle);
             return;
+        }
     }
 
     response->error = operation->Finish(request.additional_params, request.signature,
@@ -346,7 +350,8 @@ void AndroidKeymaster::ExportKey(const ExportKeyRequest& request, ExportKeyRespo
         return;
 
     UniquePtr<Key> key;
-    response->error = key_factory->LoadKey(key_material, hw_enforced, sw_enforced, &key);
+    response->error = key_factory->LoadKey(key_material, request.additional_params, hw_enforced,
+                                           sw_enforced, &key);
     if (response->error != KM_ERROR_OK)
         return;
 
@@ -392,6 +397,10 @@ void AndroidKeymaster::DeleteAllKeys(const DeleteAllKeysRequest&, DeleteAllKeysR
     response->error = context_->DeleteAllKeys();
 }
 
+bool AndroidKeymaster::has_operation(keymaster_operation_handle_t op_handle) const {
+    return operation_table_->Find(op_handle) != nullptr;
+}
+
 keymaster_error_t AndroidKeymaster::LoadKey(const keymaster_key_blob_t& key_blob,
                                             const AuthorizationSet& additional_params,
                                             AuthorizationSet* hw_enforced,
@@ -408,7 +417,7 @@ keymaster_error_t AndroidKeymaster::LoadKey(const keymaster_key_blob_t& key_blob
     if (error != KM_ERROR_OK)
         return error;
 
-    return (*factory)->LoadKey(key_material, *hw_enforced, *sw_enforced, key);
+    return (*factory)->LoadKey(key_material, additional_params, *hw_enforced, *sw_enforced, key);
 }
 
 }  // namespace keymaster

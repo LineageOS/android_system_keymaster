@@ -29,12 +29,14 @@
 #include "aes_key.h"
 #include "auth_encrypted_key_blob.h"
 #include "ec_keymaster0_key.h"
+#include "ec_keymaster1_key.h"
 #include "hmac_key.h"
 #include "integrity_assured_key_blob.h"
 #include "keymaster0_engine.h"
 #include "ocb_utils.h"
 #include "openssl_err.h"
 #include "rsa_keymaster0_key.h"
+#include "rsa_keymaster1_key.h"
 
 using std::unique_ptr;
 
@@ -47,13 +49,47 @@ const int TAG_LENGTH = 16;
 const KeymasterKeyBlob MASTER_KEY(master_key_bytes, array_length(master_key_bytes));
 }  // anonymous namespace
 
-SoftKeymasterContext::SoftKeymasterContext(keymaster0_device_t* keymaster0_device) {
-    if (keymaster0_device && (keymaster0_device->flags & KEYMASTER_SOFTWARE_ONLY) == 0)
-        engine_.reset(new Keymaster0Engine(keymaster0_device));
-    rsa_factory_.reset(new RsaKeymaster0KeyFactory(this, engine_.get()));
-    ec_factory_.reset(new EcdsaKeymaster0KeyFactory(this, engine_.get()));
-    aes_factory_.reset(new AesKeyFactory(this));
-    hmac_factory_.reset(new HmacKeyFactory(this));
+SoftKeymasterContext::SoftKeymasterContext(const std::string& root_of_trust)
+    : rsa_factory_(new RsaKeyFactory(this)), ec_factory_(new EcKeyFactory(this)),
+      aes_factory_(new AesKeyFactory(this)), hmac_factory_(new HmacKeyFactory(this)),
+      km1_dev_(nullptr), root_of_trust_(root_of_trust) {}
+
+SoftKeymasterContext::~SoftKeymasterContext() {}
+
+keymaster_error_t SoftKeymasterContext::SetHardwareDevice(keymaster0_device_t* keymaster0_device) {
+    if (!keymaster0_device)
+        return KM_ERROR_UNEXPECTED_NULL_POINTER;
+
+    if ((keymaster0_device->flags & KEYMASTER_SOFTWARE_ONLY) != 0) {
+        LOG_E("SoftKeymasterContext only wraps hardware keymaster0 devices", 0);
+        return KM_ERROR_INVALID_ARGUMENT;
+    }
+
+    km0_engine_.reset(new Keymaster0Engine(keymaster0_device));
+    rsa_factory_.reset(new RsaKeymaster0KeyFactory(this, km0_engine_.get()));
+    ec_factory_.reset(new EcdsaKeymaster0KeyFactory(this, km0_engine_.get()));
+    // Keep AES and HMAC factories.
+
+    return KM_ERROR_OK;
+}
+
+keymaster_error_t SoftKeymasterContext::SetHardwareDevice(keymaster1_device_t* keymaster1_device) {
+    if (!keymaster1_device)
+        return KM_ERROR_UNEXPECTED_NULL_POINTER;
+
+    km1_dev_ = keymaster1_device;
+
+    km1_engine_.reset(new Keymaster1Engine(keymaster1_device));
+    rsa_factory_.reset(new RsaKeymaster1KeyFactory(this, km1_engine_.get()));
+    ec_factory_.reset(new EcdsaKeymaster1KeyFactory(this, km1_engine_.get()));
+
+    // All AES and HMAC operations should be passed directly to the keymaster1 device.  Explicitly
+    // do not handle them, to provoke errors in case the higher layers fail to send them to the
+    // device.
+    aes_factory_.reset(nullptr);
+    hmac_factory_.reset(nullptr);
+
+    return KM_ERROR_OK;
 }
 
 KeyFactory* SoftKeymasterContext::GetKeyFactory(keymaster_algorithm_t algorithm) const {
@@ -98,23 +134,6 @@ static keymaster_error_t TranslateAuthorizationSetError(AuthorizationSet::Error 
         return KM_ERROR_UNKNOWN_ERROR;
     }
     return KM_ERROR_OK;
-}
-
-static keymaster_error_t BuildHiddenAuthorizations(const AuthorizationSet& input_set,
-                                                   AuthorizationSet* hidden) {
-    keymaster_blob_t entry;
-    if (input_set.GetTagValue(TAG_APPLICATION_ID, &entry))
-        hidden->push_back(TAG_APPLICATION_ID, entry.data, entry.data_length);
-    if (input_set.GetTagValue(TAG_APPLICATION_DATA, &entry))
-        hidden->push_back(TAG_APPLICATION_DATA, entry.data, entry.data_length);
-
-    keymaster_key_param_t root_of_trust;
-    root_of_trust.tag = KM_TAG_ROOT_OF_TRUST;
-    root_of_trust.blob.data = reinterpret_cast<const uint8_t*>("SW");
-    root_of_trust.blob.data_length = 2;
-    hidden->push_back(root_of_trust);
-
-    return TranslateAuthorizationSetError(hidden->is_valid());
 }
 
 static keymaster_error_t SetAuthorizations(const AuthorizationSet& key_description,
@@ -293,7 +312,10 @@ keymaster_error_t SoftKeymasterContext::ParseKeyBlob(const KeymasterKeyBlob& blo
     //     they're protected by the keymaster0 hardware implementation).  The keymaster0 key blob
     //     and auth sets should be extracted and returned.
     //
-    // 5.  Old keymaster0 hardware key blobs.  These are raw hardware key blobs.  They don't have
+    // 5.  Keymaster1 hardware key blobs.  These are raw hardware key blobs.  They contain auth
+    //     sets, which we retrieve from the hardware module.
+    //
+    // 6.  Old keymaster0 hardware key blobs.  These are raw hardware key blobs.  They don't have
     //     auth sets so reasonable defaults are generated and returned along with the key blob.
     //
     // Determining what kind of blob has arrived is somewhat tricky.  What helps is that
@@ -328,17 +350,72 @@ keymaster_error_t SoftKeymasterContext::ParseKeyBlob(const KeymasterKeyBlob& blo
     if (error != KM_ERROR_INVALID_KEY_BLOB)
         return error;
 
-    // Not an old softkeymaster blob, either.  The only remaining option is old HW keymaster0.
-    if (!engine_)
-        return KM_ERROR_INVALID_KEY_BLOB;
+    if (km1_dev_)
+        return ParseKeymaster1HwBlob(blob, additional_params, key_material, hw_enforced,
+                                     sw_enforced);
+    else if (km0_engine_)
+        return ParseKeymaster0HwBlob(blob, key_material, hw_enforced, sw_enforced);
 
-    // See if the HW thinks it's valid.
-    unique_ptr<EVP_PKEY, EVP_PKEY_Delete> tmp_key(engine_->GetKeymaster0PublicKey(blob));
+    LOG_E("Failed to parse key; not a valid software blob, no hardware module configured", 0);
+    return KM_ERROR_INVALID_KEY_BLOB;
+}
+
+keymaster_error_t SoftKeymasterContext::AddRngEntropy(const uint8_t* buf, size_t length) const {
+    RAND_add(buf, length, 0 /* Don't assume any entropy is added to the pool. */);
+    return KM_ERROR_OK;
+}
+
+keymaster_error_t SoftKeymasterContext::GenerateRandom(uint8_t* buf, size_t length) const {
+    if (RAND_bytes(buf, length) != 1)
+        return KM_ERROR_UNKNOWN_ERROR;
+    return KM_ERROR_OK;
+}
+
+keymaster_error_t SoftKeymasterContext::ParseKeymaster1HwBlob(
+    const KeymasterKeyBlob& blob, const AuthorizationSet& additional_params,
+    KeymasterKeyBlob* key_material, AuthorizationSet* hw_enforced,
+    AuthorizationSet* sw_enforced) const {
+    assert(km1_dev_);
+
+    keymaster_blob_t client_id = {nullptr, 0};
+    keymaster_blob_t app_data = {nullptr, 0};
+    keymaster_blob_t* client_id_ptr = nullptr;
+    keymaster_blob_t* app_data_ptr = nullptr;
+    if (additional_params.GetTagValue(TAG_APPLICATION_ID, &client_id))
+        client_id_ptr = &client_id;
+    if (additional_params.GetTagValue(TAG_APPLICATION_DATA, &app_data))
+        app_data_ptr = &app_data;
+
+    // Get key characteristics, which incidentally verifies that the HW recognizes the key.
+    keymaster_key_characteristics_t* characteristics;
+    keymaster_error_t error = km1_dev_->get_key_characteristics(km1_dev_, &blob, client_id_ptr,
+                                                                app_data_ptr, &characteristics);
+    if (error != KM_ERROR_OK)
+        return error;
+    unique_ptr<keymaster_key_characteristics_t, Characteristics_Delete> characteristics_deleter(
+        characteristics);
+
+    LOG_D("Module \"%s\" accepted key", km1_dev_->common.module->name);
+
+    hw_enforced->Reinitialize(characteristics->hw_enforced);
+    sw_enforced->Reinitialize(characteristics->sw_enforced);
+    *key_material = blob;
+    return KM_ERROR_OK;
+}
+
+keymaster_error_t SoftKeymasterContext::ParseKeymaster0HwBlob(const KeymasterKeyBlob& blob,
+                                                              KeymasterKeyBlob* key_material,
+                                                              AuthorizationSet* hw_enforced,
+                                                              AuthorizationSet* sw_enforced) const {
+    assert(km0_engine_);
+
+    unique_ptr<EVP_PKEY, EVP_PKEY_Delete> tmp_key(km0_engine_->GetKeymaster0PublicKey(blob));
+
     if (!tmp_key)
         return KM_ERROR_INVALID_KEY_BLOB;
-    else
-        error = FakeKeyAuthorizations(tmp_key.get(), hw_enforced, sw_enforced);
 
+    LOG_D("Module \"%s\" accepted key", km0_engine_->device()->common.module->name);
+    keymaster_error_t error = FakeKeyAuthorizations(tmp_key.get(), hw_enforced, sw_enforced);
     if (error == KM_ERROR_OK)
         *key_material = blob;
 
@@ -418,15 +495,18 @@ keymaster_error_t SoftKeymasterContext::FakeKeyAuthorizations(EVP_PKEY* pubkey,
     return KM_ERROR_OK;
 }
 
-keymaster_error_t SoftKeymasterContext::AddRngEntropy(const uint8_t* buf, size_t length) const {
-    RAND_add(buf, length, 0 /* Don't assume any entropy is added to the pool. */);
-    return KM_ERROR_OK;
-}
+keymaster_error_t SoftKeymasterContext::BuildHiddenAuthorizations(const AuthorizationSet& input_set,
+                                                                  AuthorizationSet* hidden) const {
+    keymaster_blob_t entry;
+    if (input_set.GetTagValue(TAG_APPLICATION_ID, &entry))
+        hidden->push_back(TAG_APPLICATION_ID, entry.data, entry.data_length);
+    if (input_set.GetTagValue(TAG_APPLICATION_DATA, &entry))
+        hidden->push_back(TAG_APPLICATION_DATA, entry.data, entry.data_length);
 
-keymaster_error_t SoftKeymasterContext::GenerateRandom(uint8_t* buf, size_t length) const {
-    if (RAND_bytes(buf, length) != 1)
-        return KM_ERROR_UNKNOWN_ERROR;
-    return KM_ERROR_OK;
+    hidden->push_back(TAG_ROOT_OF_TRUST, reinterpret_cast<const uint8_t*>(root_of_trust_.data()),
+                      root_of_trust_.size());
+
+    return TranslateAuthorizationSetError(hidden->is_valid());
 }
 
 }  // namespace keymaster

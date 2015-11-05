@@ -36,52 +36,7 @@ using std::unique_ptr;
 
 namespace keymaster {
 
-// int Keymaster0Engine::rsa_index_ = -1;
-// int Keymaster0Engine::ec_key_index_ = -1;
 Keymaster0Engine* Keymaster0Engine::instance_ = nullptr;
-const RSA_METHOD Keymaster0Engine::rsa_method_ = {
-    .common =
-        {
-            0,  // references
-            1   // is_static
-        },
-    .app_data = nullptr,
-    .init = nullptr,
-    .finish = nullptr,
-    .size = nullptr,
-    .sign = nullptr,
-    .verify = nullptr,
-
-    .encrypt = nullptr,
-    .sign_raw = nullptr,
-    .decrypt = nullptr,
-    .verify_raw = nullptr,
-
-    .private_transform = Keymaster0Engine::rsa_private_transform,
-
-    .mod_exp = nullptr,
-    .bn_mod_exp = BN_mod_exp_mont,
-
-    .flags = RSA_FLAG_OPAQUE,
-
-    .keygen = nullptr,
-    .supports_digest = nullptr,
-};
-
-const ECDSA_METHOD Keymaster0Engine::ecdsa_method_ = {
-    .common =
-        {
-            0,  // references
-            1   // is_static
-        },
-    .app_data = nullptr,
-    .init = nullptr,
-    .finish = nullptr,
-    .group_order_size = nullptr,
-    .sign = Keymaster0Engine::ecdsa_sign,
-    .verify = nullptr,
-    .flags = ECDSA_FLAG_OPAQUE,
-};
 
 Keymaster0Engine::Keymaster0Engine(const keymaster0_device_t* keymaster0_device)
     : keymaster0_device_(keymaster0_device), engine_(ENGINE_new()), supports_ec_(false) {
@@ -93,10 +48,40 @@ Keymaster0Engine::Keymaster0Engine(const keymaster0_device_t* keymaster0_device)
     ec_key_index_ = EC_KEY_get_ex_new_index(0 /* argl */, NULL /* argp */, NULL /* new_func */,
                                             keyblob_dup, keyblob_free);
 
+    rsa_method_.common.references = 0;
+    rsa_method_.common.is_static = 1;
+    rsa_method_.app_data = nullptr;
+    rsa_method_.init = nullptr;
+    rsa_method_.finish = nullptr;
+    rsa_method_.size = nullptr;
+    rsa_method_.sign = nullptr;
+    rsa_method_.verify = nullptr;
+    rsa_method_.encrypt = nullptr;
+    rsa_method_.sign_raw = nullptr;
+    rsa_method_.decrypt = nullptr;
+    rsa_method_.verify_raw = nullptr;
+    rsa_method_.private_transform = Keymaster0Engine::rsa_private_transform;
+    rsa_method_.mod_exp = nullptr;
+    rsa_method_.bn_mod_exp = BN_mod_exp_mont;
+    rsa_method_.flags = RSA_FLAG_OPAQUE;
+    rsa_method_.keygen = nullptr;
+    rsa_method_.supports_digest = nullptr;
+
     ENGINE_set_RSA_method(engine_, &rsa_method_, sizeof(rsa_method_));
 
     if ((keymaster0_device_->flags & KEYMASTER_SUPPORTS_EC) != 0) {
         supports_ec_ = true;
+
+        ecdsa_method_.common.references = 0;
+        ecdsa_method_.common.is_static = 1;
+        ecdsa_method_.app_data = nullptr;
+        ecdsa_method_.init = nullptr;
+        ecdsa_method_.finish = nullptr;
+        ecdsa_method_.group_order_size = nullptr;
+        ecdsa_method_.sign = Keymaster0Engine::ecdsa_sign;
+        ecdsa_method_.verify = nullptr;
+        ecdsa_method_.flags = ECDSA_FLAG_OPAQUE;
+
         ENGINE_set_ECDSA_method(engine_, &ecdsa_method_, sizeof(ecdsa_method_));
     }
 }
@@ -344,17 +329,6 @@ int Keymaster0Engine::RsaPrivateTransform(RSA* rsa, uint8_t* out, const uint8_t*
 
     ALOGV("rsa=%p keystore_rsa_priv_dec successful", rsa);
     return 1;
-}
-
-static size_t ec_group_size_bits(EC_KEY* ec_key) {
-    const EC_GROUP* group = EC_KEY_get0_group(ec_key);
-    unique_ptr<BN_CTX, BN_CTX_Delete> bn_ctx(BN_CTX_new());
-    unique_ptr<BIGNUM, BIGNUM_Delete> order(BN_new());
-    if (!EC_GROUP_get_order(group, order.get(), bn_ctx.get())) {
-        ALOGE("Failed to get EC group order");
-        return 0;
-    }
-    return BN_num_bits(order.get());
 }
 
 int Keymaster0Engine::EcdsaSign(const uint8_t* digest, size_t digest_len, uint8_t* sig,

@@ -49,8 +49,8 @@ class EcdsaOperation : public Operation {
 
 class EcdsaSignOperation : public EcdsaOperation {
   public:
-    EcdsaSignOperation(keymaster_purpose_t purpose, keymaster_digest_t digest, EVP_PKEY* key)
-        : EcdsaOperation(purpose, digest, key) {}
+    EcdsaSignOperation(keymaster_digest_t digest, EVP_PKEY* key)
+        : EcdsaOperation(KM_PURPOSE_SIGN, digest, key) {}
     keymaster_error_t Begin(const AuthorizationSet& input_params,
                             AuthorizationSet* output_params) override;
     keymaster_error_t Update(const AuthorizationSet& additional_params, const Buffer& input,
@@ -62,8 +62,8 @@ class EcdsaSignOperation : public EcdsaOperation {
 
 class EcdsaVerifyOperation : public EcdsaOperation {
   public:
-    EcdsaVerifyOperation(keymaster_purpose_t purpose, keymaster_digest_t digest, EVP_PKEY* key)
-        : EcdsaOperation(purpose, digest, key) {}
+    EcdsaVerifyOperation(keymaster_digest_t digest, EVP_PKEY* key)
+        : EcdsaOperation(KM_PURPOSE_VERIFY, digest, key) {}
     keymaster_error_t Begin(const AuthorizationSet& input_params,
                             AuthorizationSet* output_params) override;
     keymaster_error_t Update(const AuthorizationSet& additional_params, const Buffer& input,
@@ -88,7 +88,7 @@ class EcdsaSignOperationFactory : public EcdsaOperationFactory {
   private:
     keymaster_purpose_t purpose() const override { return KM_PURPOSE_SIGN; }
     Operation* InstantiateOperation(keymaster_digest_t digest, EVP_PKEY* key) {
-        return new (std::nothrow) EcdsaSignOperation(purpose(), digest, key);
+        return new (std::nothrow) EcdsaSignOperation(digest, key);
     }
 };
 
@@ -96,7 +96,7 @@ class EcdsaVerifyOperationFactory : public EcdsaOperationFactory {
   public:
     keymaster_purpose_t purpose() const override { return KM_PURPOSE_VERIFY; }
     Operation* InstantiateOperation(keymaster_digest_t digest, EVP_PKEY* key) {
-        return new (std::nothrow) EcdsaVerifyOperation(KM_PURPOSE_VERIFY, digest, key);
+        return new (std::nothrow) EcdsaVerifyOperation(digest, key);
     }
 };
 

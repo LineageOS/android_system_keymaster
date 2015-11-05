@@ -76,10 +76,6 @@ RsaOperation* RsaOperationFactory::CreateRsaOperation(const Key& key,
     keymaster_digest_t digest = KM_DIGEST_NONE;
     if (require_digest && !GetAndValidateDigest(begin_params, key, &digest, error))
         return nullptr;
-    if (!require_digest && begin_params.find(TAG_DIGEST) != -1) {
-        *error = KM_ERROR_UNSUPPORTED_DIGEST;
-        return nullptr;
-    }
 
     UniquePtr<EVP_PKEY, EVP_PKEY_Delete> rsa(GetRsaKey(key, error));
     if (!rsa.get())

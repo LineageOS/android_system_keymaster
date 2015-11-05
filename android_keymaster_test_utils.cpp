@@ -23,6 +23,8 @@
 #include <keymaster/android_keymaster_messages.h>
 #include <keymaster/android_keymaster_utils.h>
 
+using std::copy_if;
+using std::find_if;
 using std::is_permutation;
 using std::ostream;
 using std::string;
@@ -634,6 +636,228 @@ void Keymaster1Test::corrupt_key_blob() {
     assert(blob_.key_material);
     uint8_t* tmp = const_cast<uint8_t*>(blob_.key_material);
     ++tmp[blob_.key_material_size / 2];
+}
+
+class Sha256OnlyWrapper {
+  public:
+    Sha256OnlyWrapper(const keymaster1_device_t* wrapped_device) : wrapped_device_(wrapped_device) {
+
+        new_module = *wrapped_device_->common.module;
+        new_module_name = std::string("SHA 256-only ") + wrapped_device_->common.module->name;
+        new_module.name = new_module_name.c_str();
+
+        memset(&device_, 0, sizeof(device_));
+        device_.common.module = &new_module;
+
+        device_.common.close = close_device;
+        device_.get_supported_algorithms = get_supported_algorithms;
+        device_.get_supported_block_modes = get_supported_block_modes;
+        device_.get_supported_padding_modes = get_supported_padding_modes;
+        device_.get_supported_digests = get_supported_digests;
+        device_.get_supported_import_formats = get_supported_import_formats;
+        device_.get_supported_export_formats = get_supported_export_formats;
+        device_.add_rng_entropy = add_rng_entropy;
+        device_.generate_key = generate_key;
+        device_.get_key_characteristics = get_key_characteristics;
+        device_.import_key = import_key;
+        device_.export_key = export_key;
+        device_.begin = begin;
+        device_.update = update;
+        device_.finish = finish;
+        device_.abort = abort;
+    }
+
+    keymaster1_device_t* keymaster_device() { return &device_; }
+
+    static bool is_supported(keymaster_digest_t digest) {
+        return digest == KM_DIGEST_NONE || digest == KM_DIGEST_SHA_2_256;
+    }
+
+    static bool all_digests_supported(const keymaster_key_param_set_t* params) {
+        for (size_t i = 0; i < params->length; ++i)
+            if (params->params[i].tag == TAG_DIGEST)
+                if (!is_supported(static_cast<keymaster_digest_t>(params->params[i].enumerated)))
+                    return false;
+        return true;
+    }
+
+    static const keymaster_key_param_t*
+    get_algorithm_param(const keymaster_key_param_set_t* params) {
+        keymaster_key_param_t* end = params->params + params->length;
+        auto alg_ptr = std::find_if(params->params, end, [](keymaster_key_param_t& p) {
+            return p.tag == KM_TAG_ALGORITHM;
+        });
+        if (alg_ptr == end)
+            return nullptr;
+        return alg_ptr;
+    }
+
+    static int close_device(hw_device_t* dev) {
+        Sha256OnlyWrapper* wrapper = reinterpret_cast<Sha256OnlyWrapper*>(dev);
+        const keymaster1_device_t* wrapped_device = wrapper->wrapped_device_;
+        delete wrapper;
+        return wrapped_device->common.close(const_cast<hw_device_t*>(&wrapped_device->common));
+    }
+
+    static const keymaster1_device_t* unwrap(const keymaster1_device_t* dev) {
+        return reinterpret_cast<const Sha256OnlyWrapper*>(dev)->wrapped_device_;
+    }
+
+    static keymaster_error_t get_supported_algorithms(const struct keymaster1_device* dev,
+                                                      keymaster_algorithm_t** algorithms,
+                                                      size_t* algorithms_length) {
+        return unwrap(dev)->get_supported_algorithms(unwrap(dev), algorithms, algorithms_length);
+    }
+    static keymaster_error_t get_supported_block_modes(const struct keymaster1_device* dev,
+                                                       keymaster_algorithm_t algorithm,
+                                                       keymaster_purpose_t purpose,
+                                                       keymaster_block_mode_t** modes,
+                                                       size_t* modes_length) {
+        return unwrap(dev)
+            ->get_supported_block_modes(unwrap(dev), algorithm, purpose, modes, modes_length);
+    }
+    static keymaster_error_t get_supported_padding_modes(const struct keymaster1_device* dev,
+                                                         keymaster_algorithm_t algorithm,
+                                                         keymaster_purpose_t purpose,
+                                                         keymaster_padding_t** modes,
+                                                         size_t* modes_length) {
+        return unwrap(dev)
+            ->get_supported_padding_modes(unwrap(dev), algorithm, purpose, modes, modes_length);
+    }
+
+    static keymaster_error_t get_supported_digests(const keymaster1_device_t* dev,
+                                                   keymaster_algorithm_t algorithm,
+                                                   keymaster_purpose_t purpose,
+                                                   keymaster_digest_t** digests,
+                                                   size_t* digests_length) {
+        keymaster_error_t error = unwrap(dev)->get_supported_digests(
+            unwrap(dev), algorithm, purpose, digests, digests_length);
+        if (error != KM_ERROR_OK)
+            return error;
+
+        std::vector<keymaster_digest_t> filtered_digests;
+        std::copy_if(*digests, *digests + *digests_length, std::back_inserter(filtered_digests),
+                     [](keymaster_digest_t digest) { return is_supported(digest); });
+
+        free(*digests);
+        *digests_length = filtered_digests.size();
+        *digests = reinterpret_cast<keymaster_digest_t*>(
+            malloc(*digests_length * sizeof(keymaster_digest_t)));
+        std::copy(filtered_digests.begin(), filtered_digests.end(), *digests);
+
+        return KM_ERROR_OK;
+    }
+
+    static keymaster_error_t get_supported_import_formats(const struct keymaster1_device* dev,
+                                                          keymaster_algorithm_t algorithm,
+                                                          keymaster_key_format_t** formats,
+                                                          size_t* formats_length) {
+        return unwrap(dev)
+            ->get_supported_import_formats(unwrap(dev), algorithm, formats, formats_length);
+    }
+    static keymaster_error_t get_supported_export_formats(const struct keymaster1_device* dev,
+                                                          keymaster_algorithm_t algorithm,
+                                                          keymaster_key_format_t** formats,
+                                                          size_t* formats_length) {
+        return unwrap(dev)
+            ->get_supported_export_formats(unwrap(dev), algorithm, formats, formats_length);
+    }
+    static keymaster_error_t add_rng_entropy(const struct keymaster1_device* dev,
+                                             const uint8_t* data, size_t data_length) {
+        return unwrap(dev)->add_rng_entropy(unwrap(dev), data, data_length);
+    }
+
+    static keymaster_error_t generate_key(const keymaster1_device_t* dev,
+                                          const keymaster_key_param_set_t* params,
+                                          keymaster_key_blob_t* key_blob,
+                                          keymaster_key_characteristics_t** characteristics) {
+        auto alg_ptr = get_algorithm_param(params);
+        if (!alg_ptr)
+            return KM_ERROR_UNSUPPORTED_ALGORITHM;
+        if (alg_ptr->enumerated == KM_ALGORITHM_HMAC && !all_digests_supported(params))
+            return KM_ERROR_UNSUPPORTED_DIGEST;
+
+        return unwrap(dev)->generate_key(unwrap(dev), params, key_blob, characteristics);
+    }
+
+    static keymaster_error_t
+    get_key_characteristics(const struct keymaster1_device* dev,
+                            const keymaster_key_blob_t* key_blob, const keymaster_blob_t* client_id,
+                            const keymaster_blob_t* app_data,
+                            keymaster_key_characteristics_t** characteristics) {
+        return unwrap(dev)
+            ->get_key_characteristics(unwrap(dev), key_blob, client_id, app_data, characteristics);
+    }
+
+    static keymaster_error_t
+    import_key(const keymaster1_device_t* dev, const keymaster_key_param_set_t* params,
+               keymaster_key_format_t key_format, const keymaster_blob_t* key_data,
+               keymaster_key_blob_t* key_blob, keymaster_key_characteristics_t** characteristics) {
+        auto alg_ptr = get_algorithm_param(params);
+        if (!alg_ptr)
+            return KM_ERROR_UNSUPPORTED_ALGORITHM;
+        if (alg_ptr->enumerated == KM_ALGORITHM_HMAC && !all_digests_supported(params))
+            return KM_ERROR_UNSUPPORTED_DIGEST;
+
+        return unwrap(dev)
+            ->import_key(unwrap(dev), params, key_format, key_data, key_blob, characteristics);
+    }
+
+    static keymaster_error_t export_key(const struct keymaster1_device* dev,  //
+                                        keymaster_key_format_t export_format,
+                                        const keymaster_key_blob_t* key_to_export,
+                                        const keymaster_blob_t* client_id,
+                                        const keymaster_blob_t* app_data,
+                                        keymaster_blob_t* export_data) {
+        return unwrap(dev)->export_key(unwrap(dev), export_format, key_to_export, client_id,
+                                       app_data, export_data);
+    }
+
+    static keymaster_error_t begin(const keymaster1_device_t* dev,  //
+                                   keymaster_purpose_t purpose, const keymaster_key_blob_t* key,
+                                   const keymaster_key_param_set_t* in_params,
+                                   keymaster_key_param_set_t* out_params,
+                                   keymaster_operation_handle_t* operation_handle) {
+        if (!all_digests_supported(in_params))
+            return KM_ERROR_UNSUPPORTED_DIGEST;
+        return unwrap(dev)
+            ->begin(unwrap(dev), purpose, key, in_params, out_params, operation_handle);
+    }
+
+    static keymaster_error_t update(const keymaster1_device_t* dev,
+                                    keymaster_operation_handle_t operation_handle,
+                                    const keymaster_key_param_set_t* in_params,
+                                    const keymaster_blob_t* input, size_t* input_consumed,
+                                    keymaster_key_param_set_t* out_params,
+                                    keymaster_blob_t* output) {
+        return unwrap(dev)->update(unwrap(dev), operation_handle, in_params, input, input_consumed,
+                                   out_params, output);
+    }
+
+    static keymaster_error_t finish(const struct keymaster1_device* dev,  //
+                                    keymaster_operation_handle_t operation_handle,
+                                    const keymaster_key_param_set_t* in_params,
+                                    const keymaster_blob_t* signature,
+                                    keymaster_key_param_set_t* out_params,
+                                    keymaster_blob_t* output) {
+        return unwrap(dev)
+            ->finish(unwrap(dev), operation_handle, in_params, signature, out_params, output);
+    }
+
+    static keymaster_error_t abort(const struct keymaster1_device* dev,
+                                   keymaster_operation_handle_t operation_handle) {
+        return unwrap(dev)->abort(unwrap(dev), operation_handle);
+    }
+
+  private:
+    keymaster1_device_t device_;
+    const keymaster1_device_t* wrapped_device_;
+    hw_module_t new_module;
+    string new_module_name;
+};
+
+keymaster1_device_t* make_device_sha256_only(keymaster1_device_t* device) {
+    return (new Sha256OnlyWrapper(device))->keymaster_device();
 }
 
 }  // namespace test

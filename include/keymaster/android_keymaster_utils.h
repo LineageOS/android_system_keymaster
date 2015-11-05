@@ -301,6 +301,17 @@ struct KeymasterKeyBlob : public keymaster_key_blob_t {
     }
 };
 
+struct Characteristics_Delete {
+    void operator()(keymaster_key_characteristics_t* p) {
+        keymaster_free_characteristics(p);
+        free(p);
+    }
+};
+
+struct Malloc_Delete {
+    void operator()(void* p) { free(p); }
+};
+
 }  // namespace keymaster
 
 #endif  // SYSTEM_KEYMASTER_ANDROID_KEYMASTER_UTILS_H_

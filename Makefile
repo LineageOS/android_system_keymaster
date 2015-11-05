@@ -44,14 +44,14 @@ CXX=/usr/bin/clang
 CXXFLAGS +=-std=c++11 -DKEYMASTER_CLANG_TEST_BUILD
 CFLAGS += -DKEYMASTER_CLANG_TEST_BUILD
 else
-CXXFLAGS +=-std=c++0x -fprofile-arcs
-CFLAGS += -fprofile-arcs
+CXXFLAGS +=-std=c++0x -fprofile-arcs -ftest-coverage
+CFLAGS += -fprofile-arcs -ftest-coverage
 endif
 
 LDFLAGS += $(ARCH_FLAGS)
 CPPFLAGS = $(INCLUDES) -g -O0 -MD -MP
 CXXFLAGS += -Wall -Werror -Wno-unused -Winit-self -Wpointer-arith	-Wunused-parameter \
-	-Werror=sign-compare -ftest-coverage -fno-permissive \
+	-Werror=sign-compare -Werror=return-type -fno-permissive \
 	-Wno-deprecated-declarations -fno-exceptions -DKEYMASTER_NAME_TAGS $(ARCH_FLAGS)
 CFLAGS += $(ARCH_FLAGS)
 
@@ -61,7 +61,6 @@ CFLAGS += $(ARCH_FLAGS)
 LDLIBS=-L$(BASE)/../boringssl/build/crypto -lcrypto -lpthread -lstdc++ -lgcov
 
 CPPSRCS=\
-	aead_mode_operation.cpp \
 	aes_key.cpp \
 	aes_operation.cpp \
 	android_keymaster.cpp \
@@ -78,6 +77,8 @@ CPPSRCS=\
 	ec_key.cpp \
 	ec_key_factory.cpp \
 	ec_keymaster0_key.cpp \
+	ec_keymaster1_key.cpp \
+	ecdsa_keymaster1_operation.cpp \
 	ecdsa_operation.cpp \
 	gtest_main.cpp \
 	hkdf.cpp \
@@ -90,6 +91,7 @@ CPPSRCS=\
 	key.cpp \
 	key_blob_test.cpp \
 	keymaster0_engine.cpp \
+	keymaster1_engine.cpp \
 	keymaster_enforcement.cpp \
 	keymaster_enforcement_test.cpp \
 	logger.cpp \
@@ -101,6 +103,8 @@ CPPSRCS=\
 	rsa_key.cpp \
 	rsa_key_factory.cpp \
 	rsa_keymaster0_key.cpp \
+	rsa_keymaster1_key.cpp \
+	rsa_keymaster1_operation.cpp \
 	rsa_operation.cpp \
 	serializable.cpp \
 	soft_keymaster_context.cpp \
@@ -231,12 +235,15 @@ android_keymaster_test: android_keymaster_test.o \
 	ec_key.o \
 	ec_key_factory.o \
 	ec_keymaster0_key.o \
+	ec_keymaster1_key.o \
+	ecdsa_keymaster1_operation.o \
 	ecdsa_operation.o \
 	hmac_key.o \
 	hmac_operation.o \
 	integrity_assured_key_blob.o \
 	key.o \
 	keymaster0_engine.o \
+	keymaster1_engine.o \
 	keymaster_enforcement.o \
 	logger.o \
 	ocb.o \
@@ -248,6 +255,8 @@ android_keymaster_test: android_keymaster_test.o \
 	rsa_key.o \
 	rsa_key_factory.o \
 	rsa_keymaster0_key.o \
+	rsa_keymaster1_key.o \
+	rsa_keymaster1_operation.o \
 	rsa_operation.o \
 	serializable.o \
 	soft_keymaster_context.o \

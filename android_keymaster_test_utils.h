@@ -158,8 +158,9 @@ class Keymaster1TestInstanceCreator {
     virtual ~Keymaster1TestInstanceCreator(){};
     virtual keymaster1_device_t* CreateDevice() const = 0;
 
-    virtual bool algorithm_in_hardware(keymaster_algorithm_t algorithm) const = 0;
+    virtual bool algorithm_in_km0_hardware(keymaster_algorithm_t algorithm) const = 0;
     virtual int keymaster0_calls() const = 0;
+    virtual int minimal_digest_set() const { return false; }
 };
 
 // Use a shared_ptr because it's copyable.
@@ -443,6 +444,13 @@ struct Keymaster0CountingWrapper : public keymaster0_device_t {
     keymaster0_device_t* device_;
     int counter_;
 };
+
+
+/**
+ * This function takes a keymaster1_device_t and wraps it in an adapter that supports only
+ * KM_DIGEST_SHA_2_256.
+ */
+keymaster1_device_t* make_device_sha256_only(keymaster1_device_t* device);
 
 }  // namespace test
 }  // namespace keymaster

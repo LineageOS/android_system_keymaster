@@ -58,7 +58,7 @@ class RsaOperation : public Operation {
     keymaster_error_t InitDigest();
 
     EVP_PKEY* rsa_key_;
-    keymaster_padding_t padding_;
+    const keymaster_padding_t padding_;
     Buffer data_;
     const keymaster_digest_t digest_;
     const EVP_MD* digest_algorithm_;
@@ -129,9 +129,9 @@ class RsaVerifyOperation : public RsaDigestingOperation {
  */
 class RsaCryptOperation : public RsaOperation {
   public:
-    RsaCryptOperation(keymaster_purpose_t, keymaster_digest_t digest, keymaster_padding_t padding,
-                      EVP_PKEY* key)
-        : RsaOperation(KM_PURPOSE_ENCRYPT, digest, padding, key) {}
+    RsaCryptOperation(keymaster_purpose_t purpose, keymaster_digest_t digest,
+                      keymaster_padding_t padding, EVP_PKEY* key)
+        : RsaOperation(purpose, digest, padding, key) {}
 
   protected:
     keymaster_error_t SetOaepDigestIfRequired(EVP_PKEY_CTX* pkey_ctx);
@@ -189,9 +189,7 @@ class RsaOperationFactory : public OperationFactory {
 };
 
 /**
- * Abstract base for RSA operations that digest their input (signing and verification).  This class
- * does most of the work of creation of RSA digesting operations, delegating only the actual
- * operation instantiation.
+ * Abstract base for RSA operations that digest their input (signing and verification).
  */
 class RsaDigestingOperationFactory : public RsaOperationFactory {
   public:

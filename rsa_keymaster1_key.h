@@ -14,29 +14,33 @@
  * limitations under the License.
  */
 
-#ifndef SYSTEM_KEYMASTER_EC_KEYMASTER0_KEY_H_
-#define SYSTEM_KEYMASTER_EC_KEYMASTER0_KEY_H_
+#ifndef SYSTEM_KEYMASTER_RSA_KEYMASTER1_KEY_H_
+#define SYSTEM_KEYMASTER_RSA_KEYMASTER1_KEY_H_
 
-#include <openssl/ec_key.h>
+#include <openssl/rsa.h>
 
-#include <keymaster/ec_key_factory.h>
+#include <keymaster/rsa_key_factory.h>
 
-#include "ec_key.h"
+#include "keymaster1_engine.h"
+#include "rsa_key.h"
 
 namespace keymaster {
 
-class Keymaster0Engine;
 class SoftKeymasterContext;
 
 /**
- * An EcdsaKeyFactory which can delegate key generation, importing and loading operations to a
- * keymaster0-backed OpenSSL engine.
+ * RsaKeymaster1KeyFactory is a KeyFactory that creates and loads keys which are actually backed by
+ * a hardware keymaster1 module, but which does not support all keymaster1 digests.  If unsupported
+ * digests are found during generation or import, KM_DIGEST_NONE is added to the key description,
+ * then the operations handle the unsupported digests in software.
+ *
+ * If unsupported digests are requested and KM_PAD_RSA_PSS or KM_PAD_RSA_OAEP is also requested, but
+ * KM_PAD_NONE is not present KM_PAD_NONE will be added to the description, to allow for
+ * software padding as well as software digesting.
  */
-class EcdsaKeymaster0KeyFactory : public EcKeyFactory {
-    typedef EcKeyFactory super;
-
+class RsaKeymaster1KeyFactory : public RsaKeyFactory {
   public:
-    EcdsaKeymaster0KeyFactory(const SoftKeymasterContext* context, const Keymaster0Engine* engine);
+    RsaKeymaster1KeyFactory(const SoftKeymasterContext* context, const Keymaster1Engine* engine);
 
     keymaster_error_t GenerateKey(const AuthorizationSet& key_description,
                                   KeymasterKeyBlob* key_blob, AuthorizationSet* hw_enforced,
@@ -54,22 +58,27 @@ class EcdsaKeymaster0KeyFactory : public EcKeyFactory {
                               const AuthorizationSet& sw_enforced,
                               UniquePtr<Key>* key) const override;
 
+    OperationFactory* GetOperationFactory(keymaster_purpose_t purpose) const override;
+
   private:
-    const Keymaster0Engine* engine_;
+    const Keymaster1Engine* engine_;
+
+    std::unique_ptr<OperationFactory> sign_factory_;
+    std::unique_ptr<OperationFactory> decrypt_factory_;
+    std::unique_ptr<OperationFactory> verify_factory_;
+    std::unique_ptr<OperationFactory> encrypt_factory_;
 };
 
-class EcKeymaster0Key : public EcKey {
-    typedef EcKey super;
-
+class RsaKeymaster1Key : public RsaKey {
   public:
-    EcKeymaster0Key(EC_KEY* ec_key, const AuthorizationSet& hw_enforced,
-                    const AuthorizationSet& sw_enforced, const Keymaster0Engine* engine,
-                    keymaster_error_t* error);
+    RsaKeymaster1Key(RSA* rsa_key, const AuthorizationSet& hw_enforced,
+                     const AuthorizationSet& sw_enforced, const Keymaster1Engine* engine,
+                     keymaster_error_t* error);
 
   private:
-    const Keymaster0Engine* engine_;
+    const Keymaster1Engine* engine_;
 };
 
 }  // namespace keymaster
 
-#endif  // SYSTEM_KEYMASTER_EC_KEYMASTER0_KEY_H_
+#endif  // SYSTEM_KEYMASTER_RSA_KEYMASTER1_KEY_H_

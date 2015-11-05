@@ -76,7 +76,7 @@ LOCAL_C_INCLUDES := \
 LOCAL_SHARED_LIBRARIES := libcrypto libkeymaster_messages
 LOCAL_CFLAGS = -Wall -Werror -Wunused
 LOCAL_CLANG_CFLAGS += -Wno-error=unused-const-variable -Wno-error=unused-private-field
-# Ignore benigh warnings for now.
+# Ignore benign warnings for now.
 LOCAL_CLANG_CFLAGS += -Wno-error=unused-private-field
 LOCAL_MODULE_TAGS := optional
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/include
@@ -93,8 +93,13 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := libsoftkeymasterdevice
 LOCAL_SRC_FILES := \
 	ec_keymaster0_key.cpp \
+	ec_keymaster1_key.cpp \
+	ecdsa_keymaster1_operation.cpp \
 	keymaster0_engine.cpp \
+	keymaster1_engine.cpp \
 	rsa_keymaster0_key.cpp \
+	rsa_keymaster1_key.cpp \
+	rsa_keymaster1_operation.cpp \
 	soft_keymaster_context.cpp \
 	soft_keymaster_device.cpp \
 	soft_keymaster_logger.cpp
@@ -108,6 +113,18 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/include
 include $(BUILD_SHARED_LIBRARY)
+
+###
+# libkeymasterfiles is an empty library that exports all of the files in keymaster as includes.
+###
+include $(CLEAR_VARS)
+LOCAL_MODULE := libkeymasterfiles
+LOCAL_EXPORT_C_INCLUDE_DIRS := \
+	$(LOCAL_PATH) \
+	$(LOCAL_PATH)/include
+LOCAL_MODULE_TAGS := optional
+LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+include $(BUILD_STATIC_LIBRARY)
 
 # Unit tests for libkeymaster
 include $(CLEAR_VARS)
