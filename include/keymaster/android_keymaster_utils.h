@@ -314,17 +314,6 @@ struct Malloc_Delete {
     void operator()(void* p) { free(p); }
 };
 
-struct CertificateChainDelete {
-    void operator()(keymaster_cert_chain_t* p) {
-        if (!p)
-            return;
-        for (size_t i = 0; i < p->entry_count; ++i)
-            delete[] p->entries[i].data;
-        delete[] p->entries;
-        delete p;
-    }
-};
-
 }  // namespace keymaster
 
 #endif  // SYSTEM_KEYMASTER_ANDROID_KEYMASTER_UTILS_H_

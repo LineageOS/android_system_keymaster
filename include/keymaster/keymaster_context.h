@@ -19,8 +19,6 @@
 
 #include <assert.h>
 
-#include <openssl/evp.h>
-
 #include <hardware/keymaster_defs.h>
 #include <keymaster/keymaster_enforcement.h>
 
@@ -128,20 +126,6 @@ class KeymasterContext {
      * Return the enforcement policy for this context, or null if no enforcement should be done.
      */
     virtual KeymasterEnforcement* enforcement_policy() = 0;
-
-    /**
-     * Return the attestation signing key of the specified algorithm (KM_ALGORITHM_RSA or
-     * KM_ALGORITHM_EC).
-     */
-    virtual EVP_PKEY* AttestationKey(keymaster_algorithm_t algorithm,
-                                     keymaster_error_t* error) const = 0;
-
-    /**
-     * Return the certificate chain of the attestation signing key of the specified algorithm
-     * (KM_ALGORITHM_RSA or KM_ALGORITHM_EC).
-     */
-    virtual keymaster_cert_chain_t* AttestationChain(keymaster_algorithm_t algorithm,
-                                                     keymaster_error_t* error) const = 0;
 
   private:
     // Uncopyable.

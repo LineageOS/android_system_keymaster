@@ -71,11 +71,6 @@ class SoftKeymasterContext : public KeymasterContext {
     keymaster_error_t AddRngEntropy(const uint8_t* buf, size_t length) const override;
     keymaster_error_t GenerateRandom(uint8_t* buf, size_t length) const override;
 
-    EVP_PKEY* AttestationKey(keymaster_algorithm_t algorithm,
-                             keymaster_error_t* error) const override;
-    keymaster_cert_chain_t* AttestationChain(keymaster_algorithm_t algorithm,
-                                             keymaster_error_t* error) const override;
-
     KeymasterEnforcement* enforcement_policy() override {
         // SoftKeymaster does no enforcement; it's all done by Keystore.
         return nullptr;
