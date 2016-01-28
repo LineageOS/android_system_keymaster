@@ -364,23 +364,6 @@ void AndroidKeymaster::ExportKey(const ExportKeyRequest& request, ExportKeyRespo
     }
 }
 
-void AndroidKeymaster::AttestKey(const AttestKeyRequest& request, AttestKeyResponse* response) {
-    if (!response)
-        return;
-
-    AuthorizationSet tee_enforced;
-    AuthorizationSet sw_enforced;
-    const KeyFactory* key_factory;
-    UniquePtr<Key> key;
-    response->error = LoadKey(request.key_blob, request.attest_params, &tee_enforced, &sw_enforced,
-                              &key_factory, &key);
-    if (response->error != KM_ERROR_OK)
-        return;
-
-    response->error = key->GenerateAttestation(*context_, request.attest_params, tee_enforced,
-                                               sw_enforced, &response->certificate_chain);
-}
-
 void AndroidKeymaster::ImportKey(const ImportKeyRequest& request, ImportKeyResponse* response) {
     if (response == NULL)
         return;
