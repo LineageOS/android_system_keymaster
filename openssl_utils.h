@@ -41,32 +41,41 @@ class EvpMdCtxCleaner {
     EVP_MD_CTX* ctx_;
 };
 
-template <typename T, void (*FreeFunc)(T*)> struct OpenSslObjectDeleter {
-    void operator()(T* p) { FreeFunc(p); }
+struct EC_KEY_Delete {
+    void operator()(EC_KEY* p) { EC_KEY_free(p); }
 };
 
-#define DEFINE_OPENSSL_OBJECT_POINTER(name)                                                        \
-    typedef OpenSslObjectDeleter<name, name##_free> name##_Delete;                                 \
-    typedef UniquePtr<name, name##_Delete> name##_Ptr;
+struct EC_POINT_Delete {
+    void operator()(EC_POINT* p) { EC_POINT_free(p); }
+};
 
-DEFINE_OPENSSL_OBJECT_POINTER(ASN1_INTEGER)
-DEFINE_OPENSSL_OBJECT_POINTER(ASN1_OBJECT)
-DEFINE_OPENSSL_OBJECT_POINTER(ASN1_OCTET_STRING)
-DEFINE_OPENSSL_OBJECT_POINTER(ASN1_TIME)
-DEFINE_OPENSSL_OBJECT_POINTER(BN_CTX);
-DEFINE_OPENSSL_OBJECT_POINTER(EC_GROUP);
-DEFINE_OPENSSL_OBJECT_POINTER(EC_KEY);
-DEFINE_OPENSSL_OBJECT_POINTER(EC_POINT);
-DEFINE_OPENSSL_OBJECT_POINTER(ENGINE);
-DEFINE_OPENSSL_OBJECT_POINTER(EVP_PKEY);
-DEFINE_OPENSSL_OBJECT_POINTER(PKCS8_PRIV_KEY_INFO);
-DEFINE_OPENSSL_OBJECT_POINTER(RSA);
-DEFINE_OPENSSL_OBJECT_POINTER(X509)
-DEFINE_OPENSSL_OBJECT_POINTER(X509_EXTENSION)
-DEFINE_OPENSSL_OBJECT_POINTER(X509_NAME)
+struct EVP_PKEY_Delete {
+    void operator()(EVP_PKEY* p) const { EVP_PKEY_free(p); }
+};
 
-typedef OpenSslObjectDeleter<BIGNUM, BN_free> BIGNUM_Delete;
-typedef UniquePtr<BIGNUM, BIGNUM_Delete> BIGNUM_Ptr;
+struct BIGNUM_Delete {
+    void operator()(BIGNUM* p) const { BN_free(p); }
+};
+
+struct BN_CTX_Delete {
+    void operator()(BN_CTX* p) const { BN_CTX_free(p); }
+};
+
+struct PKCS8_PRIV_KEY_INFO_Delete {
+    void operator()(PKCS8_PRIV_KEY_INFO* p) const { PKCS8_PRIV_KEY_INFO_free(p); }
+};
+
+struct RSA_Delete {
+    void operator()(RSA* p) { RSA_free(p); }
+};
+
+struct EC_GROUP_Delete {
+    void operator()(EC_GROUP* p) { EC_GROUP_free(p); }
+};
+
+struct ENGINE_Delete {
+    void operator()(ENGINE* p) { ENGINE_free(p); }
+};
 
 keymaster_error_t ec_get_group_size(const EC_GROUP* group, size_t* key_size_bits);
 EC_GROUP* ec_get_group(keymaster_ec_curve_t curve);

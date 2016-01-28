@@ -152,6 +152,10 @@ struct KM_KEY_DESCRIPTION_Delete {
     void operator()(KM_KEY_DESCRIPTION* p) { KM_KEY_DESCRIPTION_free(p); }
 };
 
+struct ASN1_INTEGER_Delete {
+    void operator()(ASN1_INTEGER* p) { ASN1_INTEGER_free(p); }
+};
+
 static uint32_t get_uint32_value(const keymaster_key_param_t& param) {
     switch (keymaster_tag_get_type(param.tag)) {
     case KM_ENUM:
