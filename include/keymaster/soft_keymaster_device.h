@@ -200,10 +200,6 @@ class SoftKeymasterDevice {
                                         const keymaster_blob_t* client_id,
                                         const keymaster_blob_t* app_data,
                                         keymaster_blob_t* export_data);
-    static keymaster_error_t attest_key(const keymaster2_device_t* dev,
-                                        const keymaster_key_blob_t* key_to_attest,
-                                        const keymaster_key_param_set_t* attest_params,
-                                        keymaster_cert_chain_t* cert_chain);
     static keymaster_error_t delete_key(const keymaster2_device_t* dev,
                                         const keymaster_key_blob_t* key);
     static keymaster_error_t delete_all_keys(const keymaster2_device_t* dev);

@@ -28,16 +28,14 @@
 #include <keymaster/softkeymaster.h>
 
 #include "android_keymaster_test_utils.h"
-#include "attestation_record.h"
 #include "keymaster0_engine.h"
 #include "openssl_utils.h"
 
 using std::ifstream;
 using std::istreambuf_iterator;
-using std::ofstream;
 using std::string;
-using std::unique_ptr;
 using std::vector;
+using std::unique_ptr;
 
 extern "C" {
 int __android_log_print(int prio, const char* tag, const char* fmt);
@@ -3444,128 +3442,6 @@ TEST_P(Keymaster0AdapterTest, OldHwKeymaster0RsaBlobGetCharacteristics) {
     EXPECT_FALSE(contains(sw_enforced(), TAG_PADDING, KM_PAD_NONE));
 
     EXPECT_EQ(1, GetParam()->keymaster0_calls());
-}
-
-typedef Keymaster2Test AttestationTest;
-INSTANTIATE_TEST_CASE_P(AndroidKeymasterTest, AttestationTest, test_params);
-
-static X509* parse_cert_blob(const keymaster_blob_t& blob) {
-    const uint8_t* p = blob.data;
-    return d2i_X509(nullptr, &p, blob.data_length);
-}
-
-static bool verify_chain(const keymaster_cert_chain_t& chain) {
-    for (size_t i = 0; i < chain.entry_count - 1; ++i) {
-        keymaster_blob_t& key_cert_blob = chain.entries[i];
-        keymaster_blob_t& signing_cert_blob = chain.entries[i + 1];
-
-        X509_Ptr key_cert(parse_cert_blob(key_cert_blob));
-        X509_Ptr signing_cert(parse_cert_blob(signing_cert_blob));
-        EXPECT_TRUE(!!key_cert.get() && !!signing_cert.get());
-        if (!key_cert.get() || !signing_cert.get())
-            return false;
-
-        EVP_PKEY_Ptr signing_pubkey(X509_get_pubkey(signing_cert.get()));
-        EXPECT_TRUE(!!signing_pubkey.get());
-        if (!signing_pubkey.get())
-            return false;
-
-        EXPECT_EQ(1, X509_verify(key_cert.get(), signing_pubkey.get()))
-            << "Verification of certificate " << i << " failed";
-    }
-
-    return true;
-}
-
-// Extract attestation record from cert. Returned object is still part of cert; don't free it
-// separately.
-static ASN1_OCTET_STRING* get_attestation_record(X509* certificate) {
-    ASN1_OBJECT_Ptr oid(OBJ_txt2obj(kAttestionRecordOid, 1 /* dotted string format */));
-    EXPECT_TRUE(!!oid.get());
-    if (!oid.get())
-        return nullptr;
-
-    int location = X509_get_ext_by_OBJ(certificate, oid.get(), -1 /* search from beginning */);
-    EXPECT_NE(-1, location);
-    if (location == -1)
-        return nullptr;
-
-    X509_EXTENSION* attest_rec_ext = X509_get_ext(certificate, location);
-    EXPECT_TRUE(!!attest_rec_ext);
-    if (!attest_rec_ext)
-        return nullptr;
-
-    ASN1_OCTET_STRING* attest_rec = X509_EXTENSION_get_data(attest_rec_ext);
-    EXPECT_TRUE(!!attest_rec);
-    return attest_rec;
-}
-
-static bool verify_attestation_record(AuthorizationSet expected_sw_enforced,
-                                      AuthorizationSet expected_tee_enforced,
-                                      const keymaster_blob_t& attestation_cert) {
-
-    X509_Ptr cert(parse_cert_blob(attestation_cert));
-    EXPECT_TRUE(!!cert.get());
-    if (!cert.get())
-        return false;
-
-    ASN1_OCTET_STRING* attest_rec = get_attestation_record(cert.get());
-    EXPECT_TRUE(!!attest_rec);
-    if (!attest_rec)
-        return false;
-
-    AuthorizationSet att_sw_enforced;
-    AuthorizationSet att_tee_enforced;
-    EXPECT_EQ(KM_ERROR_OK, parse_attestation_record(attest_rec->data, attest_rec->length,
-                                                    &att_sw_enforced, &att_tee_enforced));
-
-    // Add TAG_USER_ID to the attestation sw-enforced list, because user IDs are not included in
-    // attestations, since they're meaningless off-device.
-    uint32_t user_id;
-    if (expected_sw_enforced.GetTagValue(TAG_USER_ID, &user_id))
-        att_sw_enforced.push_back(TAG_USER_ID, user_id);
-    if (expected_tee_enforced.GetTagValue(TAG_USER_ID, &user_id))
-        att_tee_enforced.push_back(TAG_USER_ID, user_id);
-
-    att_sw_enforced.Sort();
-    expected_sw_enforced.Sort();
-    EXPECT_EQ(expected_sw_enforced, att_sw_enforced);
-
-    att_tee_enforced.Sort();
-    expected_tee_enforced.Sort();
-    EXPECT_EQ(expected_tee_enforced, att_tee_enforced);
-
-    return true;
-}
-
-TEST_P(AttestationTest, RsaSignedWithRsa) {
-    ASSERT_EQ(KM_ERROR_OK, GenerateKey(AuthorizationSetBuilder()
-                                           .RsaSigningKey(256, 3)
-                                           .Digest(KM_DIGEST_NONE)
-                                           .Padding(KM_PAD_NONE)));
-
-    keymaster_cert_chain_t cert_chain;
-    EXPECT_EQ(KM_ERROR_OK, AttestKey(KM_ALGORITHM_RSA, &cert_chain));
-    EXPECT_EQ(3U, cert_chain.entry_count);
-    EXPECT_TRUE(verify_chain(cert_chain));
-    EXPECT_TRUE(verify_attestation_record(sw_enforced(), hw_enforced(), cert_chain.entries[0]));
-
-    keymaster_free_cert_chain(&cert_chain);
-}
-
-TEST_P(AttestationTest, RsaSignedWithEc) {
-    ASSERT_EQ(KM_ERROR_OK, GenerateKey(AuthorizationSetBuilder()
-                                           .RsaSigningKey(256, 3)
-                                           .Digest(KM_DIGEST_NONE)
-                                           .Padding(KM_PAD_NONE)));
-
-    keymaster_cert_chain_t cert_chain;
-    EXPECT_EQ(KM_ERROR_OK, AttestKey(KM_ALGORITHM_EC, &cert_chain));
-    EXPECT_EQ(3U, cert_chain.entry_count);
-    EXPECT_TRUE(verify_chain(cert_chain));
-    EXPECT_TRUE(verify_attestation_record(sw_enforced(), hw_enforced(), cert_chain.entries[0]));
-
-    keymaster_free_cert_chain(&cert_chain);
 }
 
 TEST(SoftKeymasterWrapperTest, CheckKeymaster2Device) {

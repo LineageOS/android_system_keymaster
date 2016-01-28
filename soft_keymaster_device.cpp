@@ -280,8 +280,8 @@ void SoftKeymasterDevice::initialize_device_struct(uint32_t flags) {
     km2_device_.get_key_characteristics = get_key_characteristics;
     km2_device_.import_key = import_key;
     km2_device_.export_key = export_key;
-    km2_device_.agree_key = nullptr;  // TODO(swillden) Implement ECDH
-    km2_device_.attest_key = attest_key;
+    km2_device_.agree_key = nullptr;    // TODO(swillden) Implement ECDH
+    km2_device_.attest_key = nullptr;   // TODO(swillden) Implement attestation
     km2_device_.upgrade_key = nullptr;  // TODO(swillden) Implement upgrade
     km2_device_.delete_key = delete_key;
     km2_device_.delete_all_keys = delete_all_keys;
@@ -975,52 +975,6 @@ keymaster_error_t SoftKeymasterDevice::export_key(const keymaster2_device_t* dev
     SoftKeymasterDevice* sk_dev = convert_device(dev);
     return export_key(&sk_dev->km1_device_, export_format, key_to_export, client_id, app_data,
                       export_data);
-}
-
-/* static */
-keymaster_error_t SoftKeymasterDevice::attest_key(const keymaster2_device_t* dev,
-                                                  const keymaster_key_blob_t* key_to_attest,
-                                                  const keymaster_key_param_set_t* attest_params,
-                                                  keymaster_cert_chain_t* cert_chain) {
-    if (!dev || !key_to_attest || !attest_params || !cert_chain)
-        return KM_ERROR_UNEXPECTED_NULL_POINTER;
-
-    cert_chain->entry_count = 0;
-    cert_chain->entries = nullptr;
-
-    AttestKeyRequest request;
-    request.SetKeyMaterial(*key_to_attest);
-    request.attest_params.Reinitialize(*attest_params);
-
-    AttestKeyResponse response;
-    convert_device(dev)->impl_->AttestKey(request, &response);
-    if (response.error != KM_ERROR_OK)
-        return response.error;
-
-    // Allocate and clear storage for cert_chain.
-    keymaster_cert_chain_t& rsp_chain = response.certificate_chain;
-    cert_chain->entries = reinterpret_cast<keymaster_blob_t*>(
-        malloc(rsp_chain.entry_count * sizeof(*cert_chain->entries)));
-    if (!cert_chain->entries)
-        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-    cert_chain->entry_count = rsp_chain.entry_count;
-    for (keymaster_blob_t& entry : array_range(cert_chain->entries, cert_chain->entry_count))
-        entry = {};
-
-    // Copy cert_chain contents
-    size_t i = 0;
-    for (keymaster_blob_t& entry : array_range(rsp_chain.entries, rsp_chain.entry_count)) {
-        cert_chain->entries[i].data = reinterpret_cast<uint8_t*>(malloc(entry.data_length));
-        if (!cert_chain->entries[i].data) {
-            keymaster_free_cert_chain(cert_chain);
-            return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-        }
-        cert_chain->entries[i].data_length = entry.data_length;
-        memcpy(const_cast<uint8_t*>(cert_chain->entries[i].data), entry.data, entry.data_length);
-        ++i;
-    }
-
-    return KM_ERROR_OK;
 }
 
 /* static */

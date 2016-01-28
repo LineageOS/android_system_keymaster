@@ -328,15 +328,6 @@ keymaster_error_t Keymaster2Test::AbortOperation() {
     return device()->abort(device(), op_handle_);
 }
 
-keymaster_error_t Keymaster2Test::AttestKey(keymaster_algorithm_t algorithm,
-                                            keymaster_cert_chain_t* cert_chain) {
-    AuthorizationSet attest_params(
-        AuthorizationSetBuilder().Authorization(TAG_ALGORITHM, algorithm));
-    attest_params.push_back(UserAuthParams());
-    attest_params.push_back(ClientParams());
-    return device()->attest_key(device(), &blob_, &attest_params, cert_chain);
-}
-
 string Keymaster2Test::ProcessMessage(keymaster_purpose_t purpose, const string& message) {
     EXPECT_EQ(KM_ERROR_OK, BeginOperation(purpose, client_params(), NULL /* output_params */));
 

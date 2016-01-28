@@ -144,7 +144,7 @@ inline std::string make_string(const uint8_t* data, size_t length) {
     return std::string(reinterpret_cast<const char*>(data), length);
 }
 
-template <size_t N> std::string make_string(const uint8_t (&a)[N]) {
+template <size_t N> std::string make_string(const uint8_t(&a)[N]) {
     return make_string(a, N);
 }
 
@@ -207,8 +207,6 @@ class Keymaster2Test : public testing::TestWithParam<InstanceCreatorPtr> {
                                       std::string* output);
 
     keymaster_error_t AbortOperation();
-
-    keymaster_error_t AttestKey(keymaster_algorithm_t algorithm, keymaster_cert_chain_t* chain);
 
     keymaster_error_t GetVersion(uint8_t* major, uint8_t* minor, uint8_t* subminor);
 
@@ -451,6 +449,7 @@ struct Keymaster0CountingWrapper : public keymaster0_device_t {
     keymaster0_device_t* device_;
     int counter_;
 };
+
 
 /**
  * This function takes a keymaster1_device_t and wraps it in an adapter that supports only
