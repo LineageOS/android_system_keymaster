@@ -21,7 +21,6 @@
 #include <openssl/asn1.h>
 #include <openssl/stack.h>
 #include <openssl/x509.h>
-#include <openssl/x509v3.h>
 
 #include "attestation_record.h"
 #include "openssl_err.h"
@@ -258,38 +257,11 @@ keymaster_error_t AsymmetricKey::GenerateAttestation(const KeymasterContext& con
                                    certificate.get(), &error))
         return error;
 
-    if (!copy_attestation_chain(context, sign_algorithm, cert_chain, &error))
-        return error;
-
-    // Copy subject key identifier from cert_chain->entries[1] as authority key_id.
-    if (cert_chain->entry_count < 2) {
-        // cert_chain must have at least two entries, one for the cert we're trying to create and
-        // one for the cert for the key that signs the new cert.
-        return KM_ERROR_UNKNOWN_ERROR;
-    }
-
-    const uint8_t* p = cert_chain->entries[1].data;
-    X509_Ptr signing_cert(d2i_X509(nullptr, &p, cert_chain->entries[1].data_length));
-    if (!signing_cert.get()) {
-        return TranslateLastOpenSslError();
-    }
-
-    UniquePtr<X509V3_CTX> x509v3_ctx(new X509V3_CTX);
-    *x509v3_ctx = {};
-    X509V3_set_ctx(x509v3_ctx.get(), signing_cert.get(), certificate.get(), nullptr /* req */,
-                   nullptr /* crl */, 0 /* flags */);
-
-    X509_EXTENSION_Ptr auth_key_id(X509V3_EXT_nconf_nid(nullptr /* conf */, x509v3_ctx.get(),
-                                                        NID_authority_key_identifier,
-                                                        const_cast<char*>("keyid:always")));
-    if (!auth_key_id.get() ||
-        !X509_add_ext(certificate.get(), auth_key_id.get() /* Don't release; copied */,
-                      -1 /* insert at end */)) {
-        return TranslateLastOpenSslError();
-    }
-
     if (!X509_sign(certificate.get(), sign_key.get(), EVP_sha256()))
         return TranslateLastOpenSslError();
+
+    if (!copy_attestation_chain(context, sign_algorithm, cert_chain, &error))
+        return error;
 
     return get_certificate_blob(certificate.get(), &cert_chain->entries[0]);
 }
