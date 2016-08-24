@@ -269,6 +269,7 @@ void SoftKeymasterDevice::initialize_device_struct(uint32_t flags) {
     // keymaster2 APIs
     memset(&km2_device_, 0, sizeof(km2_device_));
 
+    km2_device_.flags = flags;
     km2_device_.context = this;
 
     km2_device_.common.tag = HARDWARE_DEVICE_TAG;
