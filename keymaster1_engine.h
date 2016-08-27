@@ -52,6 +52,8 @@ class Keymaster1Engine {
                                 const KeymasterKeyBlob& input_key_material,
                                 KeymasterKeyBlob* output_key_blob, AuthorizationSet* hw_enforced,
                                 AuthorizationSet* sw_enforced) const;
+    keymaster_error_t DeleteKey(const KeymasterKeyBlob& blob) const;
+    keymaster_error_t DeleteAllKeys() const;
 
     struct KeyData {
         KeyData(const KeymasterKeyBlob& blob, const AuthorizationSet& params)

@@ -59,15 +59,10 @@ class EcdsaKeymaster0KeyFactory : public EcKeyFactory {
 };
 
 class EcKeymaster0Key : public EcKey {
-    typedef EcKey super;
-
   public:
     EcKeymaster0Key(EC_KEY* ec_key, const AuthorizationSet& hw_enforced,
-                    const AuthorizationSet& sw_enforced, const Keymaster0Engine* engine,
-                    keymaster_error_t* error);
-
-  private:
-    const Keymaster0Engine* engine_;
+                    const AuthorizationSet& sw_enforced, keymaster_error_t* error)
+        : EcKey(ec_key, hw_enforced, sw_enforced, error) {}
 };
 
 }  // namespace keymaster

@@ -56,8 +56,9 @@ class EcdsaSignOperation : public EcdsaOperation {
     keymaster_error_t Update(const AuthorizationSet& additional_params, const Buffer& input,
                              AuthorizationSet* output_params, Buffer* output,
                              size_t* input_consumed) override;
-    keymaster_error_t Finish(const AuthorizationSet& additional_params, const Buffer& signature,
-                             AuthorizationSet* output_params, Buffer* output) override;
+    keymaster_error_t Finish(const AuthorizationSet& additional_params, const Buffer& input,
+                             const Buffer& signature, AuthorizationSet* output_params,
+                             Buffer* output) override;
 };
 
 class EcdsaVerifyOperation : public EcdsaOperation {
@@ -69,8 +70,9 @@ class EcdsaVerifyOperation : public EcdsaOperation {
     keymaster_error_t Update(const AuthorizationSet& additional_params, const Buffer& input,
                              AuthorizationSet* output_params, Buffer* output,
                              size_t* input_consumed) override;
-    keymaster_error_t Finish(const AuthorizationSet& additional_params, const Buffer& signature,
-                             AuthorizationSet* output_params, Buffer* output) override;
+    keymaster_error_t Finish(const AuthorizationSet& additional_params, const Buffer& input,
+                             const Buffer& signature, AuthorizationSet* output_params,
+                             Buffer* output) override;
 };
 
 class EcdsaOperationFactory : public OperationFactory {

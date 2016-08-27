@@ -33,6 +33,12 @@ class AsymmetricKey : public Key {
                                              UniquePtr<uint8_t[]>* material,
                                              size_t* size) const override;
 
+    keymaster_error_t GenerateAttestation(const KeymasterContext& context,
+                                          const AuthorizationSet& attest_params,
+                                          const AuthorizationSet& tee_enforced,
+                                          const AuthorizationSet& sw_enforced,
+                                          keymaster_cert_chain_t* certificate_chain) const override;
+
     virtual bool InternalToEvp(EVP_PKEY* pkey) const = 0;
     virtual bool EvpToInternal(const EVP_PKEY* pkey) = 0;
 };

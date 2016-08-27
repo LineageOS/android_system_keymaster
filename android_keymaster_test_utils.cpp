@@ -30,8 +30,12 @@ using std::ostream;
 using std::string;
 using std::vector;
 
+#ifndef KEYMASTER_NAME_TAGS
+#error Keymaster test code requires that KEYMASTER_NAME_TAGS is defined
+#endif
+
 std::ostream& operator<<(std::ostream& os, const keymaster_key_param_t& param) {
-    os << "Tag: " << keymaster_tag_mask_type(param.tag);
+    os << "Tag: " << keymaster::StringifyTag(param.tag);
     switch (keymaster_tag_get_type(param.tag)) {
     case KM_INVALID:
         os << " Invalid";
@@ -62,9 +66,19 @@ std::ostream& operator<<(std::ostream& os, const keymaster_key_param_t& param) {
         break;
     case KM_BIGNUM:
         os << " Bignum: ";
+        if (!param.blob.data)
+            os << "(null)";
+        else
+            for (size_t i = 0; i < param.blob.data_length; ++i)
+                os << std::hex << std::setw(2) << static_cast<int>(param.blob.data[i]) << std::dec;
         break;
     case KM_BYTES:
         os << " Bytes: ";
+        if (!param.blob.data)
+            os << "(null)";
+        else
+            for (size_t i = 0; i < param.blob.data_length; ++i)
+                os << std::hex << std::setw(2) << static_cast<int>(param.blob.data[i]) << std::dec;
         break;
     }
     return os;
@@ -145,32 +159,35 @@ bool operator!=(const AuthorizationSet& a, const AuthorizationSet& b) {
 std::ostream& operator<<(std::ostream& os, const AuthorizationSet& set) {
     if (set.size() == 0)
         os << "(Empty)" << std::endl;
-    for (size_t i = 0; i < set.size(); ++i) {
-        os << set[i] << std::endl;
+    else {
+        os << "\n";
+        for (size_t i = 0; i < set.size(); ++i)
+            os << set[i] << std::endl;
     }
     return os;
 }
 
 namespace test {
 
-Keymaster1Test::Keymaster1Test() : op_handle_(OP_HANDLE_SENTINEL), characteristics_(NULL) {
-    blob_.key_material = NULL;
+Keymaster2Test::Keymaster2Test() : op_handle_(OP_HANDLE_SENTINEL) {
+    memset(&characteristics_, 0, sizeof(characteristics_));
+    blob_.key_material = nullptr;
     RAND_seed("foobar", 6);
     blob_.key_material = 0;
     device_ = GetParam()->CreateDevice();
 }
 
-Keymaster1Test::~Keymaster1Test() {
+Keymaster2Test::~Keymaster2Test() {
     FreeCharacteristics();
     FreeKeyBlob();
     device_->common.close(reinterpret_cast<hw_device_t*>(device_));
 }
 
-keymaster1_device_t* Keymaster1Test::device() {
+keymaster2_device_t* Keymaster2Test::device() {
     return device_;
 }
 
-keymaster_error_t Keymaster1Test::GenerateKey(const AuthorizationSetBuilder& builder) {
+keymaster_error_t Keymaster2Test::GenerateKey(const AuthorizationSetBuilder& builder) {
     AuthorizationSet params(builder.build());
     params.push_back(UserAuthParams());
     params.push_back(ClientParams());
@@ -180,7 +197,11 @@ keymaster_error_t Keymaster1Test::GenerateKey(const AuthorizationSetBuilder& bui
     return device()->generate_key(device(), &params, &blob_, &characteristics_);
 }
 
-keymaster_error_t Keymaster1Test::ImportKey(const AuthorizationSetBuilder& builder,
+keymaster_error_t Keymaster2Test::DeleteKey() {
+    return device()->delete_key(device(), &blob_);
+}
+
+keymaster_error_t Keymaster2Test::ImportKey(const AuthorizationSetBuilder& builder,
                                             keymaster_key_format_t format,
                                             const string& key_material) {
     AuthorizationSet params(builder.build());
@@ -194,7 +215,7 @@ keymaster_error_t Keymaster1Test::ImportKey(const AuthorizationSetBuilder& build
     return device()->import_key(device(), &params, format, &key, &blob_, &characteristics_);
 }
 
-AuthorizationSet Keymaster1Test::UserAuthParams() {
+AuthorizationSet Keymaster2Test::UserAuthParams() {
     AuthorizationSet set;
     set.push_back(TAG_USER_ID, 7);
     set.push_back(TAG_USER_AUTH_TYPE, HW_AUTH_PASSWORD);
@@ -202,13 +223,13 @@ AuthorizationSet Keymaster1Test::UserAuthParams() {
     return set;
 }
 
-AuthorizationSet Keymaster1Test::ClientParams() {
+AuthorizationSet Keymaster2Test::ClientParams() {
     AuthorizationSet set;
     set.push_back(TAG_APPLICATION_ID, "app_id", 6);
     return set;
 }
 
-keymaster_error_t Keymaster1Test::BeginOperation(keymaster_purpose_t purpose) {
+keymaster_error_t Keymaster2Test::BeginOperation(keymaster_purpose_t purpose) {
     AuthorizationSet in_params(client_params());
     keymaster_key_param_set_t out_params;
     keymaster_error_t error =
@@ -218,7 +239,7 @@ keymaster_error_t Keymaster1Test::BeginOperation(keymaster_purpose_t purpose) {
     return error;
 }
 
-keymaster_error_t Keymaster1Test::BeginOperation(keymaster_purpose_t purpose,
+keymaster_error_t Keymaster2Test::BeginOperation(keymaster_purpose_t purpose,
                                                  const AuthorizationSet& input_set,
                                                  AuthorizationSet* output_set) {
     keymaster_key_param_set_t out_params;
@@ -236,7 +257,7 @@ keymaster_error_t Keymaster1Test::BeginOperation(keymaster_purpose_t purpose,
     return error;
 }
 
-keymaster_error_t Keymaster1Test::UpdateOperation(const string& message, string* output,
+keymaster_error_t Keymaster2Test::UpdateOperation(const string& message, string* output,
                                                   size_t* input_consumed) {
     EXPECT_NE(op_handle_, OP_HANDLE_SENTINEL);
     keymaster_blob_t input = {reinterpret_cast<const uint8_t*>(message.c_str()), message.length()};
@@ -250,7 +271,7 @@ keymaster_error_t Keymaster1Test::UpdateOperation(const string& message, string*
     return error;
 }
 
-keymaster_error_t Keymaster1Test::UpdateOperation(const AuthorizationSet& additional_params,
+keymaster_error_t Keymaster2Test::UpdateOperation(const AuthorizationSet& additional_params,
                                                   const string& message,
                                                   AuthorizationSet* output_params, string* output,
                                                   size_t* input_consumed) {
@@ -269,25 +290,25 @@ keymaster_error_t Keymaster1Test::UpdateOperation(const AuthorizationSet& additi
     return error;
 }
 
-keymaster_error_t Keymaster1Test::FinishOperation(string* output) {
+keymaster_error_t Keymaster2Test::FinishOperation(string* output) {
     return FinishOperation("", output);
 }
 
-keymaster_error_t Keymaster1Test::FinishOperation(const string& signature, string* output) {
+keymaster_error_t Keymaster2Test::FinishOperation(const string& signature, string* output) {
     AuthorizationSet additional_params;
     AuthorizationSet output_params;
     return FinishOperation(additional_params, signature, &output_params, output);
 }
 
-keymaster_error_t Keymaster1Test::FinishOperation(const AuthorizationSet& additional_params,
+keymaster_error_t Keymaster2Test::FinishOperation(const AuthorizationSet& additional_params,
                                                   const string& signature,
                                                   AuthorizationSet* output_params, string* output) {
     keymaster_blob_t sig = {reinterpret_cast<const uint8_t*>(signature.c_str()),
                             signature.length()};
     keymaster_blob_t out_tmp;
     keymaster_key_param_set_t out_params;
-    keymaster_error_t error =
-        device()->finish(device(), op_handle_, &additional_params, &sig, &out_params, &out_tmp);
+    keymaster_error_t error = device()->finish(device(), op_handle_, &additional_params,
+                                               nullptr /* input */, &sig, &out_params, &out_tmp);
     if (error != KM_ERROR_OK) {
         EXPECT_TRUE(out_tmp.data == nullptr);
         EXPECT_TRUE(out_params.params == nullptr);
@@ -303,11 +324,32 @@ keymaster_error_t Keymaster1Test::FinishOperation(const AuthorizationSet& additi
     return error;
 }
 
-keymaster_error_t Keymaster1Test::AbortOperation() {
+keymaster_error_t Keymaster2Test::AbortOperation() {
     return device()->abort(device(), op_handle_);
 }
 
-string Keymaster1Test::ProcessMessage(keymaster_purpose_t purpose, const string& message) {
+keymaster_error_t Keymaster2Test::AttestKey(const string& attest_challenge,
+                                            keymaster_cert_chain_t* cert_chain) {
+    AuthorizationSet attest_params;
+    attest_params.push_back(UserAuthParams());
+    attest_params.push_back(ClientParams());
+    attest_params.push_back(TAG_ATTESTATION_CHALLENGE, attest_challenge.data(),
+                            attest_challenge.length());
+    return device()->attest_key(device(), &blob_, &attest_params, cert_chain);
+}
+
+keymaster_error_t Keymaster2Test::UpgradeKey(const AuthorizationSet& upgrade_params) {
+    keymaster_key_blob_t upgraded_blob;
+    keymaster_error_t error =
+        device()->upgrade_key(device(), &blob_, &upgrade_params, &upgraded_blob);
+    if (error == KM_ERROR_OK) {
+        FreeKeyBlob();
+        blob_ = upgraded_blob;
+    }
+    return error;
+}
+
+string Keymaster2Test::ProcessMessage(keymaster_purpose_t purpose, const string& message) {
     EXPECT_EQ(KM_ERROR_OK, BeginOperation(purpose, client_params(), NULL /* output_params */));
 
     string result;
@@ -318,7 +360,7 @@ string Keymaster1Test::ProcessMessage(keymaster_purpose_t purpose, const string&
     return result;
 }
 
-string Keymaster1Test::ProcessMessage(keymaster_purpose_t purpose, const string& message,
+string Keymaster2Test::ProcessMessage(keymaster_purpose_t purpose, const string& message,
                                       const AuthorizationSet& begin_params,
                                       const AuthorizationSet& update_params,
                                       AuthorizationSet* begin_out_params) {
@@ -333,7 +375,7 @@ string Keymaster1Test::ProcessMessage(keymaster_purpose_t purpose, const string&
     return result;
 }
 
-string Keymaster1Test::ProcessMessage(keymaster_purpose_t purpose, const string& message,
+string Keymaster2Test::ProcessMessage(keymaster_purpose_t purpose, const string& message,
                                       const string& signature, const AuthorizationSet& begin_params,
                                       const AuthorizationSet& update_params,
                                       AuthorizationSet* output_params) {
@@ -348,7 +390,7 @@ string Keymaster1Test::ProcessMessage(keymaster_purpose_t purpose, const string&
     return result;
 }
 
-string Keymaster1Test::ProcessMessage(keymaster_purpose_t purpose, const string& message,
+string Keymaster2Test::ProcessMessage(keymaster_purpose_t purpose, const string& message,
                                       const string& signature) {
     EXPECT_EQ(KM_ERROR_OK, BeginOperation(purpose, client_params(), NULL /* output_params */));
 
@@ -360,7 +402,7 @@ string Keymaster1Test::ProcessMessage(keymaster_purpose_t purpose, const string&
     return result;
 }
 
-void Keymaster1Test::SignMessage(const string& message, string* signature,
+void Keymaster2Test::SignMessage(const string& message, string* signature,
                                  keymaster_digest_t digest) {
     SCOPED_TRACE("SignMessage");
     AuthorizationSet input_params(AuthorizationSet(client_params_, array_length(client_params_)));
@@ -372,7 +414,7 @@ void Keymaster1Test::SignMessage(const string& message, string* signature,
     EXPECT_GT(signature->size(), 0U);
 }
 
-void Keymaster1Test::SignMessage(const string& message, string* signature,
+void Keymaster2Test::SignMessage(const string& message, string* signature,
                                  keymaster_digest_t digest, keymaster_padding_t padding) {
     SCOPED_TRACE("SignMessage");
     AuthorizationSet input_params(AuthorizationSet(client_params_, array_length(client_params_)));
@@ -385,7 +427,7 @@ void Keymaster1Test::SignMessage(const string& message, string* signature,
     EXPECT_GT(signature->size(), 0U);
 }
 
-void Keymaster1Test::MacMessage(const string& message, string* signature, size_t mac_length) {
+void Keymaster2Test::MacMessage(const string& message, string* signature, size_t mac_length) {
     SCOPED_TRACE("SignMessage");
     AuthorizationSet input_params(AuthorizationSet(client_params_, array_length(client_params_)));
     input_params.push_back(TAG_MAC_LENGTH, mac_length);
@@ -396,7 +438,7 @@ void Keymaster1Test::MacMessage(const string& message, string* signature, size_t
     EXPECT_GT(signature->size(), 0U);
 }
 
-void Keymaster1Test::VerifyMessage(const string& message, const string& signature,
+void Keymaster2Test::VerifyMessage(const string& message, const string& signature,
                                    keymaster_digest_t digest) {
     SCOPED_TRACE("VerifyMessage");
     AuthorizationSet input_params(client_params());
@@ -407,7 +449,7 @@ void Keymaster1Test::VerifyMessage(const string& message, const string& signatur
                    &output_params);
 }
 
-void Keymaster1Test::VerifyMessage(const string& message, const string& signature,
+void Keymaster2Test::VerifyMessage(const string& message, const string& signature,
                                    keymaster_digest_t digest, keymaster_padding_t padding) {
     SCOPED_TRACE("VerifyMessage");
     AuthorizationSet input_params(client_params());
@@ -419,12 +461,12 @@ void Keymaster1Test::VerifyMessage(const string& message, const string& signatur
                    &output_params);
 }
 
-void Keymaster1Test::VerifyMac(const string& message, const string& signature) {
+void Keymaster2Test::VerifyMac(const string& message, const string& signature) {
     SCOPED_TRACE("VerifyMac");
     ProcessMessage(KM_PURPOSE_VERIFY, message, signature);
 }
 
-string Keymaster1Test::EncryptMessage(const string& message, keymaster_padding_t padding,
+string Keymaster2Test::EncryptMessage(const string& message, keymaster_padding_t padding,
                                       string* generated_nonce) {
     SCOPED_TRACE("EncryptMessage");
     AuthorizationSet begin_params(client_params()), output_params;
@@ -442,19 +484,19 @@ string Keymaster1Test::EncryptMessage(const string& message, keymaster_padding_t
     return ciphertext;
 }
 
-string Keymaster1Test::EncryptMessage(const string& message, keymaster_digest_t digest,
+string Keymaster2Test::EncryptMessage(const string& message, keymaster_digest_t digest,
                                       keymaster_padding_t padding, string* generated_nonce) {
     AuthorizationSet update_params;
     return EncryptMessage(update_params, message, digest, padding, generated_nonce);
 }
 
-string Keymaster1Test::EncryptMessage(const string& message, keymaster_block_mode_t block_mode,
+string Keymaster2Test::EncryptMessage(const string& message, keymaster_block_mode_t block_mode,
                                       keymaster_padding_t padding, string* generated_nonce) {
     AuthorizationSet update_params;
     return EncryptMessage(update_params, message, block_mode, padding, generated_nonce);
 }
 
-string Keymaster1Test::EncryptMessage(const AuthorizationSet& update_params, const string& message,
+string Keymaster2Test::EncryptMessage(const AuthorizationSet& update_params, const string& message,
                                       keymaster_digest_t digest, keymaster_padding_t padding,
                                       string* generated_nonce) {
     SCOPED_TRACE("EncryptMessage");
@@ -473,7 +515,7 @@ string Keymaster1Test::EncryptMessage(const AuthorizationSet& update_params, con
     return ciphertext;
 }
 
-string Keymaster1Test::EncryptMessage(const AuthorizationSet& update_params, const string& message,
+string Keymaster2Test::EncryptMessage(const AuthorizationSet& update_params, const string& message,
                                       keymaster_block_mode_t block_mode,
                                       keymaster_padding_t padding, string* generated_nonce) {
     SCOPED_TRACE("EncryptMessage");
@@ -492,7 +534,7 @@ string Keymaster1Test::EncryptMessage(const AuthorizationSet& update_params, con
     return ciphertext;
 }
 
-string Keymaster1Test::EncryptMessageWithParams(const string& message,
+string Keymaster2Test::EncryptMessageWithParams(const string& message,
                                                 const AuthorizationSet& begin_params,
                                                 const AuthorizationSet& update_params,
                                                 AuthorizationSet* output_params) {
@@ -500,7 +542,7 @@ string Keymaster1Test::EncryptMessageWithParams(const string& message,
     return ProcessMessage(KM_PURPOSE_ENCRYPT, message, begin_params, update_params, output_params);
 }
 
-string Keymaster1Test::DecryptMessage(const string& ciphertext, keymaster_padding_t padding) {
+string Keymaster2Test::DecryptMessage(const string& ciphertext, keymaster_padding_t padding) {
     SCOPED_TRACE("DecryptMessage");
     AuthorizationSet begin_params(client_params());
     begin_params.push_back(TAG_PADDING, padding);
@@ -508,7 +550,7 @@ string Keymaster1Test::DecryptMessage(const string& ciphertext, keymaster_paddin
     return ProcessMessage(KM_PURPOSE_DECRYPT, ciphertext, begin_params, update_params);
 }
 
-string Keymaster1Test::DecryptMessage(const string& ciphertext, keymaster_digest_t digest,
+string Keymaster2Test::DecryptMessage(const string& ciphertext, keymaster_digest_t digest,
                                       keymaster_padding_t padding) {
     SCOPED_TRACE("DecryptMessage");
     AuthorizationSet begin_params(client_params());
@@ -518,7 +560,7 @@ string Keymaster1Test::DecryptMessage(const string& ciphertext, keymaster_digest
     return ProcessMessage(KM_PURPOSE_DECRYPT, ciphertext, begin_params, update_params);
 }
 
-string Keymaster1Test::DecryptMessage(const string& ciphertext, keymaster_block_mode_t block_mode,
+string Keymaster2Test::DecryptMessage(const string& ciphertext, keymaster_block_mode_t block_mode,
                                       keymaster_padding_t padding) {
     SCOPED_TRACE("DecryptMessage");
     AuthorizationSet begin_params(client_params());
@@ -528,7 +570,7 @@ string Keymaster1Test::DecryptMessage(const string& ciphertext, keymaster_block_
     return ProcessMessage(KM_PURPOSE_DECRYPT, ciphertext, begin_params, update_params);
 }
 
-string Keymaster1Test::DecryptMessage(const string& ciphertext, keymaster_digest_t digest,
+string Keymaster2Test::DecryptMessage(const string& ciphertext, keymaster_digest_t digest,
                                       keymaster_padding_t padding, const string& nonce) {
     SCOPED_TRACE("DecryptMessage");
     AuthorizationSet begin_params(client_params());
@@ -539,7 +581,7 @@ string Keymaster1Test::DecryptMessage(const string& ciphertext, keymaster_digest
     return ProcessMessage(KM_PURPOSE_DECRYPT, ciphertext, begin_params, update_params);
 }
 
-string Keymaster1Test::DecryptMessage(const string& ciphertext, keymaster_block_mode_t block_mode,
+string Keymaster2Test::DecryptMessage(const string& ciphertext, keymaster_block_mode_t block_mode,
                                       keymaster_padding_t padding, const string& nonce) {
     SCOPED_TRACE("DecryptMessage");
     AuthorizationSet begin_params(client_params());
@@ -550,7 +592,7 @@ string Keymaster1Test::DecryptMessage(const string& ciphertext, keymaster_block_
     return ProcessMessage(KM_PURPOSE_DECRYPT, ciphertext, begin_params, update_params);
 }
 
-string Keymaster1Test::DecryptMessage(const AuthorizationSet& update_params,
+string Keymaster2Test::DecryptMessage(const AuthorizationSet& update_params,
                                       const string& ciphertext, keymaster_digest_t digest,
                                       keymaster_padding_t padding, const string& nonce) {
     SCOPED_TRACE("DecryptMessage");
@@ -561,13 +603,13 @@ string Keymaster1Test::DecryptMessage(const AuthorizationSet& update_params,
     return ProcessMessage(KM_PURPOSE_DECRYPT, ciphertext, begin_params, update_params);
 }
 
-keymaster_error_t Keymaster1Test::GetCharacteristics() {
+keymaster_error_t Keymaster2Test::GetCharacteristics() {
     FreeCharacteristics();
     return device()->get_key_characteristics(device(), &blob_, &client_id_, NULL /* app_data */,
                                              &characteristics_);
 }
 
-keymaster_error_t Keymaster1Test::ExportKey(keymaster_key_format_t format, string* export_data) {
+keymaster_error_t Keymaster2Test::ExportKey(keymaster_key_format_t format, string* export_data) {
     keymaster_blob_t export_tmp;
     keymaster_error_t error = device()->export_key(device(), format, &blob_, &client_id_,
                                                    NULL /* app_data */, &export_tmp);
@@ -580,7 +622,7 @@ keymaster_error_t Keymaster1Test::ExportKey(keymaster_key_format_t format, strin
     return error;
 }
 
-void Keymaster1Test::CheckHmacTestVector(string key, string message, keymaster_digest_t digest,
+void Keymaster2Test::CheckHmacTestVector(string key, string message, keymaster_digest_t digest,
                                          string expected_mac) {
     ASSERT_EQ(KM_ERROR_OK, ImportKey(AuthorizationSetBuilder()
                                          .HmacKey(key.size() * 8)
@@ -592,7 +634,7 @@ void Keymaster1Test::CheckHmacTestVector(string key, string message, keymaster_d
     EXPECT_EQ(expected_mac, signature) << "Test vector didn't match for digest " << (int)digest;
 }
 
-void Keymaster1Test::CheckAesCtrTestVector(const string& key, const string& nonce,
+void Keymaster2Test::CheckAesCtrTestVector(const string& key, const string& nonce,
                                            const string& message,
                                            const string& expected_ciphertext) {
     ASSERT_EQ(KM_ERROR_OK, ImportKey(AuthorizationSetBuilder()
@@ -611,28 +653,24 @@ void Keymaster1Test::CheckAesCtrTestVector(const string& key, const string& nonc
     EXPECT_EQ(expected_ciphertext, ciphertext);
 }
 
-AuthorizationSet Keymaster1Test::hw_enforced() {
-    EXPECT_TRUE(characteristics_ != NULL);
-    return AuthorizationSet(characteristics_->hw_enforced);
+AuthorizationSet Keymaster2Test::hw_enforced() {
+    return AuthorizationSet(characteristics_.hw_enforced);
 }
 
-AuthorizationSet Keymaster1Test::sw_enforced() {
-    EXPECT_TRUE(characteristics_ != NULL);
-    return AuthorizationSet(characteristics_->sw_enforced);
+AuthorizationSet Keymaster2Test::sw_enforced() {
+    return AuthorizationSet(characteristics_.sw_enforced);
 }
 
-void Keymaster1Test::FreeCharacteristics() {
-    keymaster_free_characteristics(characteristics_);
-    free(characteristics_);
-    characteristics_ = NULL;
+void Keymaster2Test::FreeCharacteristics() {
+    keymaster_free_characteristics(&characteristics_);
 }
 
-void Keymaster1Test::FreeKeyBlob() {
+void Keymaster2Test::FreeKeyBlob() {
     free(const_cast<uint8_t*>(blob_.key_material));
     blob_.key_material = NULL;
 }
 
-void Keymaster1Test::corrupt_key_blob() {
+void Keymaster2Test::corrupt_key_blob() {
     assert(blob_.key_material);
     uint8_t* tmp = const_cast<uint8_t*>(blob_.key_material);
     ++tmp[blob_.key_material_size / 2];
@@ -713,16 +751,16 @@ class Sha256OnlyWrapper {
                                                        keymaster_purpose_t purpose,
                                                        keymaster_block_mode_t** modes,
                                                        size_t* modes_length) {
-        return unwrap(dev)
-            ->get_supported_block_modes(unwrap(dev), algorithm, purpose, modes, modes_length);
+        return unwrap(dev)->get_supported_block_modes(unwrap(dev), algorithm, purpose, modes,
+                                                      modes_length);
     }
     static keymaster_error_t get_supported_padding_modes(const struct keymaster1_device* dev,
                                                          keymaster_algorithm_t algorithm,
                                                          keymaster_purpose_t purpose,
                                                          keymaster_padding_t** modes,
                                                          size_t* modes_length) {
-        return unwrap(dev)
-            ->get_supported_padding_modes(unwrap(dev), algorithm, purpose, modes, modes_length);
+        return unwrap(dev)->get_supported_padding_modes(unwrap(dev), algorithm, purpose, modes,
+                                                        modes_length);
     }
 
     static keymaster_error_t get_supported_digests(const keymaster1_device_t* dev,
@@ -752,15 +790,15 @@ class Sha256OnlyWrapper {
                                                           keymaster_algorithm_t algorithm,
                                                           keymaster_key_format_t** formats,
                                                           size_t* formats_length) {
-        return unwrap(dev)
-            ->get_supported_import_formats(unwrap(dev), algorithm, formats, formats_length);
+        return unwrap(dev)->get_supported_import_formats(unwrap(dev), algorithm, formats,
+                                                         formats_length);
     }
     static keymaster_error_t get_supported_export_formats(const struct keymaster1_device* dev,
                                                           keymaster_algorithm_t algorithm,
                                                           keymaster_key_format_t** formats,
                                                           size_t* formats_length) {
-        return unwrap(dev)
-            ->get_supported_export_formats(unwrap(dev), algorithm, formats, formats_length);
+        return unwrap(dev)->get_supported_export_formats(unwrap(dev), algorithm, formats,
+                                                         formats_length);
     }
     static keymaster_error_t add_rng_entropy(const struct keymaster1_device* dev,
                                              const uint8_t* data, size_t data_length) {
@@ -785,8 +823,8 @@ class Sha256OnlyWrapper {
                             const keymaster_key_blob_t* key_blob, const keymaster_blob_t* client_id,
                             const keymaster_blob_t* app_data,
                             keymaster_key_characteristics_t** characteristics) {
-        return unwrap(dev)
-            ->get_key_characteristics(unwrap(dev), key_blob, client_id, app_data, characteristics);
+        return unwrap(dev)->get_key_characteristics(unwrap(dev), key_blob, client_id, app_data,
+                                                    characteristics);
     }
 
     static keymaster_error_t
@@ -799,8 +837,8 @@ class Sha256OnlyWrapper {
         if (alg_ptr->enumerated == KM_ALGORITHM_HMAC && !all_digests_supported(params))
             return KM_ERROR_UNSUPPORTED_DIGEST;
 
-        return unwrap(dev)
-            ->import_key(unwrap(dev), params, key_format, key_data, key_blob, characteristics);
+        return unwrap(dev)->import_key(unwrap(dev), params, key_format, key_data, key_blob,
+                                       characteristics);
     }
 
     static keymaster_error_t export_key(const struct keymaster1_device* dev,  //
@@ -820,8 +858,8 @@ class Sha256OnlyWrapper {
                                    keymaster_operation_handle_t* operation_handle) {
         if (!all_digests_supported(in_params))
             return KM_ERROR_UNSUPPORTED_DIGEST;
-        return unwrap(dev)
-            ->begin(unwrap(dev), purpose, key, in_params, out_params, operation_handle);
+        return unwrap(dev)->begin(unwrap(dev), purpose, key, in_params, out_params,
+                                  operation_handle);
     }
 
     static keymaster_error_t update(const keymaster1_device_t* dev,
@@ -840,8 +878,8 @@ class Sha256OnlyWrapper {
                                     const keymaster_blob_t* signature,
                                     keymaster_key_param_set_t* out_params,
                                     keymaster_blob_t* output) {
-        return unwrap(dev)
-            ->finish(unwrap(dev), operation_handle, in_params, signature, out_params, output);
+        return unwrap(dev)->finish(unwrap(dev), operation_handle, in_params, signature, out_params,
+                                   output);
     }
 
     static keymaster_error_t abort(const struct keymaster1_device* dev,

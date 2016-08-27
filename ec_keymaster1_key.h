@@ -70,11 +70,8 @@ class EcdsaKeymaster1KeyFactory : public EcKeyFactory {
 class EcdsaKeymaster1Key : public EcKey {
   public:
     EcdsaKeymaster1Key(EC_KEY* ecdsa_key, const AuthorizationSet& hw_enforced,
-                       const AuthorizationSet& sw_enforced, const Keymaster1Engine* engine,
-                       keymaster_error_t* error);
-
-  private:
-    const Keymaster1Engine* engine_;
+                       const AuthorizationSet& sw_enforced, keymaster_error_t* error)
+        : EcKey(ecdsa_key, hw_enforced, sw_enforced, error) {}
 };
 
 }  // namespace keymaster

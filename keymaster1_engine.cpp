@@ -121,6 +121,18 @@ keymaster_error_t Keymaster1Engine::ImportKey(const AuthorizationSet& key_descri
     return error;
 }
 
+keymaster_error_t Keymaster1Engine::DeleteKey(const KeymasterKeyBlob& blob) const {
+    if (!keymaster1_device_->delete_key)
+        return KM_ERROR_OK;
+    return keymaster1_device_->delete_key(keymaster1_device_, &blob);
+}
+
+keymaster_error_t Keymaster1Engine::DeleteAllKeys() const {
+    if (!keymaster1_device_->delete_all_keys)
+        return KM_ERROR_OK;
+    return keymaster1_device_->delete_all_keys(keymaster1_device_);
+}
+
 RSA* Keymaster1Engine::BuildRsaKey(const KeymasterKeyBlob& blob,
                                    const AuthorizationSet& additional_params,
                                    keymaster_error_t* error) const {
@@ -167,7 +179,7 @@ EC_KEY* Keymaster1Engine::BuildEcKey(const KeymasterKeyBlob& blob,
                                      const AuthorizationSet& additional_params,
                                      keymaster_error_t* error) const {
     // Create new EC key (with engine methods) and insert blob
-    unique_ptr<EC_KEY, EC_Delete> ec_key(EC_KEY_new_method(engine_.get()));
+    unique_ptr<EC_KEY, EC_KEY_Delete> ec_key(EC_KEY_new_method(engine_.get()));
     if (!ec_key) {
         *error = TranslateLastOpenSslError();
         return nullptr;
@@ -188,7 +200,7 @@ EC_KEY* Keymaster1Engine::BuildEcKey(const KeymasterKeyBlob& blob,
         return nullptr;
     }
 
-    unique_ptr<EC_KEY, EC_Delete> public_ec_key(EVP_PKEY_get1_EC_KEY(pkey.get()));
+    unique_ptr<EC_KEY, EC_KEY_Delete> public_ec_key(EVP_PKEY_get1_EC_KEY(pkey.get()));
     if (!public_ec_key) {
         *error = TranslateLastOpenSslError();
         return nullptr;
@@ -212,7 +224,7 @@ Keymaster1Engine::KeyData* Keymaster1Engine::GetData(EVP_PKEY* key) const {
     }
 
     case EVP_PKEY_EC: {
-        unique_ptr<EC_KEY, EC_Delete> ec_key(EVP_PKEY_get1_EC_KEY(key));
+        unique_ptr<EC_KEY, EC_KEY_Delete> ec_key(EVP_PKEY_get1_EC_KEY(key));
         return GetData(ec_key.get());
     }
 

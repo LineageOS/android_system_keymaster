@@ -135,16 +135,20 @@ keymaster_error_t EcdsaSignOperation::Update(const AuthorizationSet& /* addition
     return KM_ERROR_OK;
 }
 
-keymaster_error_t EcdsaSignOperation::Finish(const AuthorizationSet& /* additional_params */,
-                                             const Buffer& /* signature */,
+keymaster_error_t EcdsaSignOperation::Finish(const AuthorizationSet& additional_params,
+                                             const Buffer& input, const Buffer& /* signature */,
                                              AuthorizationSet* /* output_params */,
                                              Buffer* output) {
     if (!output)
         return KM_ERROR_OUTPUT_PARAMETER_NULL;
 
+    keymaster_error_t error = UpdateForFinish(additional_params, input);
+    if (error != KM_ERROR_OK)
+        return error;
+
     size_t siglen;
     if (digest_ == KM_DIGEST_NONE) {
-        UniquePtr<EC_KEY, EC_Delete> ecdsa(EVP_PKEY_get1_EC_KEY(ecdsa_key_));
+        UniquePtr<EC_KEY, EC_KEY_Delete> ecdsa(EVP_PKEY_get1_EC_KEY(ecdsa_key_));
         if (!ecdsa.get())
             return TranslateLastOpenSslError();
 
@@ -196,12 +200,16 @@ keymaster_error_t EcdsaVerifyOperation::Update(const AuthorizationSet& /* additi
     return KM_ERROR_OK;
 }
 
-keymaster_error_t EcdsaVerifyOperation::Finish(const AuthorizationSet& /* additional_params */,
-                                               const Buffer& signature,
+keymaster_error_t EcdsaVerifyOperation::Finish(const AuthorizationSet& additional_params,
+                                               const Buffer& input, const Buffer& signature,
                                                AuthorizationSet* /* output_params */,
                                                Buffer* /* output */) {
+    keymaster_error_t error = UpdateForFinish(additional_params, input);
+    if (error != KM_ERROR_OK)
+        return error;
+
     if (digest_ == KM_DIGEST_NONE) {
-        UniquePtr<EC_KEY, EC_Delete> ecdsa(EVP_PKEY_get1_EC_KEY(ecdsa_key_));
+        UniquePtr<EC_KEY, EC_KEY_Delete> ecdsa(EVP_PKEY_get1_EC_KEY(ecdsa_key_));
         if (!ecdsa.get())
             return TranslateLastOpenSslError();
 

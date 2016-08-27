@@ -50,6 +50,8 @@ class Keymaster0Engine {
 
     bool ImportKey(keymaster_key_format_t key_format, const KeymasterKeyBlob& to_import,
                    KeymasterKeyBlob* imported_key_material) const;
+    bool DeleteKey(const KeymasterKeyBlob& blob) const;
+    bool DeleteAllKeys() const;
 
     RSA* BlobToRsaKey(const KeymasterKeyBlob& blob) const;
     EC_KEY* BlobToEcKey(const KeymasterKeyBlob& blob) const;

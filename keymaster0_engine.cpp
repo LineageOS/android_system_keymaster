@@ -147,6 +147,19 @@ bool Keymaster0Engine::ImportKey(keymaster_key_format_t key_format,
     return true;
 }
 
+bool Keymaster0Engine::DeleteKey(const KeymasterKeyBlob& blob) const {
+    if (!keymaster0_device_->delete_keypair)
+        return true;
+    return (keymaster0_device_->delete_keypair(keymaster0_device_, blob.key_material,
+                                               blob.key_material_size) == 0);
+}
+
+bool Keymaster0Engine::DeleteAllKeys() const {
+    if (!keymaster0_device_->delete_all)
+        return true;
+    return (keymaster0_device_->delete_all(keymaster0_device_) == 0);
+}
+
 static keymaster_key_blob_t* duplicate_blob(const uint8_t* key_data, size_t key_data_size) {
     unique_ptr<uint8_t[]> key_material_copy(dup_buffer(key_data, key_data_size));
     if (!key_material_copy)
@@ -191,7 +204,7 @@ RSA* Keymaster0Engine::BlobToRsaKey(const KeymasterKeyBlob& blob) const {
 
 EC_KEY* Keymaster0Engine::BlobToEcKey(const KeymasterKeyBlob& blob) const {
     // Create new EC key (with engine methods) and insert blob
-    unique_ptr<EC_KEY, EC_Delete> ec_key(EC_KEY_new_method(engine_));
+    unique_ptr<EC_KEY, EC_KEY_Delete> ec_key(EC_KEY_new_method(engine_));
     if (!ec_key)
         return nullptr;
 
@@ -204,7 +217,7 @@ EC_KEY* Keymaster0Engine::BlobToEcKey(const KeymasterKeyBlob& blob) const {
     if (!pkey)
         return nullptr;
 
-    unique_ptr<EC_KEY, EC_Delete> public_ec_key(EVP_PKEY_get1_EC_KEY(pkey.get()));
+    unique_ptr<EC_KEY, EC_KEY_Delete> public_ec_key(EVP_PKEY_get1_EC_KEY(pkey.get()));
     if (!public_ec_key)
         return nullptr;
 
@@ -301,9 +314,6 @@ static bool data_too_large_for_public_modulus(const uint8_t* data, size_t len, c
     return input_as_bn && BN_ucmp(input_as_bn.get(), rsa->n) >= 0;
 }
 
-#define USER_F_private_transform 100
-#define USER_F_ecdsa_sign 101
-
 int Keymaster0Engine::RsaPrivateTransform(RSA* rsa, uint8_t* out, const uint8_t* in,
                                           size_t len) const {
     const keymaster_key_blob_t* key_blob = RsaKeyToBlob(rsa);
@@ -318,10 +328,10 @@ int Keymaster0Engine::RsaPrivateTransform(RSA* rsa, uint8_t* out, const uint8_t*
     if (!Keymaster0Sign(&sign_params, *key_blob, in, len, &signature, &signature_length)) {
         if (data_too_large_for_public_modulus(in, len, rsa)) {
             ALOGE("Keymaster0 signing failed because data is too large.");
-            OPENSSL_PUT_ERROR(RSA, private_transform, RSA_R_DATA_TOO_LARGE_FOR_MODULUS);
+            OPENSSL_PUT_ERROR(RSA, RSA_R_DATA_TOO_LARGE_FOR_MODULUS);
         } else {
             // We don't know what error code is correct; force an "unknown error" return
-            OPENSSL_PUT_ERROR(USER, private_transform, KM_ERROR_UNKNOWN_ERROR);
+            OPENSSL_PUT_ERROR(USER, KM_ERROR_UNKNOWN_ERROR);
         }
         return 0;
     }
@@ -367,7 +377,7 @@ int Keymaster0Engine::EcdsaSign(const uint8_t* digest, size_t digest_len, uint8_
     if (!Keymaster0Sign(&sign_params, *key_blob, digest, digest_len, &signature,
                         &signature_length)) {
         // We don't know what error code is correct; force an "unknown error" return
-        OPENSSL_PUT_ERROR(USER, ecdsa_sign, KM_ERROR_UNKNOWN_ERROR);
+        OPENSSL_PUT_ERROR(USER, KM_ERROR_UNKNOWN_ERROR);
         return 0;
     }
     Eraser eraser(signature.get(), signature_length);

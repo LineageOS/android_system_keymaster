@@ -22,8 +22,8 @@
 #include <hardware/keymaster1.h>
 #include <keymaster/android_keymaster_utils.h>
 
-#include "rsa_operation.h"
 #include "keymaster1_engine.h"
+#include "rsa_operation.h"
 
 namespace keymaster {
 
@@ -69,12 +69,13 @@ template <typename BaseOperation> class RsaKeymaster1Operation : public BaseOper
         return super::Begin(input_params, output_params);
     }
 
-    keymaster_error_t Finish(const AuthorizationSet& input_params, const Buffer& signature,
-                             AuthorizationSet* output_params, Buffer* output) override {
+    keymaster_error_t Finish(const AuthorizationSet& input_params, const Buffer& input,
+                             const Buffer& signature, AuthorizationSet* output_params,
+                             Buffer* output) override {
         keymaster_error_t error = wrapped_operation_.PrepareFinish(super::rsa_key_, input_params);
         if (error != KM_ERROR_OK)
             return error;
-        error = super::Finish(input_params, signature, output_params, output);
+        error = super::Finish(input_params, input, signature, output_params, output);
         if (wrapped_operation_.GetError(super::rsa_key_) != KM_ERROR_OK)
             error = wrapped_operation_.GetError(super::rsa_key_);
         if (error == KM_ERROR_OK)
