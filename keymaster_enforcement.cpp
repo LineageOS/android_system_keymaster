@@ -341,6 +341,19 @@ keymaster_error_t KeymasterEnforcement::AuthorizeBegin(const keymaster_purpose_t
 
         case KM_TAG_BOOTLOADER_ONLY:
             return KM_ERROR_INVALID_KEY_BLOB;
+
+        /* Soter Tags begins */
+        case KM_TAG_SOTER_IS_FROM_SOTER:
+        case KM_TAG_SOTER_IS_AUTO_SIGNED_WITH_ATTK_WHEN_GET_PUBLIC_KEY:
+        case KM_TAG_SOTER_IS_AUTO_SIGNED_WITH_COMMON_KEY_WHEN_GET_PUBLIC_KEY:
+        case KM_TAG_SOTER_AUTO_SIGNED_COMMON_KEY_WHEN_GET_PUBLIC_KEY:
+        case KM_TAG_SOTER_AUTO_ADD_COUNTER_WHEN_GET_PUBLIC_KEY:
+        case KM_TAG_SOTER_IS_SECMSG_FID_COUNTER_SIGNED_WHEN_SIGN:
+        case KM_TAG_SOTER_USE_NEXT_ATTK:
+        case KM_TAG_SOTER_UID:
+        case KM_TAG_SOTER_AUTO_SIGNED_COMMON_KEY_WHEN_GET_PUBLIC_KEY_BLOB:
+            break;
+        /* Soter Tags ends */
         }
     }
 
