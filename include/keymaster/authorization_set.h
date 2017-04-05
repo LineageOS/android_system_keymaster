@@ -164,6 +164,17 @@ class AuthorizationSet : public Serializable, public keymaster_key_param_set_t {
     void Deduplicate();
 
     /**
+     * Adds all elements from \p set that are not already present in this AuthorizationSet.  As a
+     * side-effect, if \p set is not null this AuthorizationSet will end up sorted.
+     */
+    void Union(const keymaster_key_param_set_t& set);
+
+    /**
+     * Removes all elements in \p set from this AuthorizationSet.
+     */
+    void Difference(const keymaster_key_param_set_t& set);
+
+    /**
      * Returns the data in a keymaster_key_param_set_t, suitable for returning to C code.  For C
      * compatibility, the contents are malloced, not new'ed, and so must be freed with free(), or
      * better yet with keymaster_free_param_set, not delete.  The caller takes ownership.

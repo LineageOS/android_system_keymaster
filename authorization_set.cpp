@@ -179,6 +179,32 @@ void AuthorizationSet::Deduplicate() {
     memmove(elems_, elems_ + invalid_count, size() * sizeof(*elems_));
 }
 
+void AuthorizationSet::Union(const keymaster_key_param_set_t& set) {
+    if (set.length == 0)
+        return;
+
+    push_back(set);
+    Deduplicate();
+}
+
+void AuthorizationSet::Difference(const keymaster_key_param_set_t& set) {
+    if (set.length == 0)
+        return;
+
+    Deduplicate();
+
+    for (size_t i = 0; i < set.length; i++) {
+        int index = -1;
+        do {
+            index = find(set.params[i].tag, index);
+            if (index != -1 && keymaster_param_compare(&elems_[index], &set.params[i]) == 0) {
+                erase(index);
+                break;
+            }
+        } while (index != -1);
+    }
+}
+
 void AuthorizationSet::CopyToParamSet(keymaster_key_param_set_t* set) const {
     assert(set);
 
