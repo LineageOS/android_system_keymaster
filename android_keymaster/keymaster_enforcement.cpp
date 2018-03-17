@@ -182,8 +182,9 @@ KeymasterEnforcement::AuthorizeUpdateOrFinish(const AuthProxy& auth_set,
         }
     }
 
-    if (authentication_required)
+    if (authentication_required) {
         return KM_ERROR_KEY_USER_NOT_AUTHENTICATED;
+    }
 
     return KM_ERROR_OK;
 }
@@ -337,7 +338,6 @@ keymaster_error_t KeymasterEnforcement::AuthorizeBegin(const keymaster_purpose_t
         case KM_TAG_OS_PATCHLEVEL:
 
         /* Ignored pending removal */
-        case KM_TAG_USER_ID:
         case KM_TAG_ALL_USERS:
 
         /* TODO(swillden): Handle these */
@@ -345,6 +345,12 @@ keymaster_error_t KeymasterEnforcement::AuthorizeBegin(const keymaster_purpose_t
         case KM_TAG_UNIQUE_ID:
         case KM_TAG_RESET_SINCE_ID_ROTATION:
         case KM_TAG_ALLOW_WHILE_ON_BODY:
+            break;
+
+        /* TODO(bcyoung): This is currently handled in keystore, but may move to keymaster in the
+         * future */
+        case KM_TAG_USER_ID:
+        case KM_TAG_UNLOCKED_DEVICE_REQUIRED:
             break;
 
         case KM_TAG_BOOTLOADER_ONLY:
