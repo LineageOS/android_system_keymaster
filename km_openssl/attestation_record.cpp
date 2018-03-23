@@ -189,6 +189,7 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
             break;
         case KM_TAG_MIN_MAC_LENGTH:
             integer_ptr = &record->min_mac_length;
+            break;
 
         /* Non-repeating long unsigned integers */
         case KM_TAG_RSA_PUBLIC_EXPONENT:
