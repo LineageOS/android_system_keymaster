@@ -42,6 +42,7 @@ TripleDesEvpCipherDescription::GetCipherInstance(size_t key_size, keymaster_bloc
             *error = KM_ERROR_UNSUPPORTED_KEY_SIZE;
             break;
         }
+        break;
 
     case KM_MODE_CBC:
         switch (key_size) {
@@ -53,6 +54,7 @@ TripleDesEvpCipherDescription::GetCipherInstance(size_t key_size, keymaster_bloc
             *error = KM_ERROR_UNSUPPORTED_KEY_SIZE;
             break;
         }
+        break;
 
     default:
         *error = KM_ERROR_UNSUPPORTED_BLOCK_MODE;
