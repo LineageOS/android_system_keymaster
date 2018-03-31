@@ -26,6 +26,18 @@
 #include <hardware/keymaster_defs.h>
 #include <keymaster/serializable.h>
 
+#ifndef __has_cpp_attribute
+#define __has_cpp_attribute(x) 0
+#endif
+
+// Mark intentional fallthroughts in switch statements to silence
+// -Wimplicit-fallthrough.
+#if __has_cpp_attribute(clang::fallthrough)
+#define FALLTHROUGH [[clang::fallthrough]]
+#else
+#define FALLTHROUGH
+#endif
+
 namespace keymaster {
 
 /**

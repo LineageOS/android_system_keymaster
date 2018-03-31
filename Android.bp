@@ -38,9 +38,12 @@ cc_library_shared {
     ],
     stl: "none",
     clang: true,
-    // TODO(krasin): reenable coverage flags, when the new Clang toolchain is released.
-    // Currently, if enabled, these flags will cause an internal error in Clang.
-    clang_cflags: ["-fno-sanitize-coverage=edge,indirect-calls,8bit-counters,trace-cmp"],
+    clang_cflags: [
+        "-Wimplicit-fallthrough",
+        // TODO(krasin): reenable coverage flags, when the new Clang toolchain is released.
+        // Currently, if enabled, these flags will cause an internal error in Clang.
+        "-fno-sanitize-coverage=edge,indirect-calls,8bit-counters,trace-cmp"
+    ],
 
     export_include_dirs: ["include"],
     sanitize: {
@@ -125,6 +128,7 @@ cc_library_shared {
     clang_cflags: [
         "-Wno-error=unused-const-variable",
         "-Wno-error=unused-private-field",
+        "-Wimplicit-fallthrough",
         // TODO(krasin): reenable coverage flags, when the new Clang toolchain is released.
         // Currently, if enabled, these flags will cause an internal error in Clang.
         "-fno-sanitize-coverage=edge,indirect-calls,8bit-counters,trace-cmp"

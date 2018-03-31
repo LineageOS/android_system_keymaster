@@ -215,10 +215,10 @@ size_t UpdateOperationResponse::NonErrorSerializedSize() const {
     case 3:
     case 2:
         size += output_params.SerializedSize();
-        ; /* falls through */
+        FALLTHROUGH;
     case 1:
         size += sizeof(uint32_t);
-        ; /* falls through */
+        FALLTHROUGH;
     case 0:
         size += output.SerializedSize();
         break;
@@ -253,11 +253,11 @@ size_t FinishOperationRequest::SerializedSize() const {
     switch (message_version) {
     case 3:
         size += input.SerializedSize();
-        ; /* falls through */
+        FALLTHROUGH;
     case 2:
     case 1:
         size += additional_params.SerializedSize();
-        ; /* falls through */
+        FALLTHROUGH;
     case 0:
         size += sizeof(op_handle) + signature.SerializedSize();
         break;
