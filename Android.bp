@@ -55,7 +55,7 @@ cc_library_shared {
 // implementation, lacking only a subclass of the (abstract) KeymasterContext
 // class to provide environment-specific services and a wrapper to translate from
 // the function-based keymaster HAL API to the message-based AndroidKeymaster API.
-cc_library_shared {
+cc_library {
     name: "libkeymaster_portable",
     vendor_available: true,
     vndk: {
@@ -194,7 +194,7 @@ cc_library {
     export_include_dirs: ["include"],
 }
 
-cc_library_shared {
+cc_library {
     name: "libpuresoftkeymasterdevice",
     vendor_available: true,
     vndk: {
