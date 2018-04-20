@@ -39,7 +39,7 @@ namespace {
 constexpr uint8_t kFakeKeyAgreementKey[32] = {};
 constexpr const char* kSharedHmacLabel = "KeymasterSharedMac";
 constexpr const char* kMacVerificationString = "Keymaster HMAC Verification";
-constexpr const char* kAuthVerificationLabel = "Auth Verificvation";
+constexpr const char* kAuthVerificationLabel = "Auth Verification";
 
 class EvpMdCtx {
   public:
