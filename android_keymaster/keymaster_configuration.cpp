@@ -22,7 +22,7 @@
 #include <regex.h>
 
 #define LOG_TAG "keymaster"
-#include <cutils/log.h>
+#include <log/log.h>
 
 #ifndef KEYMASTER_UNIT_TEST_BUILD
 #include <cutils/properties.h>

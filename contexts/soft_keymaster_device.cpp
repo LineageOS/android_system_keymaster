@@ -32,7 +32,7 @@
 
 #include <hardware/keymaster1.h>
 #define LOG_TAG "SoftKeymasterDevice"
-#include <cutils/log.h>
+#include <log/log.h>
 
 #include <keymaster/android_keymaster.h>
 #include <keymaster/android_keymaster_messages.h>

@@ -22,7 +22,7 @@
 #include <memory>
 
 #define LOG_TAG "Keymaster1Engine"
-#include <cutils/log.h>
+#include <log/log.h>
 
 #include <keymaster/android_keymaster_utils.h>
 #include <keymaster/km_openssl/openssl_err.h>
