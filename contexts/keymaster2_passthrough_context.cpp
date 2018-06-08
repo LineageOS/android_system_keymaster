@@ -69,10 +69,10 @@ keymaster_error_t Keymaster2PassthroughContext::UpgradeKeyBlob(
 keymaster_error_t Keymaster2PassthroughContext::ParseKeyBlob(const KeymasterKeyBlob& blob,
         const AuthorizationSet& additional_params, UniquePtr<Key>* key) const {
     keymaster_key_characteristics_t characteristics = {};
-    KeymasterBlob clientId;
-    KeymasterBlob applicationData;
-    KeymasterBlob* clientIdPtr = &clientId;
-    KeymasterBlob* applicationDataPtr = &applicationData;
+    keymaster_blob_t clientId;
+    keymaster_blob_t applicationData;
+    keymaster_blob_t* clientIdPtr = &clientId;
+    keymaster_blob_t* applicationDataPtr = &applicationData;
     if (!additional_params.GetTagValue(TAG_APPLICATION_ID, clientIdPtr)) {
         clientIdPtr = nullptr;
     }
