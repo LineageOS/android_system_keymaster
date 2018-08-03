@@ -47,15 +47,20 @@ keymaster_error_t RsaKeymaster1WrappedOperation::Begin(EVP_PKEY* rsa_key,
     // that layer.
     AuthorizationSet begin_params(input_params);
     int pos = begin_params.find(TAG_DIGEST);
-    if (pos == -1)
-        return KM_ERROR_UNSUPPORTED_DIGEST;
-    begin_params[pos].enumerated = KM_DIGEST_NONE;
+    if (pos == -1) {
+        // If we reach this point with no digest given. It was verified that KM_DIGEST_NONE was
+        // authorized by OperationFactory::GetAndValidateDigest. So no DIGEST given may imply
+        // KM_DIGEST_NONE.
+        begin_params.push_back(TAG_DIGEST, KM_DIGEST_NONE);
+    } else {
+        begin_params[pos].enumerated = KM_DIGEST_NONE;
+    }
 
     pos = begin_params.find(TAG_PADDING);
     if (pos == -1)
         return KM_ERROR_UNSUPPORTED_PADDING_MODE;
     switch (begin_params[pos].enumerated) {
-
+    case KM_PAD_NONE:
     case KM_PAD_RSA_PSS:
     case KM_PAD_RSA_OAEP:
         key_data->expected_openssl_padding = RSA_NO_PADDING;
