@@ -54,7 +54,7 @@ struct keystore_module soft_keymaster1_device_module = {
             .name = "OpenSSL-based SoftKeymaster HAL",
             .author = "The Android Open Source Project",
             .methods = nullptr,
-            .dso = 0,
+            .dso = nullptr,
             .reserved = {},
         },
 };
@@ -69,7 +69,7 @@ struct keystore_module soft_keymaster2_device_module = {
             .name = "OpenSSL-based SoftKeymaster HAL",
             .author = "The Android Open Source Project",
             .methods = nullptr,
-            .dso = 0,
+            .dso = nullptr,
             .reserved = {},
         },
 };

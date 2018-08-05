@@ -117,15 +117,15 @@ class KeymasterPassthroughOperationFactory : public OperationFactory {
     // deallocated or modified.
     const keymaster_padding_t* SupportedPaddingModes(size_t* padding_count) const override {
         *padding_count = 0;
-        return NULL;
+        return nullptr;
     }
     const keymaster_block_mode_t* SupportedBlockModes(size_t* block_mode_count) const override {
         *block_mode_count = 0;
-        return NULL;
+        return nullptr;
     }
     const keymaster_digest_t* SupportedDigests(size_t* digest_count) const override {
         *digest_count = 0;
-        return NULL;
+        return nullptr;
     }
 
   private:

@@ -127,7 +127,7 @@ RsaCryptingOperationFactory::SupportedPaddingModes(size_t* padding_mode_count) c
 }
 
 RsaOperation::~RsaOperation() {
-    if (rsa_key_ != NULL)
+    if (rsa_key_ != nullptr)
         EVP_PKEY_free(rsa_key_);
 }
 
@@ -394,7 +394,7 @@ keymaster_error_t RsaVerifyOperation::Begin(const AuthorizationSet& input_params
         return KM_ERROR_OK;
 
     EVP_PKEY_CTX* pkey_ctx;
-    if (EVP_DigestVerifyInit(&digest_ctx_, &pkey_ctx, digest_algorithm_, NULL, rsa_key_) != 1)
+    if (EVP_DigestVerifyInit(&digest_ctx_, &pkey_ctx, digest_algorithm_, nullptr, rsa_key_) != 1)
         return TranslateLastOpenSslError();
     return SetRsaPaddingInEvpContext(pkey_ctx, false /* signing */);
 }

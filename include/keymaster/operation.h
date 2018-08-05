@@ -59,15 +59,15 @@ class OperationFactory {
     // deallocated or modified.
     virtual const keymaster_padding_t* SupportedPaddingModes(size_t* padding_count) const {
         *padding_count = 0;
-        return NULL;
+        return nullptr;
     }
     virtual const keymaster_block_mode_t* SupportedBlockModes(size_t* block_mode_count) const {
         *block_mode_count = 0;
-        return NULL;
+        return nullptr;
     }
     virtual const keymaster_digest_t* SupportedDigests(size_t* digest_count) const {
         *digest_count = 0;
-        return NULL;
+        return nullptr;
     }
 
     // Convenience methods

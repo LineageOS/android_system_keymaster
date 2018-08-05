@@ -41,7 +41,7 @@ class AuthorizationSet : public Serializable, public keymaster_key_param_set_t {
      * buffers, with \p Reinitialize.
      */
     AuthorizationSet()
-        : elems_capacity_(0), indirect_data_(NULL), indirect_data_size_(0),
+        : elems_capacity_(0), indirect_data_(nullptr), indirect_data_size_(0),
           indirect_data_capacity_(0), error_(OK) {
         elems_ = nullptr;
         elems_size_ = 0;

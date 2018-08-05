@@ -132,7 +132,7 @@ HmacOperation::HmacOperation(Key&& key, keymaster_purpose_t purpose, keymaster_d
     }
 
     KeymasterKeyBlob blob = key.key_material_move();
-    HMAC_Init_ex(&ctx_, blob.key_material, blob.key_material_size, md, NULL /* engine */);
+    HMAC_Init_ex(&ctx_, blob.key_material, blob.key_material_size, md, nullptr /* engine */);
 }
 
 HmacOperation::~HmacOperation() {

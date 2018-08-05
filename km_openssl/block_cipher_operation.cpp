@@ -197,7 +197,7 @@ keymaster_error_t BlockCipherEvpOperation::Finish(const AuthorizationSet& additi
     int output_written = -1;
     if (!EVP_CipherFinal_ex(&ctx_, output->peek_write(), &output_written)) {
         if (tag_length_ > 0) return KM_ERROR_VERIFICATION_FAILED;
-        LOG_E("Error encrypting final block: %s", ERR_error_string(ERR_peek_last_error(), NULL));
+        LOG_E("Error encrypting final block: %s", ERR_error_string(ERR_peek_last_error(), nullptr));
         return TranslateLastOpenSslError();
     }
 
@@ -228,7 +228,7 @@ keymaster_error_t BlockCipherEvpOperation::InitializeCipher(KeymasterKeyBlob key
         cipher_description_.GetCipherInstance(key.key_material_size, block_mode_, &error);
     if (error) return error;
 
-    if (!EVP_CipherInit_ex(&ctx_, cipher, NULL /* engine */, key.key_material, iv_.data,
+    if (!EVP_CipherInit_ex(&ctx_, cipher, nullptr /* engine */, key.key_material, iv_.data,
                            evp_encrypt_mode())) {
         return TranslateLastOpenSslError();
     }

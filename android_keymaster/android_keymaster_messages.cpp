@@ -41,7 +41,7 @@ static uint8_t* serialize_key_blob(const keymaster_key_blob_t& key_blob, uint8_t
 static bool deserialize_key_blob(keymaster_key_blob_t* key_blob, const uint8_t** buf_ptr,
                                  const uint8_t* end) {
     delete[] key_blob->key_material;
-    key_blob->key_material = 0;
+    key_blob->key_material = nullptr;
     UniquePtr<uint8_t[]> deserialized_key_material;
     if (!copy_size_and_data_from_buf(buf_ptr, end, &key_blob->key_material_size,
                                      &deserialized_key_material))
@@ -341,7 +341,7 @@ uint8_t* ImportKeyRequest::Serialize(uint8_t* buf, const uint8_t* end) const {
 
 bool ImportKeyRequest::Deserialize(const uint8_t** buf_ptr, const uint8_t* end) {
     delete[] key_data;
-    key_data = NULL;
+    key_data = nullptr;
     UniquePtr<uint8_t[]> deserialized_key_material;
     if (!key_description.Deserialize(buf_ptr, end) ||
         !copy_uint32_from_buf(buf_ptr, end, &key_format) ||
@@ -407,7 +407,7 @@ uint8_t* ExportKeyResponse::NonErrorSerialize(uint8_t* buf, const uint8_t* end) 
 
 bool ExportKeyResponse::NonErrorDeserialize(const uint8_t** buf_ptr, const uint8_t* end) {
     delete[] key_data;
-    key_data = NULL;
+    key_data = nullptr;
     UniquePtr<uint8_t[]> deserialized_key_material;
     if (!copy_size_and_data_from_buf(buf_ptr, end, &key_data_length, &deserialized_key_material))
         return false;

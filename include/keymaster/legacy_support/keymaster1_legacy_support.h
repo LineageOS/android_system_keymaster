@@ -45,7 +45,8 @@ public:
     Keymaster1LegacySupport(const keymaster1_device_t* dev);
 
     bool RequiresSoftwareDigesting(const AuthorizationSet& key_description) const;
-    bool RequiresSoftwareDigesting(const AuthProxy& key_description) const;
+    bool RequiresSoftwareDigesting(const keymaster_digest_t digest,
+                                   const AuthProxy& key_description) const;
 
 private:
     DigestMap device_digests_;
@@ -99,7 +100,13 @@ public:
                               AuthorizationSet&& hw_enforced,
                               AuthorizationSet&& sw_enforced,
                               UniquePtr<Key>* key) const override {
-        if (legacy_support_.RequiresSoftwareDigesting(AuthProxy(hw_enforced, sw_enforced))) {
+        keymaster_digest_t digest;
+        if (!additional_params.GetTagValue(TAG_DIGEST, &digest)) {
+            digest = KM_DIGEST_NONE;
+        }
+
+        if (legacy_support_.RequiresSoftwareDigesting(digest,
+                                                      AuthProxy(hw_enforced, sw_enforced))) {
             return software_digest_factory_.LoadKey(move(key_material), additional_params,
                                                     move(hw_enforced), move(sw_enforced), key);
         } else {
