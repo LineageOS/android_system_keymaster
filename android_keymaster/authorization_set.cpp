@@ -385,9 +385,14 @@ static bool deserialize(keymaster_key_param_t* param, const uint8_t** buf_ptr, c
         break;
     case KM_BOOL:
         if (*buf_ptr < end) {
-            param->boolean = static_cast<bool>(**buf_ptr);
-            (*buf_ptr)++;
-            return true;
+            uint8_t temp = **buf_ptr;
+            // Bools are converted to 0 or 1 when serialized so only accept
+            // one of these values when deserializing.
+            if (temp <= 1) {
+                param->boolean = static_cast<bool>(temp);
+                (*buf_ptr)++;
+                return true;
+            }
         }
         return false;
 
@@ -478,6 +483,15 @@ bool AuthorizationSet::DeserializeElementsData(const uint8_t** buf_ptr, const ui
             return false;
         }
     }
+
+    // Check if all the elements were consumed. If not, something was malformed as the
+    // retrieved elements_count and elements_size are not consistent with each other.
+    if (*buf_ptr != elements_end) {
+        LOG_E("Malformed data found in AuthorizationSet deserialization", 0);
+        set_invalid(MALFORMED_DATA);
+        return false;
+    }
+
     elems_size_ = elements_count;
     return true;
 }

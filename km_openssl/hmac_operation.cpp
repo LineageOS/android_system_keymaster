@@ -74,7 +74,7 @@ OperationPtr HmacOperationFactory::CreateOperation(Key&& key, const Authorizatio
 
     if (*error != KM_ERROR_OK) return nullptr;
 
-    return op;
+    return move(op);
 }
 
 static keymaster_digest_t supported_digests[] = {KM_DIGEST_SHA1, KM_DIGEST_SHA_2_224,
