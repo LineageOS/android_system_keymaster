@@ -219,7 +219,7 @@ void AndroidKeymaster::GenerateKey(const GenerateKeyRequest& request,
         return;
 
     keymaster_algorithm_t algorithm;
-    KeyFactory* factory = nullptr;
+    const KeyFactory* factory = nullptr;
     UniquePtr<Key> key;
     if (!request.key_description.GetTagValue(TAG_ALGORITHM, &algorithm) ||
         !(factory = context_->GetKeyFactory(algorithm)))
@@ -432,7 +432,7 @@ void AndroidKeymaster::ImportKey(const ImportKeyRequest& request, ImportKeyRespo
         return;
 
     keymaster_algorithm_t algorithm;
-    KeyFactory* factory = nullptr;
+    const KeyFactory* factory = nullptr;
     UniquePtr<Key> key;
     if (!request.key_description.GetTagValue(TAG_ALGORITHM, &algorithm) ||
         !(factory = context_->GetKeyFactory(algorithm)))
@@ -514,7 +514,7 @@ void AndroidKeymaster::ImportWrappedKey(const ImportWrappedKeyRequest& request,
     }
 
     keymaster_algorithm_t algorithm;
-    KeyFactory* factory = nullptr;
+    const KeyFactory* factory = nullptr;
     if (!key_description.GetTagValue(TAG_ALGORITHM, &algorithm) ||
         !(factory = context_->GetKeyFactory(algorithm))) {
         response->error = KM_ERROR_UNSUPPORTED_ALGORITHM;
