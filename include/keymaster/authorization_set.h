@@ -711,7 +711,9 @@ class AuthProxy {
 
     keymaster_key_param_t operator[](size_t pos) const {
         if (pos < hw_enforced_.size()) return hw_enforced_[pos];
-        if (pos < sw_enforced_.size()) return sw_enforced_[pos - hw_enforced_.size()];
+        if ((pos - hw_enforced_.size()) < sw_enforced_.size()) {
+            return sw_enforced_[pos - hw_enforced_.size()];
+        }
         return {};
     }
 
