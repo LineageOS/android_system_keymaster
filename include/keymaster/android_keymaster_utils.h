@@ -341,7 +341,9 @@ struct TKeymasterBlob : public BlobType {
     const uint8_t* end() const { return accessBlobData(this) + accessBlobSize(this); }
 
     void Clear() {
-        memset_s(const_cast<uint8_t*>(accessBlobData(this)), 0, accessBlobSize(this));
+        if (accessBlobSize(this)) {
+            memset_s(const_cast<uint8_t*>(accessBlobData(this)), 0, accessBlobSize(this));
+        }
         delete[] accessBlobData(this);
         accessBlobData(this) = nullptr;
         accessBlobSize(this) = 0;
