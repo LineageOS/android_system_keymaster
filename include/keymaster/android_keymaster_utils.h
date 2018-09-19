@@ -18,7 +18,17 @@
 #define SYSTEM_KEYMASTER_ANDROID_KEYMASTER_UTILS_H_
 
 #include <stdint.h>
+#ifndef  __clang__
+// We need to diable foritfy level for memset in gcc because we want to use
+// memset unoptimized. This would falsely trigger __warn_memset_zero_len in
+// /usr/include/bits/string3.h. The inline checking function is only supposed to
+// work when the optimization level is at least 1.
+#pragma push_macro("__USE_FORTIFY_LEVEL")
+#endif
 #include <string.h>
+#ifndef  __clang__
+#pragma pop_macro("__USE_FORTIFY_LEVEL")
+#endif
 #include <time.h>  // for time_t.
 
 #include <keymaster/UniquePtr.h>
