@@ -24,6 +24,7 @@
 // /usr/include/bits/string3.h. The inline checking function is only supposed to
 // work when the optimization level is at least 1.
 #pragma push_macro("__USE_FORTIFY_LEVEL")
+#undef __USE_FORTIFY_LEVEL
 #endif
 #include <string.h>
 #ifndef  __clang__
