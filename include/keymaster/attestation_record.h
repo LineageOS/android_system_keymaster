@@ -240,7 +240,8 @@ keymaster_error_t build_attestation_record(const AuthorizationSet& attestation_p
                                            size_t* asn1_key_desc_len);
 
 /**
- * helper function for attestation record test.
+ * Helper functions for attestation record tests. Caller takes ownership of
+ * |attestation_challenge->data| and |unique_id->data|, deallocate using delete[].
  */
 keymaster_error_t parse_attestation_record(const uint8_t* asn1_key_desc, size_t asn1_key_desc_len,
                                            uint32_t* attestation_version,  //
@@ -251,6 +252,14 @@ keymaster_error_t parse_attestation_record(const uint8_t* asn1_key_desc, size_t 
                                            AuthorizationSet* software_enforced,
                                            AuthorizationSet* tee_enforced,
                                            keymaster_blob_t* unique_id);
+
+/**
+ * Caller takes ownership of |verified_boot_key->data|, deallocate using delete[].
+ */
+keymaster_error_t parse_root_of_trust(const uint8_t* asn1_key_desc, size_t asn1_key_desc_len,
+                                      keymaster_blob_t* verified_boot_key,
+                                      keymaster_verified_boot_t* verified_boot_state,
+                                      bool* device_locked);
 
 keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIST* record);
 
