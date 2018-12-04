@@ -201,6 +201,7 @@ keymaster_error_t add_key_usage_extension(const AuthorizationSet& tee_enforced,
                                                  X509* certificate) {
     // Build BIT_STRING with correct contents.
     ASN1_BIT_STRING_Ptr key_usage(ASN1_BIT_STRING_new());
+    if (!key_usage) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 
     for (size_t i = 0; i <= kMaxKeyUsageBit; ++i) {
         if (!ASN1_BIT_STRING_set_bit(key_usage.get(), i, 0)) {
