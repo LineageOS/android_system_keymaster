@@ -97,7 +97,7 @@ inline int32_t MessageVersion(uint8_t major_ver, uint8_t minor_ver, uint8_t /* s
     case 2:
         message_version = 3;
         break;
-    };
+    }
     return message_version;
 }
 

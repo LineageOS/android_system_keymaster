@@ -45,7 +45,7 @@ class EvpCipherDescription {
  */
 class BlockCipherOperationFactory : public OperationFactory {
   public:
-    BlockCipherOperationFactory(keymaster_purpose_t purpose) : purpose_(purpose) {}
+    explicit BlockCipherOperationFactory(keymaster_purpose_t purpose) : purpose_(purpose) {}
 
     KeyType registry_key() const override {
         return KeyType(GetCipherDescription().algorithm(), purpose_);

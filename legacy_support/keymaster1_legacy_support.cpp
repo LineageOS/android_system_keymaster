@@ -36,6 +36,7 @@ template <typename T> std::vector<T> make_vector(const T* array, size_t len) {
 // size of a set intersection.
 struct PushbackCounter {
     struct value_type {
+        // NOLINTNEXTLINE(google-explicit-constructor)
         template <typename T> value_type(const T&) {}
     };
     void push_back(const value_type&) { ++count; }

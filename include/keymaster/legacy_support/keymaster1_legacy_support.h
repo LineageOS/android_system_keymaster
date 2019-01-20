@@ -42,6 +42,7 @@ public:
     typedef std::pair<keymaster_algorithm_t, keymaster_purpose_t> AlgPurposePair;
     typedef std::map<AlgPurposePair, std::vector<keymaster_digest_t>> DigestMap;
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     Keymaster1LegacySupport(const keymaster1_device_t* dev);
 
     bool RequiresSoftwareDigesting(const AuthorizationSet& key_description) const;

@@ -105,6 +105,7 @@ template <keymaster_tag_type_t tag_type, keymaster_tag_t tag> class TypedTag {
         StaticAssert<(tag & tag_type) == tag_type>::check();
         StaticAssert<(tag_type != KM_ENUM) && (tag_type != KM_ENUM_REP)>::check();
     }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     inline operator keymaster_tag_t() { return tag; }
     inline long masked_tag() { return static_cast<long>(keymaster_tag_mask_type(tag)); }
 };
@@ -121,6 +122,7 @@ class TypedEnumTag {
         StaticAssert<(tag & tag_type) == tag_type>::check();
         StaticAssert<(tag_type == KM_ENUM) || (tag_type == KM_ENUM_REP)>::check();
     }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     inline operator keymaster_tag_t() { return tag; }
     inline long masked_tag() { return static_cast<long>(keymaster_tag_mask_type(tag)); }
 };
