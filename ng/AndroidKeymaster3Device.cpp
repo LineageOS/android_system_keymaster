@@ -19,7 +19,7 @@
 
 #include "include/AndroidKeymaster3Device.h"
 
-#include <cutils/log.h>
+#include <android/log.h>
 
 #include "include/authorization_set.h"
 
