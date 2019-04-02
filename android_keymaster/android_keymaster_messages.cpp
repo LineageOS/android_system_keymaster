@@ -635,13 +635,14 @@ size_t ImportWrappedKeyRequest::SerializedSize() const {
     return sizeof(uint32_t) /* wrapped_key_data_length */ + wrapped_key.key_material_size +
            sizeof(uint32_t) /* wrapping_key_data_length */ + wrapping_key.key_material_size +
            sizeof(uint32_t) /* masking_key_data_length */ + masking_key.key_material_size +
-           additional_params.SerializedSize();
+           additional_params.SerializedSize() + sizeof(uint64_t) /* password_sid */ +
+           sizeof(uint64_t) /* biometric_sid */;
 }
 
 uint8_t* ImportWrappedKeyRequest::Serialize(uint8_t* buf, const uint8_t* end) const {
-    serialize_key_blob(wrapped_key, buf, end);
-    serialize_key_blob(wrapping_key, buf, end);
-    serialize_key_blob(masking_key, buf, end);
+    buf = serialize_key_blob(wrapped_key, buf, end);
+    buf = serialize_key_blob(wrapping_key, buf, end);
+    buf = serialize_key_blob(masking_key, buf, end);
     buf = additional_params.Serialize(buf, end);
     buf = append_uint64_to_buf(buf, end, password_sid);
     return append_uint64_to_buf(buf, end, biometric_sid);
