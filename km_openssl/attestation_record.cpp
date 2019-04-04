@@ -229,6 +229,9 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
         case KM_TAG_CALLER_NONCE:
             bool_ptr = &record->caller_nonce;
             break;
+        case KM_TAG_TRUSTED_CONFIRMATION_REQUIRED:
+            bool_ptr = &record->trusted_confirmation_required;
+            break;
 
         /* Byte arrays*/
         case KM_TAG_APPLICATION_ID:
@@ -706,6 +709,13 @@ keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet
         !auth_list->push_back(TAG_ATTESTATION_ID_MODEL, record->attestation_id_model->data,
                               record->attestation_id_model->length))
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+
+    // Trusted confirmation required
+    if (record->trusted_confirmation_required) {
+        if (!auth_list->push_back(TAG_NO_AUTH_REQUIRED)) {
+            return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+        }
+    }
 
     return KM_ERROR_OK;
 }

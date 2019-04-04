@@ -53,7 +53,7 @@ class OperationFactory {
 
     // Factory methods
     virtual OperationPtr CreateOperation(Key&& key, const AuthorizationSet& begin_params,
-                                         keymaster_error_t* error) = 0;
+                                         keymaster_error_t* error) const = 0;
 
     // Informational methods.  The returned arrays reference static memory and must not be
     // deallocated or modified.

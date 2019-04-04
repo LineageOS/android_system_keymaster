@@ -78,7 +78,7 @@ static keymaster_error_t GetAndValidateGcmTagLength(const AuthorizationSet& begi
 
 OperationPtr BlockCipherOperationFactory::CreateOperation(Key&& key,
                                                           const AuthorizationSet& begin_params,
-                                                          keymaster_error_t* error) {
+                                                          keymaster_error_t* error) const {
     *error = KM_ERROR_OK;
     keymaster_block_mode_t block_mode;
     if (!begin_params.GetTagValue(TAG_BLOCK_MODE, &block_mode)) {
