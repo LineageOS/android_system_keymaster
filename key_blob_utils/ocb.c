@@ -73,6 +73,7 @@
 /* ----------------------------------------------------------------------- */
 
 #include <keymaster/key_blob_utils/ae.h>
+#include <malloc.h>
 #include <stdlib.h>
 #include <string.h>
 
