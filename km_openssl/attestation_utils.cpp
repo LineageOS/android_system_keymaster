@@ -347,7 +347,8 @@ keymaster_error_t generate_attestation(const AsymmetricKey& key,
     // TODO(swillden): When trusty can use the C++ standard library change the calculation of
     // notAfterTime to use std::numeric_limits<time_t>::max(), rather than assuming that time_t is
     // 32 bits.
-    time_t notAfterTime = min(static_cast<uint64_t>(UINT32_MAX), usageExpireDateTime / 1000);
+    time_t notAfterTime =
+        (time_t)min(static_cast<uint64_t>(UINT32_MAX), usageExpireDateTime / 1000);
     if (!notAfter.get() || !ASN1_TIME_set(notAfter.get(), notAfterTime) ||
         !X509_set_notAfter(certificate.get(), notAfter.get() /* Don't release; copied */))
         return TranslateLastOpenSslError();
