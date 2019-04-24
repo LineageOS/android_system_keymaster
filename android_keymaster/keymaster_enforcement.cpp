@@ -148,6 +148,7 @@ KeymasterEnforcement::AuthorizeUpdateOrFinish(const AuthProxy& auth_set,
                                               keymaster_operation_handle_t op_handle) {
     int auth_type_index = -1;
     int trusted_confirmation_index = -1;
+    bool no_auth_required = false;
     for (size_t pos = 0; pos < auth_set.size(); ++pos) {
         switch (auth_set[pos].tag) {
         case KM_TAG_USER_AUTH_TYPE:
@@ -159,7 +160,9 @@ KeymasterEnforcement::AuthorizeUpdateOrFinish(const AuthProxy& auth_set,
             break;
         case KM_TAG_NO_AUTH_REQUIRED:
         case KM_TAG_AUTH_TIMEOUT:
-        // If no auth is required or if auth is timeout-based, we have nothing to check.
+            // If no auth is required or if auth is timeout-based, we have nothing to check.
+            no_auth_required = true;
+            break;
         default:
             break;
         }
@@ -169,6 +172,11 @@ KeymasterEnforcement::AuthorizeUpdateOrFinish(const AuthProxy& auth_set,
     // For now, since we do not have such a service, any token offered here must be invalid.
     if (trusted_confirmation_index != -1) {
         return KM_ERROR_NO_USER_CONFIRMATION;
+    }
+
+    // If NO_AUTH_REQUIRED or AUTH_TIMEOUT was set, we need not check an auth token.
+    if (no_auth_required) {
+        return KM_ERROR_OK;
     }
 
     // Note that at this point we should be able to assume that authentication is required, because
