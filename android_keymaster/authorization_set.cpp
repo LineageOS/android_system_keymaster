@@ -511,8 +511,8 @@ bool AuthorizationSet::Deserialize(const uint8_t** buf_ptr, const uint8_t* end) 
 }
 
 void AuthorizationSet::Clear() {
-    memset_s(elems_, 0, elems_size_ * sizeof(keymaster_key_param_t));
-    memset_s(indirect_data_, 0, indirect_data_size_);
+    memset_s(elems_, 0, elems_capacity_ * sizeof(keymaster_key_param_t));
+    memset_s(indirect_data_, 0, indirect_data_capacity_);
     elems_size_ = 0;
     indirect_data_size_ = 0;
     error_ = OK;
