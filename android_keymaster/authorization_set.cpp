@@ -464,7 +464,7 @@ bool AuthorizationSet::DeserializeElementsData(const uint8_t** buf_ptr, const ui
     // Note that the following validation of elements_count is weak, but it prevents allocation of
     // elems_ arrays which are clearly too large to be reasonable.
     if (static_cast<ptrdiff_t>(elements_size) > end - *buf_ptr ||
-        elements_count * sizeof(uint32_t) > elements_size ||
+        elements_count * (uint64_t)sizeof(uint32_t) > elements_size ||
         *buf_ptr + (elements_count * sizeof(*elems_)) < *buf_ptr) {
         LOG_E("Malformed data found in AuthorizationSet deserialization", 0);
         set_invalid(MALFORMED_DATA);
@@ -511,8 +511,8 @@ bool AuthorizationSet::Deserialize(const uint8_t** buf_ptr, const uint8_t* end) 
 }
 
 void AuthorizationSet::Clear() {
-    memset_s(elems_, 0, elems_size_ * sizeof(keymaster_key_param_t));
-    memset_s(indirect_data_, 0, indirect_data_size_);
+    memset_s(elems_, 0, elems_capacity_ * sizeof(keymaster_key_param_t));
+    memset_s(indirect_data_, 0, indirect_data_capacity_);
     elems_size_ = 0;
     indirect_data_size_ = 0;
     error_ = OK;
