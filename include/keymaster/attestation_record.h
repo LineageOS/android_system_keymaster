@@ -43,12 +43,14 @@ typedef struct km_root_of_trust {
     ASN1_OCTET_STRING* verified_boot_key;
     ASN1_BOOLEAN* device_locked;
     ASN1_ENUMERATED* verified_boot_state;
+    ASN1_OCTET_STRING* verified_boot_hash;
 } KM_ROOT_OF_TRUST;
 
 ASN1_SEQUENCE(KM_ROOT_OF_TRUST) = {
     ASN1_SIMPLE(KM_ROOT_OF_TRUST, verified_boot_key, ASN1_OCTET_STRING),
     ASN1_SIMPLE(KM_ROOT_OF_TRUST, device_locked, ASN1_BOOLEAN),
     ASN1_SIMPLE(KM_ROOT_OF_TRUST, verified_boot_state, ASN1_ENUMERATED),
+    ASN1_SIMPLE(KM_ROOT_OF_TRUST, verified_boot_hash, ASN1_OCTET_STRING),
 } ASN1_SEQUENCE_END(KM_ROOT_OF_TRUST);
 DECLARE_ASN1_FUNCTIONS(KM_ROOT_OF_TRUST);
 
