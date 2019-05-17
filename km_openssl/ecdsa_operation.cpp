@@ -39,7 +39,9 @@ OperationPtr EcdsaOperationFactory::CreateOperation(Key&& key, const Authorizati
     }
 
     keymaster_digest_t digest;
-    if (!GetAndValidateDigest(begin_params, ecdsa_key, &digest, error)) return nullptr;
+    if (!GetAndValidateDigest(begin_params, ecdsa_key, &digest, error, true)) {
+        return nullptr;
+    }
 
     *error = KM_ERROR_OK;
     auto op = OperationPtr(InstantiateOperation(key.hw_enforced_move(), key.sw_enforced_move(),

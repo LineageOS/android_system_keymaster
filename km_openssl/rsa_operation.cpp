@@ -69,7 +69,10 @@ RsaOperation* RsaOperationFactory::CreateRsaOperation(Key&& key,
                            padding == KM_PAD_RSA_OAEP);
 
     keymaster_digest_t digest = KM_DIGEST_NONE;
-    if (require_digest && !GetAndValidateDigest(begin_params, key, &digest, error)) return nullptr;
+
+    if (require_digest && !GetAndValidateDigest(begin_params, key, &digest, error, true)) {
+        return nullptr;
+    }
 
     UniquePtr<EVP_PKEY, EVP_PKEY_Delete> rsa(GetRsaKey(move(key), error));
     if (!rsa.get()) return nullptr;
