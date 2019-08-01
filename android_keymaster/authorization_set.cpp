@@ -463,9 +463,20 @@ bool AuthorizationSet::DeserializeElementsData(const uint8_t** buf_ptr, const ui
 
     // Note that the following validation of elements_count is weak, but it prevents allocation of
     // elems_ arrays which are clearly too large to be reasonable.
+    size_t elems_refs_size;
+    size_t elems_alloc_size;
+    bool refs_size_overflow = __builtin_mul_overflow(elements_count, sizeof(uint32_t),
+                                                     &elems_refs_size);
+    bool alloc_size_overflow = __builtin_mul_overflow(elements_count, sizeof(*elems_),
+                                                      &elems_alloc_size);
+        /* elements_size must fit in the buffer */
     if (static_cast<ptrdiff_t>(elements_size) > end - *buf_ptr ||
-        elements_count * (uint64_t)sizeof(uint32_t) > elements_size ||
-        *buf_ptr + (elements_count * sizeof(*elems_)) < *buf_ptr) {
+        /* The element refs must all fit within elements_size */
+        elems_refs_size > elements_size ||
+        /* If our pointer math would overflow, bail */
+        refs_size_overflow ||
+        /* If the resulting allocation would overflow, bail */
+        alloc_size_overflow) {
         LOG_E("Malformed data found in AuthorizationSet deserialization", 0);
         set_invalid(MALFORMED_DATA);
         return false;
