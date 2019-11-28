@@ -220,6 +220,9 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
         case KM_TAG_ROLLBACK_RESISTANT:
             bool_ptr = &record->rollback_resistant;
             break;
+        case KM_TAG_ROLLBACK_RESISTANCE:
+            bool_ptr = &record->rollback_resistance;
+            break;
         case KM_TAG_ALLOW_WHILE_ON_BODY:
             bool_ptr = &record->allow_while_on_body;
             break;
