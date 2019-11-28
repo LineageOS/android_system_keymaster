@@ -79,6 +79,7 @@ typedef struct km_auth_list {
     ASN1_OCTET_STRING* application_id;
     ASN1_INTEGER* creation_date_time;
     ASN1_INTEGER* origin;
+    ASN1_NULL* rollback_resistance;
     ASN1_NULL* rollback_resistant;
     KM_ROOT_OF_TRUST* root_of_trust;
     ASN1_INTEGER* os_version;
@@ -124,6 +125,8 @@ ASN1_SEQUENCE(KM_AUTH_LIST) = {
     ASN1_EXP_OPT(KM_AUTH_LIST, creation_date_time, ASN1_INTEGER,
                  TAG_CREATION_DATETIME.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, origin, ASN1_INTEGER, TAG_ORIGIN.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, rollback_resistance, ASN1_NULL,
+                 TAG_ROLLBACK_RESISTANCE.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, rollback_resistant, ASN1_NULL, TAG_ROLLBACK_RESISTANT.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, root_of_trust, KM_ROOT_OF_TRUST, TAG_ROOT_OF_TRUST.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, os_version, ASN1_INTEGER, TAG_OS_VERSION.masked_tag()),
