@@ -53,6 +53,10 @@ struct KM_KEY_DESCRIPTION_Delete {
     void operator()(KM_KEY_DESCRIPTION* p) { KM_KEY_DESCRIPTION_free(p); }
 };
 
+struct KM_ROOT_OF_TRUST_Delete {
+    void operator()(KM_ROOT_OF_TRUST* p) { KM_ROOT_OF_TRUST_free(p); }
+};
+
 static uint32_t get_uint32_value(const keymaster_key_param_t& param) {
     switch (keymaster_tag_get_type(param.tag)) {
     case KM_ENUM:
@@ -379,64 +383,45 @@ keymaster_error_t build_attestation_record(const AuthorizationSet& attestation_p
     if (!key_desc.get())
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 
-    keymaster_security_level_t keymaster_security_level;
-    uint32_t keymaster_version = UINT32_MAX;
-    if (tee_enforced.empty()) {
-        // Software key.
-        keymaster_security_level = KM_SECURITY_LEVEL_SOFTWARE;
-        keymaster_version = kCurrentKeymasterVersion;
+    KM_ROOT_OF_TRUST* root_of_trust = nullptr;
+    if (context.GetSecurityLevel() == KM_SECURITY_LEVEL_SOFTWARE) {
+        key_desc->software_enforced->root_of_trust = KM_ROOT_OF_TRUST_new();
+        root_of_trust = key_desc->software_enforced->root_of_trust;
     } else {
-        keymaster_security_level = KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT;
-        switch (context.GetSecurityLevel()) {
-        case KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT: {
-            keymaster_version = kCurrentKeymasterVersion;
+        key_desc->tee_enforced->root_of_trust = KM_ROOT_OF_TRUST_new();
+        root_of_trust = key_desc->tee_enforced->root_of_trust;
+    }
 
-            // Root of trust is only available in TEE
-            KM_AUTH_LIST* tee_record = key_desc->tee_enforced;
-            tee_record->root_of_trust = KM_ROOT_OF_TRUST_new();
-            keymaster_blob_t verified_boot_key;
-            keymaster_blob_t verified_boot_hash;
-            keymaster_verified_boot_t verified_boot_state;
-            bool device_locked;
-            keymaster_error_t error = context.GetVerifiedBootParams(
-                &verified_boot_key, &verified_boot_hash, &verified_boot_state,
-                &device_locked);
-            if (error != KM_ERROR_OK)
-                return error;
-            if (verified_boot_key.data_length &&
-                !ASN1_OCTET_STRING_set(tee_record->root_of_trust->verified_boot_key,
-                                       verified_boot_key.data, verified_boot_key.data_length))
-                return TranslateLastOpenSslError();
-            if (verified_boot_hash.data_length &&
-                !ASN1_OCTET_STRING_set(tee_record->root_of_trust->verified_boot_hash,
-                                       verified_boot_hash.data, verified_boot_hash.data_length)) {
-                return TranslateLastOpenSslError();
-            }
-            tee_record->root_of_trust->device_locked = (int*)device_locked;
-            if (!ASN1_ENUMERATED_set(tee_record->root_of_trust->verified_boot_state,
-                                     verified_boot_state))
-                return TranslateLastOpenSslError();
-            break;
-        }
-        case KM_SECURITY_LEVEL_SOFTWARE:
-            // We're running in software, wrapping some KM hardware.  Is it KM0 or KM1?  KM1 keys
-            // have the purpose in the tee_enforced list.  It's possible that a key could be created
-            // without a purpose, which would fool this test into reporting it's a KM0 key.  That
-            // corner case doesn't matter much, because purpose-less keys are not usable anyway.
-            // Also, KM1 TEEs should disappear rapidly.
-            keymaster_version = tee_enforced.Contains(TAG_PURPOSE) ? 1 : 0;
-            break;
-        }
+    keymaster_blob_t verified_boot_key;
+    keymaster_blob_t verified_boot_hash;
+    keymaster_verified_boot_t verified_boot_state;
+    bool device_locked;
+    keymaster_error_t error = context.GetVerifiedBootParams(&verified_boot_key, &verified_boot_hash,
+                                                            &verified_boot_state, &device_locked);
+    if (error != KM_ERROR_OK) return error;
+    if (verified_boot_key.data_length &&
+        !ASN1_OCTET_STRING_set(root_of_trust->verified_boot_key, verified_boot_key.data,
+                               verified_boot_key.data_length)) {
+        return TranslateLastOpenSslError();
+    }
 
-        if (keymaster_version == UINT32_MAX)
-            return KM_ERROR_UNKNOWN_ERROR;
+    root_of_trust->device_locked = reinterpret_cast<int*>(malloc(sizeof(ASN1_BOOLEAN)));
+    *root_of_trust->device_locked = device_locked;
+    if (!ASN1_ENUMERATED_set(root_of_trust->verified_boot_state, verified_boot_state)) {
+        return TranslateLastOpenSslError();
+    }
+    if (verified_boot_hash.data_length &&
+        !ASN1_OCTET_STRING_set(root_of_trust->verified_boot_hash, verified_boot_hash.data,
+                               verified_boot_hash.data_length)) {
+        return TranslateLastOpenSslError();
     }
 
     if (!ASN1_INTEGER_set(key_desc->attestation_version, kCurrentAttestationVersion) ||
         !ASN1_ENUMERATED_set(key_desc->attestation_security_level, context.GetSecurityLevel()) ||
-        !ASN1_INTEGER_set(key_desc->keymaster_version, keymaster_version) ||
-        !ASN1_ENUMERATED_set(key_desc->keymaster_security_level, keymaster_security_level))
+        !ASN1_INTEGER_set(key_desc->keymaster_version, kCurrentKeymasterVersion) ||
+        !ASN1_ENUMERATED_set(key_desc->keymaster_security_level, context.GetSecurityLevel())) {
         return TranslateLastOpenSslError();
+    }
 
     keymaster_blob_t attestation_challenge = {nullptr, 0};
     if (!attestation_params.GetTagValue(TAG_ATTESTATION_CHALLENGE, &attestation_challenge))
@@ -454,8 +439,9 @@ keymaster_error_t build_attestation_record(const AuthorizationSet& attestation_p
         return KM_ERROR_ATTESTATION_APPLICATION_ID_MISSING;
     sw_enforced.push_back(TAG_ATTESTATION_APPLICATION_ID, attestation_app_id);
 
-    keymaster_error_t error = context.VerifyAndCopyDeviceIds(attestation_params,
-            keymaster_security_level == KM_SECURITY_LEVEL_SOFTWARE ? &sw_enforced : &tee_enforced);
+    error = context.VerifyAndCopyDeviceIds(
+        attestation_params,
+        context.GetSecurityLevel() == KM_SECURITY_LEVEL_SOFTWARE ? &sw_enforced : &tee_enforced);
     if (error == KM_ERROR_UNIMPLEMENTED) {
         // The KeymasterContext implementation does not support device ID attestation. Bail out if
         // device ID attestation is being attempted.
