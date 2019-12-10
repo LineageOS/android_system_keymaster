@@ -281,7 +281,7 @@ keymaster_error_t PureSoftKeymasterContext::UnwrapKey(
     UniquePtr<Key> key;
     auto wrapping_key_params = AuthorizationSetBuilder()
                                    .RsaEncryptionKey(2048, 65537)
-                                   .Digest(KM_DIGEST_SHA1)
+                                   .Digest(KM_DIGEST_SHA_2_256)
                                    .Padding(KM_PAD_RSA_OAEP)
                                    .Authorization(TAG_PURPOSE, KM_PURPOSE_WRAP)
                                    .build();
