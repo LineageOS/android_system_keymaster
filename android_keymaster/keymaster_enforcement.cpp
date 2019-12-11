@@ -337,7 +337,6 @@ keymaster_error_t KeymasterEnforcement::AuthorizeBegin(const keymaster_purpose_t
         /* Informational tags. */
         case KM_TAG_CREATION_DATETIME:
         case KM_TAG_ORIGIN:
-        case KM_TAG_ROLLBACK_RESISTANCE:
         case KM_TAG_ROLLBACK_RESISTANT:
 
         /* Tags handled when KM_TAG_USER_SECURE_ID is handled */
