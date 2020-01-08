@@ -18,7 +18,7 @@
 
 #include <stdio.h>
 
-#include <keymaster/new>
+#include <keymaster/new.h>
 
 #include <keymaster/UniquePtr.h>
 
