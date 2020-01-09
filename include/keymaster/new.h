@@ -23,7 +23,7 @@
 namespace std {
 struct nothrow_t;
 extern const nothrow_t nothrow;
-}
+}  // namespace std
 
 #ifndef _NOEXCEPT
 #define _NOEXCEPT
