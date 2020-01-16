@@ -43,7 +43,9 @@ class PureSoftKeymasterContext: public KeymasterContext,
         AttestationRecordContext,
         SoftwareRandomSource {
   public:
-    explicit PureSoftKeymasterContext();
+    // Security level must only be used for testing.
+    explicit PureSoftKeymasterContext(
+        keymaster_security_level_t security_level = KM_SECURITY_LEVEL_SOFTWARE);
     ~PureSoftKeymasterContext() override;
 
     /*********************************************************************************************
@@ -99,6 +101,8 @@ class PureSoftKeymasterContext: public KeymasterContext,
                                             keymaster_verified_boot_t* verified_boot_state,
                                             bool* device_locked) const override;
 
+    keymaster_security_level_t GetSecurityLevel() const override { return security_level_; }
+
   protected:
     std::unique_ptr<KeyFactory> rsa_factory_;
     std::unique_ptr<KeyFactory> ec_factory_;
@@ -108,6 +112,7 @@ class PureSoftKeymasterContext: public KeymasterContext,
     uint32_t os_version_;
     uint32_t os_patchlevel_;
     SoftKeymasterEnforcement soft_keymaster_enforcement_;
+    keymaster_security_level_t security_level_;
 };
 
 }  // namespace keymaster
