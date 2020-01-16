@@ -412,9 +412,14 @@ keymaster_error_t generate_attestation(const AsymmetricKey& key,
     if (!X509_sign(certificate.get(), sign_key.get(), EVP_sha256()))
         return TranslateLastOpenSslError();
 
-    *cert_chain_out = makeCertChain(certificate.get(), attestation_chain);
-    if (!cert_chain_out->get())
-        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    if (attest_params.Contains(TAG_DEVICE_UNIQUE_ATTESTATION)) {
+        // When we're pretending to be a StrongBox doing device-unique attestation, we don't chain
+        // back to anything, but just return the plain certificate.
+        *cert_chain_out = makeCertChain(certificate.get());
+    } else {
+        *cert_chain_out = makeCertChain(certificate.get(), attestation_chain);
+    }
+    if (!cert_chain_out->get()) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     return KM_ERROR_OK;
 }
 
