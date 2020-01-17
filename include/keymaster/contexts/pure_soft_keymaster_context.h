@@ -90,6 +90,15 @@ class PureSoftKeymasterContext: public KeymasterContext,
               AuthorizationSet* wrapped_key_params, keymaster_key_format_t* wrapped_key_format,
               KeymasterKeyBlob* wrapped_key_material) const override;
 
+    /*********************************************************************************************
+     * Implement AttestationRecordContext
+     */
+
+    keymaster_error_t GetVerifiedBootParams(keymaster_blob_t* verified_boot_key,
+                                            keymaster_blob_t* verified_boot_hash,
+                                            keymaster_verified_boot_t* verified_boot_state,
+                                            bool* device_locked) const override;
+
   protected:
     std::unique_ptr<KeyFactory> rsa_factory_;
     std::unique_ptr<KeyFactory> ec_factory_;
