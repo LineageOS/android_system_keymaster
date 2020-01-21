@@ -49,12 +49,22 @@ using ::android::hardware::keymaster::V4_1::IKeymasterDevice;
 using ::android::hardware::keymaster::V4_1::IOperation;
 using ::android::hardware::keymaster::V4_1::Tag;
 
+using V41ErrorCode = ::android::hardware::keymaster::V4_1::ErrorCode;
+
+V41ErrorCode convert(ErrorCode error_code) {
+    return static_cast<V41ErrorCode>(error_code);
+}
+
+ErrorCode convert(V41ErrorCode error_code) {
+    return static_cast<ErrorCode>(error_code);
+}
+
 class Operation : public IOperation {
   public:
     Operation(OperationHandle handle) : handle_(handle) {}
 
     Return<void> getOperationChallenge(getOperationChallenge_cb _hidl_cb) override {
-        _hidl_cb(ErrorCode::OK, handle_);
+        _hidl_cb(convert(ErrorCode::OK), handle_);
         return Void();
     }
 
@@ -69,13 +79,14 @@ class AndroidKeymaster41Device : public IKeymasterDevice, public V4_0::ng::Andro
     explicit AndroidKeymaster41Device(SecurityLevel securityLevel) : super(securityLevel) {}
     virtual ~AndroidKeymaster41Device() {}
 
-    Return<ErrorCode> deviceLocked(bool /* passwordOnly */) override {
+    Return<V41ErrorCode> deviceLocked(bool /* passwordOnly */,
+                                      const VerificationToken& /* verificationToken */) override {
         // TODO(swillden): Add feature to AndroidKeymaster and call from here.
-        return ErrorCode::UNIMPLEMENTED;
+        return convert(ErrorCode::UNIMPLEMENTED);
     }
-    Return<ErrorCode> earlyBootEnded() override {
+    Return<V41ErrorCode> earlyBootEnded() override {
         // TODO(swillden): Add feature to AndroidKeymaster and call from here.
-        return ErrorCode::UNIMPLEMENTED;
+        return convert(ErrorCode::UNIMPLEMENTED);
     }
 
     Return<void> beginOp(KeyPurpose purpose, const hidl_vec<uint8_t>& key,
@@ -83,7 +94,8 @@ class AndroidKeymaster41Device : public IKeymasterDevice, public V4_0::ng::Andro
                          beginOp_cb _hidl_cb) override {
         return super::begin(purpose, key, inParams, authToken,
                             [&](auto hidl_err, auto hidl_params, auto hidl_handle) {
-                                _hidl_cb(hidl_err, hidl_params, new Operation(hidl_handle));
+                                _hidl_cb(convert(hidl_err), hidl_params,
+                                         new Operation(hidl_handle));
                             });
     }
 
