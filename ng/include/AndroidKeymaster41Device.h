@@ -21,6 +21,7 @@
 #include <android/hardware/keymaster/4.1/IKeymasterDevice.h>
 #include <android/hardware/keymaster/4.1/types.h>
 #include <hidl/Status.h>
+#include <keymasterV4_1/Operation.h>
 
 #include "AndroidKeymaster4Device.h"
 
@@ -59,19 +60,6 @@ ErrorCode convert(V41ErrorCode error_code) {
     return static_cast<ErrorCode>(error_code);
 }
 
-class Operation : public IOperation {
-  public:
-    Operation(OperationHandle handle) : handle_(handle) {}
-
-    Return<void> getOperationChallenge(getOperationChallenge_cb _hidl_cb) override {
-        _hidl_cb(convert(ErrorCode::OK), handle_);
-        return Void();
-    }
-
-  private:
-    OperationHandle handle_;
-};
-
 class AndroidKeymaster41Device : public IKeymasterDevice, public V4_0::ng::AndroidKeymaster4Device {
     using super = V4_0::ng::AndroidKeymaster4Device;
 
@@ -92,11 +80,12 @@ class AndroidKeymaster41Device : public IKeymasterDevice, public V4_0::ng::Andro
     Return<void> beginOp(KeyPurpose purpose, const hidl_vec<uint8_t>& key,
                          const hidl_vec<KeyParameter>& inParams, const HardwareAuthToken& authToken,
                          beginOp_cb _hidl_cb) override {
-        return super::begin(purpose, key, inParams, authToken,
-                            [&](auto hidl_err, auto hidl_params, auto hidl_handle) {
-                                _hidl_cb(convert(hidl_err), hidl_params,
-                                         new Operation(hidl_handle));
-                            });
+        return super::begin(
+            purpose, key, inParams, authToken,
+            [&](auto hidl_err, auto hidl_params, auto hidl_handle) {
+                _hidl_cb(convert(hidl_err), hidl_params,
+                         new ::android::hardware::keymaster::V4_1::support::Operation(hidl_handle));
+            });
     }
 
     Return<void> getHardwareInfo(super::getHardwareInfo_cb _hidl_cb) override {
