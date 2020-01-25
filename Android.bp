@@ -38,9 +38,6 @@ cc_defaults {
 
 cc_library_shared {
     name: "libkeymaster_messages",
-    vndk: {
-        enabled: true,
-    },
     srcs: [
         "android_keymaster/android_keymaster_messages.cpp",
         "android_keymaster/android_keymaster_utils.cpp",
@@ -65,9 +62,6 @@ cc_library_shared {
 // the function-based keymaster HAL API to the message-based AndroidKeymaster API.
 cc_library {
     name: "libkeymaster_portable",
-    vndk: {
-        enabled: true,
-    },
     srcs: [
         "android_keymaster/android_keymaster.cpp",
         "android_keymaster/android_keymaster_messages.cpp",
@@ -138,9 +132,6 @@ cc_library {
 // not support the request.
 cc_library {
     name: "libsoftkeymasterdevice",
-    vndk: {
-        enabled: true,
-    },
     srcs: [
         "android_keymaster/keymaster_configuration.cpp",
         "legacy_support/ec_keymaster0_key.cpp",
@@ -173,9 +164,6 @@ cc_library {
 
 cc_library {
     name: "libpuresoftkeymasterdevice",
-    vndk: {
-        enabled: true,
-    },
     srcs: [
         "android_keymaster/keymaster_configuration.cpp",
         "contexts/soft_attestation_cert.cpp",
