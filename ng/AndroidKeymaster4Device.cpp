@@ -211,14 +211,12 @@ void addClientAndAppData(const hidl_vec<uint8_t>& clientId, const hidl_vec<uint8
 
 AndroidKeymaster4Device::AndroidKeymaster4Device(SecurityLevel securityLevel)
     : impl_(new ::keymaster::AndroidKeymaster(
-          [&]() -> auto {
-              auto context = new PureSoftKeymasterContext(
-                  static_cast<keymaster_security_level_t>(securityLevel));
+          []() -> auto {
+              auto context = new PureSoftKeymasterContext();
               context->SetSystemVersion(GetOsVersion(), GetOsPatchlevel());
               return context;
           }(),
-          kOperationTableSize)),
-      securityLevel_(securityLevel) {}
+          kOperationTableSize)), securityLevel_(securityLevel) {}
 
 AndroidKeymaster4Device::~AndroidKeymaster4Device() {}
 
