@@ -93,6 +93,8 @@ typedef struct km_auth_list {
     ASN1_OCTET_STRING* attestation_id_meid;
     ASN1_OCTET_STRING* attestation_id_manufacturer;
     ASN1_OCTET_STRING* attestation_id_model;
+    ASN1_NULL* early_boot_only;
+    ASN1_NULL* device_unique_attestation;
 } KM_AUTH_LIST;
 
 ASN1_SEQUENCE(KM_AUTH_LIST) = {
@@ -149,6 +151,9 @@ ASN1_SEQUENCE(KM_AUTH_LIST) = {
                  TAG_ATTESTATION_ID_MANUFACTURER.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, attestation_id_model, ASN1_OCTET_STRING,
                  TAG_ATTESTATION_ID_MODEL.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, early_boot_only, ASN1_NULL, TAG_EARLY_BOOT_ONLY.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, device_unique_attestation, ASN1_NULL,
+                 TAG_DEVICE_UNIQUE_ATTESTATION.masked_tag()),
 } ASN1_SEQUENCE_END(KM_AUTH_LIST);
 DECLARE_ASN1_FUNCTIONS(KM_AUTH_LIST);
 
