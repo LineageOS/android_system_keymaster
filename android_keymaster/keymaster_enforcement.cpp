@@ -292,6 +292,22 @@ keymaster_error_t KeymasterEnforcement::AuthorizeBegin(const keymaster_purpose_t
             }
             break;
 
+        case KM_TAG_UNLOCKED_DEVICE_REQUIRED:
+            if (device_locked_at_ > 0) {
+                const hw_auth_token_t* auth_token;
+                uint32_t token_auth_type;
+                if (!GetAndValidateAuthToken(operation_params, &auth_token, &token_auth_type)) {
+                    return KM_ERROR_DEVICE_LOCKED;
+                }
+
+                uint64_t token_timestamp_millis = ntoh(auth_token->timestamp);
+                if (token_timestamp_millis <= device_locked_at_ ||
+                    (password_unlock_only_ && !(token_auth_type & HW_AUTH_PASSWORD))) {
+                    return KM_ERROR_DEVICE_LOCKED;
+                }
+            }
+            break;
+
         case KM_TAG_CALLER_NONCE:
             caller_nonce_authorized_by_key = true;
             break;
@@ -311,6 +327,7 @@ keymaster_error_t KeymasterEnforcement::AuthorizeBegin(const keymaster_purpose_t
         case KM_TAG_ATTESTATION_ID_MEID:
         case KM_TAG_ATTESTATION_ID_MANUFACTURER:
         case KM_TAG_ATTESTATION_ID_MODEL:
+        case KM_TAG_DEVICE_UNIQUE_ATTESTATION:
             return KM_ERROR_INVALID_KEY_BLOB;
 
         /* Tags used for cryptographic parameters in keygen.  Nothing to enforce. */
@@ -339,6 +356,7 @@ keymaster_error_t KeymasterEnforcement::AuthorizeBegin(const keymaster_purpose_t
         case KM_TAG_ORIGIN:
         case KM_TAG_ROLLBACK_RESISTANCE:
         case KM_TAG_ROLLBACK_RESISTANT:
+        case KM_TAG_USER_ID:
 
         /* Tags handled when KM_TAG_USER_SECURE_ID is handled */
         case KM_TAG_NO_AUTH_REQUIRED:
@@ -365,14 +383,12 @@ keymaster_error_t KeymasterEnforcement::AuthorizeBegin(const keymaster_purpose_t
         case KM_TAG_TRUSTED_CONFIRMATION_REQUIRED:
             break;
 
-        /* TODO(bcyoung): This is currently handled in keystore, but may move to keymaster in the
-         * future */
-        case KM_TAG_USER_ID:
-        case KM_TAG_UNLOCKED_DEVICE_REQUIRED:
-            break;
-
         case KM_TAG_BOOTLOADER_ONLY:
             return KM_ERROR_INVALID_KEY_BLOB;
+
+        case KM_TAG_EARLY_BOOT_ONLY:
+            if (!in_early_boot()) return KM_ERROR_EARLY_BOOT_ENDED;
+            break;
         }
     }
 
@@ -399,7 +415,7 @@ keymaster_error_t KeymasterEnforcement::AuthorizeBegin(const keymaster_purpose_t
 
     if (update_access_count) {
         if (!access_count_map_) {
-            LOG_S("Usage-count limited keys tabel not allocated.  Count-limited keys disabled", 0);
+            LOG_S("Usage-count limited keys table not allocated.  Count-limited keys disabled", 0);
             return KM_ERROR_MEMORY_ALLOCATION_FAILED;
         }
 
@@ -432,6 +448,38 @@ bool KeymasterEnforcement::MaxUsesPerBootNotExceeded(const km_id_t keyid, uint32
     return key_access_count < max_uses;
 }
 
+bool KeymasterEnforcement::GetAndValidateAuthToken(const AuthorizationSet& operation_params,
+                                                   const hw_auth_token_t** auth_token,
+                                                   uint32_t* token_auth_type) const {
+    keymaster_blob_t auth_token_blob;
+    if (!operation_params.GetTagValue(TAG_AUTH_TOKEN, &auth_token_blob)) {
+        LOG_E("Authentication required, but auth token not provided", 0);
+        return false;
+    }
+
+    if (auth_token_blob.data_length != sizeof(*auth_token)) {
+        LOG_E("Bug: Auth token is the wrong size (%d expected, %d found)", sizeof(hw_auth_token_t),
+              auth_token_blob.data_length);
+        return false;
+    }
+
+    *auth_token = reinterpret_cast<const hw_auth_token_t*>(auth_token_blob.data);
+    if ((*auth_token)->version != HW_AUTH_TOKEN_VERSION) {
+        LOG_E("Bug: Auth token is the version %d (or is not an auth token). Expected %d",
+              (*auth_token)->version, HW_AUTH_TOKEN_VERSION);
+        return false;
+    }
+
+    if (!ValidateTokenSignature(**auth_token)) {
+        LOG_E("Auth token signature invalid", 0);
+        return false;
+    }
+
+    *token_auth_type = ntoh((*auth_token)->authenticator_type);
+
+    return true;
+}
+
 bool KeymasterEnforcement::AuthTokenMatches(const AuthProxy& auth_set,
                                             const AuthorizationSet& operation_params,
                                             const uint64_t user_secure_id,
@@ -441,39 +489,18 @@ bool KeymasterEnforcement::AuthTokenMatches(const AuthProxy& auth_set,
     assert(auth_type_index < static_cast<int>(auth_set.size()));
     assert(auth_timeout_index < static_cast<int>(auth_set.size()));
 
-    keymaster_blob_t auth_token_blob;
-    if (!operation_params.GetTagValue(TAG_AUTH_TOKEN, &auth_token_blob)) {
-        LOG_E("Authentication required, but auth token not provided", 0);
+    const hw_auth_token_t* auth_token;
+    uint32_t token_auth_type;
+    if (!GetAndValidateAuthToken(operation_params, &auth_token, &token_auth_type)) return false;
+
+    if (auth_timeout_index == -1 && op_handle && op_handle != auth_token->challenge) {
+        LOG_E("Auth token has the challenge %llu, need %llu", auth_token->challenge, op_handle);
         return false;
     }
 
-    if (auth_token_blob.data_length != sizeof(hw_auth_token_t)) {
-        LOG_E("Bug: Auth token is the wrong size (%d expected, %d found)", sizeof(hw_auth_token_t),
-              auth_token_blob.data_length);
-        return false;
-    }
-
-    hw_auth_token_t auth_token;
-    memcpy(&auth_token, auth_token_blob.data, sizeof(hw_auth_token_t));
-    if (auth_token.version != HW_AUTH_TOKEN_VERSION) {
-        LOG_E("Bug: Auth token is the version %d (or is not an auth token). Expected %d",
-              auth_token.version, HW_AUTH_TOKEN_VERSION);
-        return false;
-    }
-
-    if (!ValidateTokenSignature(auth_token)) {
-        LOG_E("Auth token signature invalid", 0);
-        return false;
-    }
-
-    if (auth_timeout_index == -1 && op_handle && op_handle != auth_token.challenge) {
-        LOG_E("Auth token has the challenge %llu, need %llu", auth_token.challenge, op_handle);
-        return false;
-    }
-
-    if (user_secure_id != auth_token.user_id && user_secure_id != auth_token.authenticator_id) {
-        LOG_I("Auth token SIDs %llu and %llu do not match key SID %llu", auth_token.user_id,
-              auth_token.authenticator_id, user_secure_id);
+    if (user_secure_id != auth_token->user_id && user_secure_id != auth_token->authenticator_id) {
+        LOG_I("Auth token SIDs %llu and %llu do not match key SID %llu", auth_token->user_id,
+              auth_token->authenticator_id, user_secure_id);
         return false;
     }
 
@@ -487,7 +514,6 @@ bool KeymasterEnforcement::AuthTokenMatches(const AuthProxy& auth_set,
         return false;
 
     uint32_t key_auth_type_mask = auth_set[auth_type_index].integer;
-    uint32_t token_auth_type = ntoh(auth_token.authenticator_type);
     if ((key_auth_type_mask & token_auth_type) == 0) {
         LOG_E("Key requires match of auth type mask 0%uo, but token contained 0%uo",
               key_auth_type_mask, token_auth_type);
@@ -499,7 +525,7 @@ bool KeymasterEnforcement::AuthTokenMatches(const AuthProxy& auth_set,
         if (auth_set[auth_timeout_index].tag != KM_TAG_AUTH_TIMEOUT)
             return false;
 
-        if (auth_token_timed_out(auth_token, auth_set[auth_timeout_index].integer)) {
+        if (auth_token_timed_out(*auth_token, auth_set[auth_timeout_index].integer)) {
             LOG_E("Auth token has timed out", 0);
             return false;
         }

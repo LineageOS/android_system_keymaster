@@ -26,8 +26,8 @@
 
 namespace keymaster {
 
-constexpr uint kCurrentKeymasterVersion = 4;
-constexpr uint kCurrentAttestationVersion = 3;
+constexpr uint kCurrentKeymasterVersion = 41;
+constexpr uint kCurrentAttestationVersion = 4;
 constexpr size_t kMaximumAttestationChallengeLength = 128;
 
 IMPLEMENT_ASN1_FUNCTIONS(KM_ROOT_OF_TRUST);
@@ -239,6 +239,12 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
         case KM_TAG_TRUSTED_CONFIRMATION_REQUIRED:
             bool_ptr = &record->trusted_confirmation_required;
             break;
+        case KM_TAG_EARLY_BOOT_ONLY:
+            bool_ptr = &record->early_boot_only;
+            break;
+        case KM_TAG_DEVICE_UNIQUE_ATTESTATION:
+            bool_ptr = &record->device_unique_attestation;
+            break;
 
         /* Byte arrays*/
         case KM_TAG_APPLICATION_ID:
@@ -404,15 +410,15 @@ keymaster_error_t build_attestation_record(const AuthorizationSet& attestation_p
                                verified_boot_key.data_length)) {
         return TranslateLastOpenSslError();
     }
+    if (verified_boot_hash.data_length &&
+        !ASN1_OCTET_STRING_set(root_of_trust->verified_boot_hash, verified_boot_hash.data,
+                               verified_boot_hash.data_length)) {
+        return TranslateLastOpenSslError();
+    }
 
     root_of_trust->device_locked = reinterpret_cast<int*>(malloc(sizeof(ASN1_BOOLEAN)));
     *root_of_trust->device_locked = device_locked;
     if (!ASN1_ENUMERATED_set(root_of_trust->verified_boot_state, verified_boot_state)) {
-        return TranslateLastOpenSslError();
-    }
-    if (verified_boot_hash.data_length &&
-        !ASN1_OCTET_STRING_set(root_of_trust->verified_boot_hash, verified_boot_hash.data,
-                               verified_boot_hash.data_length)) {
         return TranslateLastOpenSslError();
     }
 
@@ -453,6 +459,11 @@ keymaster_error_t build_attestation_record(const AuthorizationSet& attestation_p
     } else if (error != KM_ERROR_OK) {
         return error;
     }
+
+    if (attestation_params.Contains(TAG_DEVICE_UNIQUE_ATTESTATION) &&
+        context.GetSecurityLevel() == KM_SECURITY_LEVEL_STRONGBOX) {
+        tee_enforced.push_back(TAG_DEVICE_UNIQUE_ATTESTATION);
+    };
 
     error = build_auth_list(sw_enforced, key_desc->software_enforced);
     if (error != KM_ERROR_OK)
@@ -709,6 +720,13 @@ keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet
     // Trusted confirmation required
     if (record->trusted_confirmation_required) {
         if (!auth_list->push_back(TAG_NO_AUTH_REQUIRED)) {
+            return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+        }
+    }
+
+    // Early boot only
+    if (record->early_boot_only) {
+        if (!auth_list->push_back(TAG_EARLY_BOOT_ONLY)) {
             return KM_ERROR_MEMORY_ALLOCATION_FAILED;
         }
     }
