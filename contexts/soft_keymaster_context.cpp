@@ -38,7 +38,7 @@
 #include <keymaster/legacy_support/rsa_keymaster1_key.h>
 #include <keymaster/logger.h>
 
-#include "soft_attestation_cert.h"
+#include <keymaster/contexts/soft_attestation_cert.h>
 
 using std::unique_ptr;
 
