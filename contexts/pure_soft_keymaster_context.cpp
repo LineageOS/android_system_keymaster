@@ -44,7 +44,7 @@
 #include <keymaster/operation.h>
 #include <keymaster/wrapped_key.h>
 
-#include "soft_attestation_cert.h"
+#include <keymaster/contexts/soft_attestation_cert.h>
 
 using std::unique_ptr;
 

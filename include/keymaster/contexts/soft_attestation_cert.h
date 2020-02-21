@@ -27,5 +27,5 @@ const keymaster_key_blob_t* getAttestationKey(keymaster_algorithm_t algorithm,
 const keymaster_cert_chain_t* getAttestationChain(keymaster_algorithm_t algorithm,
                                                   keymaster_error_t* error);
 
-}
+}  // namespace keymaster
 #endif  // SOFTWARE_CONTEXT_SOFT_ATTESTATION_CERT_H_

@@ -143,7 +143,6 @@ cc_library {
         "legacy_support/rsa_keymaster1_key.cpp",
         "legacy_support/rsa_keymaster1_operation.cpp",
         "legacy_support/keymaster1_legacy_support.cpp",
-        "contexts/soft_attestation_cert.cpp",
         "contexts/soft_keymaster_context.cpp",
         "contexts/pure_soft_keymaster_context.cpp",
         "contexts/soft_keymaster_device.cpp",
@@ -154,6 +153,7 @@ cc_library {
     shared_libs: [
         "libkeymaster_messages",
         "libkeymaster_portable",
+        "libsoft_attestation_cert",
         "liblog",
         "libbase",
         "libcrypto",
@@ -163,10 +163,22 @@ cc_library {
 }
 
 cc_library {
+    name: "libsoft_attestation_cert",
+    srcs: [
+        "contexts/soft_attestation_cert.cpp",
+    ],
+    defaults: ["keymaster_defaults"],
+    shared_libs: [
+        "libkeymaster_portable",
+    ],
+
+    export_include_dirs: ["include"],
+}
+
+cc_library {
     name: "libpuresoftkeymasterdevice",
     srcs: [
         "android_keymaster/keymaster_configuration.cpp",
-        "contexts/soft_attestation_cert.cpp",
         "contexts/pure_soft_keymaster_context.cpp",
         "contexts/soft_keymaster_logger.cpp",
         "km_openssl/soft_keymaster_enforcement.cpp",
@@ -175,6 +187,7 @@ cc_library {
     shared_libs: [
         "libkeymaster_messages",
         "libkeymaster_portable",
+        "libsoft_attestation_cert",
         "liblog",
         "libcrypto",
         "libcutils",
@@ -213,8 +226,9 @@ cc_library_shared {
         "libbase",
         "libhidlbase",
         "libkeymaster_portable",
-        "libpuresoftkeymasterdevice",
         "liblog",
+        "libpuresoftkeymasterdevice",
+        "libsoft_attestation_cert",
         "libutils",
     ],
     export_include_dirs: ["include", "ng/include"],
