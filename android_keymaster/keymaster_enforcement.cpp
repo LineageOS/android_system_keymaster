@@ -383,6 +383,7 @@ keymaster_error_t KeymasterEnforcement::AuthorizeBegin(const keymaster_purpose_t
         case KM_TAG_TRUSTED_CONFIRMATION_REQUIRED:
             break;
 
+        case KM_TAG_IDENTITY_CREDENTIAL_KEY:
         case KM_TAG_BOOTLOADER_ONLY:
             return KM_ERROR_INVALID_KEY_BLOB;
 
