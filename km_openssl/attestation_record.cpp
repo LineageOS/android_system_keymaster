@@ -26,7 +26,6 @@
 
 namespace keymaster {
 
-constexpr uint kCurrentKeymasterVersion = 41;
 constexpr uint kCurrentAttestationVersion = 4;
 constexpr size_t kMaximumAttestationChallengeLength = 128;
 
@@ -245,6 +244,9 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
         case KM_TAG_DEVICE_UNIQUE_ATTESTATION:
             bool_ptr = &record->device_unique_attestation;
             break;
+        case KM_TAG_IDENTITY_CREDENTIAL_KEY:
+            bool_ptr = &record->identity_credential_key;
+            break;
 
         /* Byte arrays*/
         case KM_TAG_APPLICATION_ID:
@@ -377,12 +379,11 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
 
 // Construct an ASN1.1 DER-encoded attestation record containing the values from sw_enforced and
 // tee_enforced.
-keymaster_error_t build_attestation_record(const AuthorizationSet& attestation_params,
-                                           AuthorizationSet sw_enforced,
-                                           AuthorizationSet tee_enforced,
-                                           const AttestationRecordContext& context,
-                                           UniquePtr<uint8_t[]>* asn1_key_desc,
-                                           size_t* asn1_key_desc_len) {
+keymaster_error_t
+build_attestation_record(const AuthorizationSet& attestation_params, AuthorizationSet sw_enforced,
+                         AuthorizationSet tee_enforced, const AttestationRecordContext& context,
+                         const uint keymaster_version, UniquePtr<uint8_t[]>* asn1_key_desc,
+                         size_t* asn1_key_desc_len) {
     assert(asn1_key_desc && asn1_key_desc_len);
 
     UniquePtr<KM_KEY_DESCRIPTION, KM_KEY_DESCRIPTION_Delete> key_desc(KM_KEY_DESCRIPTION_new());
@@ -424,7 +425,7 @@ keymaster_error_t build_attestation_record(const AuthorizationSet& attestation_p
 
     if (!ASN1_INTEGER_set(key_desc->attestation_version, kCurrentAttestationVersion) ||
         !ASN1_ENUMERATED_set(key_desc->attestation_security_level, context.GetSecurityLevel()) ||
-        !ASN1_INTEGER_set(key_desc->keymaster_version, kCurrentKeymasterVersion) ||
+        !ASN1_INTEGER_set(key_desc->keymaster_version, keymaster_version) ||
         !ASN1_ENUMERATED_set(key_desc->keymaster_security_level, context.GetSecurityLevel())) {
         return TranslateLastOpenSslError();
     }
@@ -514,6 +515,14 @@ keymaster_error_t build_attestation_record(const AuthorizationSet& attestation_p
         return TranslateLastOpenSslError();
 
     return KM_ERROR_OK;
+}
+
+keymaster_error_t
+build_attestation_record(const AuthorizationSet& attestation_params, AuthorizationSet sw_enforced,
+                         AuthorizationSet tee_enforced, const AttestationRecordContext& context,
+                         UniquePtr<uint8_t[]>* asn1_key_desc, size_t* asn1_key_desc_len) {
+    return build_attestation_record(attestation_params, sw_enforced, tee_enforced, context,
+                                    kCurrentKeymasterVersion, asn1_key_desc, asn1_key_desc_len);
 }
 
 // Copy all enumerated values with the specified tag from stack to auth_list.
@@ -635,6 +644,10 @@ keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet
         !auth_list->push_back(TAG_ATTESTATION_APPLICATION_ID,
                               record->attestation_application_id->data,
                               record->attestation_application_id->length))
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+
+    // identity credential key
+    if (record->identity_credential_key && !auth_list->push_back(TAG_IDENTITY_CREDENTIAL_KEY))
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 
     // Creation date time
