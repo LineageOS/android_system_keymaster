@@ -38,10 +38,10 @@ class Key;
 /**
  * SoftKeymasterContext provides the context for a non-secure implementation of AndroidKeymaster.
  */
-class PureSoftKeymasterContext: public KeymasterContext,
-        protected SoftwareKeyBlobMaker,
-        AttestationRecordContext,
-        SoftwareRandomSource {
+class PureSoftKeymasterContext : public KeymasterContext,
+                                 protected SoftwareKeyBlobMaker,
+                                 public AttestationRecordContext,
+                                 SoftwareRandomSource {
   public:
     // Security level must only be used for testing.
     explicit PureSoftKeymasterContext(
