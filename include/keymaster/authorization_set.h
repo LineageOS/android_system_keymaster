@@ -82,6 +82,9 @@ class AuthorizationSet : public Serializable, public keymaster_key_param_set_t {
     explicit AuthorizationSet(/* NOT const */ AuthorizationSetBuilder& builder);
 
     // Copy constructor.
+    // A copy constructor normal should call a base class copy constructor,
+    // but Serializable is special without copy constructor.
+    // NOLINTNEXTLINE(bugprone-copy-constructor-init)
     AuthorizationSet(const AuthorizationSet& set)
         : Serializable(), elems_capacity_(0), indirect_data_(nullptr), indirect_data_size_(0),
           indirect_data_capacity_(0), error_(OK) {
