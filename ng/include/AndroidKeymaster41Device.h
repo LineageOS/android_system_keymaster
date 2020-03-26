@@ -21,7 +21,6 @@
 #include <android/hardware/keymaster/4.1/IKeymasterDevice.h>
 #include <android/hardware/keymaster/4.1/types.h>
 #include <hidl/Status.h>
-#include <keymasterV4_1/Operation.h>
 
 #include "AndroidKeymaster4Device.h"
 
@@ -47,7 +46,6 @@ using ::android::hardware::keymaster::V4_0::OperationHandle;
 using ::android::hardware::keymaster::V4_0::SecurityLevel;
 using ::android::hardware::keymaster::V4_0::VerificationToken;
 using ::android::hardware::keymaster::V4_1::IKeymasterDevice;
-using ::android::hardware::keymaster::V4_1::IOperation;
 using ::android::hardware::keymaster::V4_1::Tag;
 
 using V41ErrorCode = ::android::hardware::keymaster::V4_1::ErrorCode;
@@ -70,17 +68,6 @@ class AndroidKeymaster41Device : public IKeymasterDevice, public V4_0::ng::Andro
     Return<V41ErrorCode> deviceLocked(bool /* passwordOnly */,
                                       const VerificationToken& /* verificationToken */) override;
     Return<V41ErrorCode> earlyBootEnded() override;
-
-    Return<void> beginOp(KeyPurpose purpose, const hidl_vec<uint8_t>& key,
-                         const hidl_vec<KeyParameter>& inParams, const HardwareAuthToken& authToken,
-                         beginOp_cb _hidl_cb) override {
-        return super::begin(
-            purpose, key, inParams, authToken,
-            [&](auto hidl_err, auto hidl_params, auto hidl_handle) {
-                _hidl_cb(convert(hidl_err), hidl_params,
-                         new ::android::hardware::keymaster::V4_1::support::Operation(hidl_handle));
-            });
-    }
 
     Return<void> getHardwareInfo(super::getHardwareInfo_cb _hidl_cb) override {
         return super::getHardwareInfo(_hidl_cb);
