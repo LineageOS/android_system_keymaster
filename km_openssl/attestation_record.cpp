@@ -417,8 +417,7 @@ build_attestation_record(const AuthorizationSet& attestation_params, Authorizati
         return TranslateLastOpenSslError();
     }
 
-    root_of_trust->device_locked = reinterpret_cast<int*>(malloc(sizeof(ASN1_BOOLEAN)));
-    *root_of_trust->device_locked = device_locked;
+    root_of_trust->device_locked = device_locked ? 0xFF : 0x00;
     if (!ASN1_ENUMERATED_set(root_of_trust->verified_boot_state, verified_boot_state)) {
         return TranslateLastOpenSslError();
     }
