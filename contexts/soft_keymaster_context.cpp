@@ -476,4 +476,16 @@ keymaster_error_t SoftKeymasterContext::UnwrapKey(const KeymasterKeyBlob&, const
     return KM_ERROR_UNIMPLEMENTED;
 }
 
+keymaster_error_t SoftKeymasterContext::GetVerifiedBootParams(
+    keymaster_blob_t* verified_boot_key, keymaster_blob_t* verified_boot_hash,
+    keymaster_verified_boot_t* verified_boot_state, bool* device_locked) const {
+    // TODO(swillden): See if there might be some sort of vbmeta data in goldfish/cuttlefish.
+    static std::string fake_vb_key(32, 0);
+    *verified_boot_key = {reinterpret_cast<uint8_t*>(fake_vb_key.data()), fake_vb_key.size()};
+    *verified_boot_hash = {reinterpret_cast<uint8_t*>(fake_vb_key.data()), fake_vb_key.size()};
+    *verified_boot_state = KM_VERIFIED_BOOT_UNVERIFIED;
+    *device_locked = false;
+    return KM_ERROR_OK;
+}
+
 }  // namespace keymaster
