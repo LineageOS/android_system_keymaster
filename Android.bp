@@ -54,6 +54,14 @@ cc_library_shared {
     ],
     stl: "none",
     export_include_dirs: ["include"],
+    host_supported: true,
+    target: {
+        host: {
+            clang_cflags: [
+                "-fno-rtti", // TODO(b/156427382): Remove workaround when possible.
+            ],
+        },
+    },
 }
 
 // libkeymaster_portable contains almost everything needed for a keymaster
@@ -124,7 +132,15 @@ cc_library {
     // weakly defines the subset of stl symbols required for this library to work
     // and which are also available in the trusty context.
     stl: "none",
+    host_supported: true,
     export_include_dirs: ["include"],
+    target: {
+        host: {
+            clang_cflags: [
+                "-fno-rtti", // TODO(b/156427382): Remove workaround when possible.
+            ],
+        },
+    },
 }
 
 // libsoftkeymaster provides a software-based keymaster HAL implementation.
@@ -172,6 +188,7 @@ cc_library {
         "libkeymaster_portable",
     ],
 
+    host_supported: true,
     export_include_dirs: ["include"],
 }
 
@@ -193,7 +210,6 @@ cc_library {
         "libcutils",
         "libbase",
     ],
-
     export_include_dirs: ["include"],
 }
 
