@@ -458,7 +458,7 @@ bool KeymasterEnforcement::GetAndValidateAuthToken(const AuthorizationSet& opera
         return false;
     }
 
-    if (auth_token_blob.data_length != sizeof(*auth_token)) {
+    if (auth_token_blob.data_length != sizeof(**auth_token)) {
         LOG_E("Bug: Auth token is the wrong size (%d expected, %d found)", sizeof(hw_auth_token_t),
               auth_token_blob.data_length);
         return false;
