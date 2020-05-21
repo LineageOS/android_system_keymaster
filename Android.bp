@@ -213,6 +213,32 @@ cc_library {
     export_include_dirs: ["include"],
 }
 
+cc_library {
+    name: "libpuresoftkeymasterdevice_host",
+    srcs: [
+        "contexts/pure_soft_keymaster_context.cpp",
+        "contexts/soft_keymaster_logger.cpp",
+        "km_openssl/soft_keymaster_enforcement.cpp",
+    ],
+    defaults: ["keymaster_defaults"],
+    host_supported: true,
+    device_supported: false,
+    shared_libs: [
+        "libkeymaster_messages",
+        "libkeymaster_portable",
+        "libsoft_attestation_cert",
+        "liblog",
+        "libcrypto",
+        "libcutils",
+        "libbase",
+    ],
+    clang_cflags: [
+        "-DKEYMASTER_NAME_TAGS",
+        "-fno-rtti", // TODO(b/156427382): Remove workaround when possible.
+    ],
+    export_include_dirs: ["include"],
+}
+
 cc_library_shared {
     name: "libkeymaster3device",
     srcs: [
