@@ -56,6 +56,7 @@ enum AndroidKeymasterCommand : uint32_t {
     DESTROY_ATTESTATION_IDS = 24,
     IMPORT_WRAPPED_KEY = 25,
     EARLY_BOOT_ENDED = 26,
+    DEVICE_LOCKED = 27,
 };
 
 /**
