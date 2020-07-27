@@ -416,16 +416,6 @@ keymaster_error_t generate_attestation_common(
                    nullptr,             // crl
                    0 /* flags */);
 
-    X509_EXTENSION_Ptr auth_key_id(X509V3_EXT_nconf_nid(nullptr,           // conf
-                                                        x509v3_ctx.get(),  //
-                                                        NID_authority_key_identifier,
-                                                        const_cast<char*>("keyid:always")));
-    if (!auth_key_id.get() || !X509_add_ext(certificate.get(),  //
-                                            auth_key_id.get(),  // Don't release; copied
-                                            -1 /* insert at end */)) {
-        return TranslateLastOpenSslError();
-    }
-
     if (!X509_sign(certificate.get(), sign_key.get(), EVP_sha256()))
         return TranslateLastOpenSslError();
 
