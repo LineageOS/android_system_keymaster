@@ -24,10 +24,10 @@ struct nothrow_t {};
 
 extern const std::nothrow_t __attribute__((weak)) std::nothrow = {};
 
-void* __attribute__((weak)) operator new(size_t __sz, const std::nothrow_t&) {
+void* __attribute__((weak)) operator new(size_t __sz, const std::nothrow_t&) _NOEXCEPT {
     return malloc(__sz);
 }
-void* __attribute__((weak)) operator new[](size_t __sz, const std::nothrow_t&) {
+void* __attribute__((weak)) operator new[](size_t __sz, const std::nothrow_t&) _NOEXCEPT {
     return malloc(__sz);
 }
 
