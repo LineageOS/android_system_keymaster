@@ -98,6 +98,11 @@ typedef struct km_auth_list {
     ASN1_NULL* early_boot_only;
     ASN1_NULL* device_unique_attestation;
     ASN1_NULL* identity_credential_key;
+    ASN1_NULL* trusted_user_presence_required;
+    ASN1_NULL* storage_key;
+    ASN1_INTEGER* boot_patch_level;
+    ASN1_INTEGER* vendor_patchlevel;
+    ASN1_OCTET_STRING* confirmation_token;
 } KM_AUTH_LIST;
 
 ASN1_SEQUENCE(KM_AUTH_LIST) = {
@@ -159,6 +164,15 @@ ASN1_SEQUENCE(KM_AUTH_LIST) = {
                  TAG_DEVICE_UNIQUE_ATTESTATION.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, identity_credential_key, ASN1_NULL,
                  TAG_IDENTITY_CREDENTIAL_KEY.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, trusted_user_presence_required, ASN1_NULL,
+                 TAG_TRUSTED_USER_PRESENCE_REQUIRED.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, storage_key, ASN1_NULL, TAG_STORAGE_KEY.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, trusted_confirmation_required, ASN1_NULL,
+                 TAG_TRUSTED_CONFIRMATION_REQUIRED.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, boot_patch_level, ASN1_INTEGER, TAG_BOOT_PATCHLEVEL.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, vendor_patchlevel, ASN1_INTEGER, TAG_VENDOR_PATCHLEVEL.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, confirmation_token, ASN1_OCTET_STRING,
+                 TAG_CONFIRMATION_TOKEN.masked_tag()),
 } ASN1_SEQUENCE_END(KM_AUTH_LIST);
 DECLARE_ASN1_FUNCTIONS(KM_AUTH_LIST);
 
