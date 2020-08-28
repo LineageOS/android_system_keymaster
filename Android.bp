@@ -336,3 +336,45 @@ cc_library_static {
         "include",
     ],
 }
+
+cc_defaults {
+    name: "keymaster_fuzz_defaults",
+    header_libs: ["libhardware_headers"],
+    shared_libs: [
+        "libkeymaster_messages",
+    ],
+    // Not using defaults because the fuzzer relies on sanitizers that are explicitly disabled there.
+    cflags: [
+        "-Wall",
+        "-Werror",
+        "-Wunused",
+        "-Wno-error=unused-const-variable",
+        "-Wno-error=unused-private-field",
+        "-Wimplicit-fallthrough",
+        "-DKEYMASTER_NAME_TAGS",
+    ],
+    host_supported: true,
+    target: {
+        host: {
+            clang_cflags: [
+                "-fno-rtti", // TODO(b/156427382): Remove when default library removes this
+            ],
+        },
+    },
+}
+
+cc_fuzz {
+    name: "libkeymaster_fuzz_buffer",
+    defaults: ["keymaster_fuzz_defaults"],
+    srcs: [
+        "tests/fuzzers/buffer_fuzz.cpp",
+    ],
+}
+
+cc_fuzz {
+    name: "libkeymaster_fuzz_serializable",
+    defaults: ["keymaster_fuzz_defaults"],
+    srcs: [
+        "tests/fuzzers/message_serializable_fuzz.cpp",
+    ],
+}
