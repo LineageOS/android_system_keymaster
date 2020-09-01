@@ -253,7 +253,7 @@ keymaster_error_t add_key_usage_extension(const AuthorizationSet& tee_enforced,
 
     X509_EXTENSION_Ptr key_usage_extension(X509_EXTENSION_create_by_NID(nullptr,        //
                                                                         NID_key_usage,  //
-                                                                        false /* critical */,
+                                                                        true /* critical */,
                                                                         key_usage_str.get()));
     if (!key_usage_extension.get()) {
         return TranslateLastOpenSslError();
