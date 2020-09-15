@@ -39,6 +39,7 @@
 #include <keymaster/android_keymaster_utils.h>
 #include <keymaster/authorization_set.h>
 #include <keymaster/keymaster_context.h>
+#include <keymaster/km_version.h>
 #include <keymaster/logger.h>
 
 std::ostream& operator<<(std::ostream& os, const keymaster_key_param_t& param);
@@ -166,6 +167,7 @@ class Keymaster2TestInstanceCreator {
     virtual int minimal_digest_set() const { return false; }
     virtual bool is_keymaster1_hw() const = 0;
     virtual KeymasterContext* keymaster_context() const = 0;
+    virtual KmVersion km_version() const = 0;
 
     virtual std::string name() const = 0;
 };

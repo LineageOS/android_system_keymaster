@@ -166,9 +166,8 @@ keymaster_error_t build_attestation_extension(const AuthorizationSet& attest_par
                                               const AttestationRecordContext& context,
                                               X509_EXTENSION_Ptr* extension) {
     ASN1_OBJECT_Ptr oid(
-        OBJ_txt2obj(kAttestionRecordOid, 1 /* accept numerical dotted string form only */));
-    if (!oid.get())
-        return TranslateLastOpenSslError();
+        OBJ_txt2obj(kAsn1TokenOid, 1 /* accept numerical dotted string form only */));
+    if (!oid.get()) return TranslateLastOpenSslError();
 
     UniquePtr<uint8_t[]> attest_bytes;
     size_t attest_bytes_len;
@@ -178,13 +177,46 @@ keymaster_error_t build_attestation_extension(const AuthorizationSet& attest_par
 
     ASN1_OCTET_STRING_Ptr attest_str(ASN1_OCTET_STRING_new());
     if (!attest_str.get() ||
-        !ASN1_OCTET_STRING_set(attest_str.get(), attest_bytes.get(), attest_bytes_len))
+        !ASN1_OCTET_STRING_set(attest_str.get(), attest_bytes.get(), attest_bytes_len)) {
         return TranslateLastOpenSslError();
+    }
 
     extension->reset(
         X509_EXTENSION_create_by_OBJ(nullptr, oid.get(), 0 /* not critical */, attest_str.get()));
-    if (!extension->get())
+    if (!extension->get()) {
         return TranslateLastOpenSslError();
+    }
+
+    return KM_ERROR_OK;
+}
+
+keymaster_error_t build_eat_extension(const AuthorizationSet& attest_params,
+                                      const AuthorizationSet& tee_enforced,
+                                      const AuthorizationSet& sw_enforced,
+                                      const AttestationRecordContext& context,
+                                      X509_EXTENSION_Ptr* extension) {
+    ASN1_OBJECT_Ptr oid(
+        OBJ_txt2obj(kEatTokenOid, 1 /* accept numerical dotted string form only */));
+    if (!oid.get()) {
+        return TranslateLastOpenSslError();
+    }
+
+    std::vector<uint8_t> eat_bytes;
+    keymaster_error_t error =
+        build_eat_record(attest_params, sw_enforced, tee_enforced, context, &eat_bytes);
+    if (error != KM_ERROR_OK) return error;
+
+    ASN1_OCTET_STRING_Ptr eat_str(ASN1_OCTET_STRING_new());
+    if (!eat_str.get() ||
+        !ASN1_OCTET_STRING_set(eat_str.get(), eat_bytes.data(), eat_bytes.size())) {
+        return TranslateLastOpenSslError();
+    }
+
+    extension->reset(
+        X509_EXTENSION_create_by_OBJ(nullptr, oid.get(), 0 /* not critical */, eat_str.get()));
+    if (!extension->get()) {
+        return TranslateLastOpenSslError();
+    }
 
     return KM_ERROR_OK;
 }
@@ -195,9 +227,16 @@ keymaster_error_t add_attestation_extension(const AuthorizationSet& attest_param
                                             const AttestationRecordContext& context,
                                             X509* certificate) {
     X509_EXTENSION_Ptr attest_extension;
-    if (auto error = build_attestation_extension(attest_params, tee_enforced, sw_enforced, context,
-                                                 &attest_extension)) {
-        return error;
+    if (context.GetKmVersion() < KmVersion::KEYMINT_1) {
+        if (auto error = build_attestation_extension(attest_params, tee_enforced, sw_enforced,
+                                                     context, &attest_extension)) {
+            return error;
+        }
+    } else {
+        if (auto error = build_eat_extension(attest_params, tee_enforced, sw_enforced, context,
+                                             &attest_extension)) {
+            return error;
+        }
     }
 
     if (!X509_add_ext(certificate, attest_extension.get() /* Don't release; copied */,
@@ -317,13 +356,13 @@ keymaster_error_t generate_attestation_from_EVP(const EVP_PKEY* evp_key,  //
 }
 
 // Generate attestation certificate base on the AsymmetricKey key and other parameters
-// passed in.  In attest_params, we expects the challenge, active time and expiration
+// passed in.  In attest_params, we expect the challenge, active time and expiration
 // time, and app id.
 //
 // The active time and expiration time are expected in milliseconds.
 //
 // Hardware and software enforced AuthorizationSet are expected to be built into the AsymmetricKey
-// input. In hardware enforced AuthorizationSet, we expects hardware related tags such as
+// input. In hardware enforced AuthorizationSet, we expect hardware related tags such as
 // TAG_IDENTITY_CREDENTIAL_KEY.
 keymaster_error_t generate_attestation(const AsymmetricKey& key,
                                        const AuthorizationSet& attest_params,
