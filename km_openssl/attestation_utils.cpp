@@ -311,6 +311,7 @@ keymaster_error_t generate_attestation_common(
     const AttestationRecordContext& context,              // input
     const keymaster_cert_chain_t& attestation_chain,      // input
     const keymaster_key_blob_t& attestation_signing_key,  // input
+    const char* key_subject_common_name,                  // input
     CertChainPtr* cert_chain_out) {                       // Output.
 
     if (!cert_chain_out) {
@@ -335,7 +336,7 @@ keymaster_error_t generate_attestation_common(
         !X509_NAME_add_entry_by_txt(subjectName.get(),  //
                                     "CN",               //
                                     MBSTRING_ASC,
-                                    reinterpret_cast<const uint8_t*>("Android Keystore Key"),
+                                    reinterpret_cast<const uint8_t*>(key_subject_common_name),
                                     -1,  // len
                                     -1,  // loc
                                     0 /* set */) ||
@@ -469,10 +470,11 @@ keymaster_error_t generate_attestation(const AsymmetricKey& key,
     uint64_t usageExpireDateTime = UINT64_MAX;
     key.authorizations().GetTagValue(TAG_USAGE_EXPIRE_DATETIME, &usageExpireDateTime);
 
-    return generate_attestation_common(pkey.get(), key.sw_enforced(), key.hw_enforced(),
-                                       attest_params, activeDateTime, usageExpireDateTime,
-                                       kCurrentKeymasterVersion, context, attestation_chain,
-                                       attestation_signing_key, cert_chain_out);
+    const char* key_subject_common_name = "Android Keystore Key";
+    return generate_attestation_common(
+        pkey.get(), key.sw_enforced(), key.hw_enforced(), attest_params, activeDateTime,
+        usageExpireDateTime, kCurrentKeymasterVersion, context, attestation_chain,
+        attestation_signing_key, key_subject_common_name, cert_chain_out);
 }
 
 // Generate attestation certificate base on the EVP key and other parameters
@@ -491,6 +493,7 @@ keymaster_error_t generate_attestation_from_EVP(
     const uint keymaster_version,             // input
     const keymaster_cert_chain_t& attestation_chain,      // input
     const keymaster_key_blob_t& attestation_signing_key,  // input
+    const char* key_subject_common_name,                  // input
     CertChainPtr* cert_chain_out) {                       // Output.
 
     uint64_t activeDateTime = 0;
@@ -499,9 +502,10 @@ keymaster_error_t generate_attestation_from_EVP(
     uint64_t usageExpireDateTime = UINT64_MAX;
     attest_params.GetTagValue(TAG_USAGE_EXPIRE_DATETIME, &usageExpireDateTime);
 
-    return generate_attestation_common(
-        evp_key, sw_enforced, hw_enforced, attest_params, activeDateTime, usageExpireDateTime,
-        keymaster_version, context, attestation_chain, attestation_signing_key, cert_chain_out);
+    return generate_attestation_common(evp_key, sw_enforced, hw_enforced, attest_params,
+                                       activeDateTime, usageExpireDateTime, keymaster_version,
+                                       context, attestation_chain, attestation_signing_key,
+                                       key_subject_common_name, cert_chain_out);
 }
 
 }  // namespace keymaster
