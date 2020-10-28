@@ -62,6 +62,7 @@ keymaster_error_t generate_attestation_from_EVP(
     const uint keymaster_version,             // input
     const keymaster_cert_chain_t& attestation_chain,      // input
     const keymaster_key_blob_t& attestation_signing_key,  // input
+    const char* key_subject_common_name,                  // input
     CertChainPtr* cert_chain_out);                        // Output.
 
 } // namespace keymaster
