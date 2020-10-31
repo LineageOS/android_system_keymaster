@@ -36,6 +36,7 @@
 #include <keymaster/soft_keymaster_device.h>
 
 #include "android_keymaster_test_utils.h"
+#include "test_keys.h"
 
 using std::ifstream;
 using std::istreambuf_iterator;
@@ -1624,18 +1625,11 @@ TEST_P(ExportKeyTest, AesKeyExportFails) {
     EXPECT_EQ(0, GetParam()->keymaster0_calls());
 }
 
-static string read_file(const string& file_name) {
-    ifstream file_stream(file_name, std::ios::binary);
-    istreambuf_iterator<char> file_begin(file_stream);
-    istreambuf_iterator<char> file_end;
-    return string(file_begin, file_end);
-}
-
 typedef Keymaster2Test ImportKeyTest;
 INSTANTIATE_TEST_CASE_P(AndroidKeymasterTest, ImportKeyTest, test_params);
 
 TEST_P(ImportKeyTest, RsaSuccess) {
-    string pk8_key = read_file("rsa_privkey_pk8.der");
+    string pk8_key(reinterpret_cast<char*>(&rsa_privkey_pk8_der[0]), rsa_privkey_pk8_der_len);
     ASSERT_EQ(633U, pk8_key.size());
 
     ASSERT_EQ(KM_ERROR_OK, ImportKey(AuthorizationSetBuilder()
@@ -1672,7 +1666,7 @@ TEST_P(ImportKeyTest, RsaSuccess) {
 }
 
 TEST_P(ImportKeyTest, RsaKeySizeMismatch) {
-    string pk8_key = read_file("rsa_privkey_pk8.der");
+    string pk8_key(reinterpret_cast<char*>(&rsa_privkey_pk8_der[0]), rsa_privkey_pk8_der_len);
     ASSERT_EQ(633U, pk8_key.size());
     ASSERT_EQ(KM_ERROR_IMPORT_PARAMETER_MISMATCH,
               ImportKey(AuthorizationSetBuilder()
@@ -1685,7 +1679,7 @@ TEST_P(ImportKeyTest, RsaKeySizeMismatch) {
 }
 
 TEST_P(ImportKeyTest, RsaPublicExponenMismatch) {
-    string pk8_key = read_file("rsa_privkey_pk8.der");
+    string pk8_key(reinterpret_cast<char*>(&rsa_privkey_pk8_der[0]), rsa_privkey_pk8_der_len);
     ASSERT_EQ(633U, pk8_key.size());
     ASSERT_EQ(KM_ERROR_IMPORT_PARAMETER_MISMATCH,
               ImportKey(AuthorizationSetBuilder()
@@ -1698,7 +1692,7 @@ TEST_P(ImportKeyTest, RsaPublicExponenMismatch) {
 }
 
 TEST_P(ImportKeyTest, EcdsaSuccess) {
-    string pk8_key = read_file("ec_privkey_pk8.der");
+    string pk8_key(reinterpret_cast<char*>(&ec_privkey_pk8_der[0]), ec_privkey_pk8_der_len);
     ASSERT_EQ(138U, pk8_key.size());
 
     ASSERT_EQ(KM_ERROR_OK,
@@ -1730,7 +1724,7 @@ TEST_P(ImportKeyTest, EcdsaSuccess) {
 }
 
 TEST_P(ImportKeyTest, EcdsaSizeSpecified) {
-    string pk8_key = read_file("ec_privkey_pk8.der");
+    string pk8_key(reinterpret_cast<char*>(&ec_privkey_pk8_der[0]), ec_privkey_pk8_der_len);
     ASSERT_EQ(138U, pk8_key.size());
 
     ASSERT_EQ(KM_ERROR_OK,
@@ -1762,7 +1756,7 @@ TEST_P(ImportKeyTest, EcdsaSizeSpecified) {
 }
 
 TEST_P(ImportKeyTest, EcdsaSizeMismatch) {
-    string pk8_key = read_file("ec_privkey_pk8.der");
+    string pk8_key(reinterpret_cast<char*>(&ec_privkey_pk8_der[0]), ec_privkey_pk8_der_len);
     ASSERT_EQ(138U, pk8_key.size());
     ASSERT_EQ(KM_ERROR_IMPORT_PARAMETER_MISMATCH,
               ImportKey(AuthorizationSetBuilder()
@@ -1812,27 +1806,29 @@ TEST_P(ImportKeyTest, HmacSha256KeySuccess) {
     EXPECT_EQ(0, GetParam()->keymaster0_calls());
 }
 
-string wrapped_key = hex2str(
-    "3082017302010004820100A2B7988012A043CE83E762A4E4D3C86D578B2E1EA5E04138353114A816951308E3222AFA"
-    "D86CA141C581198E65BC56D9EEDC5B555713BE2C20948DD076AB4980305871317F89DD3A7A67FBBB7AACF6941C06B2"
-    "65396D894A6DCC7B9FB152FFA8CBF44FF8063748795F3FB506DF8718535289E759075A13A5DDC83EF8470549AA7794"
-    "3AFBACF6CF82DCE3751E05BFE05F30B998D73E23611E6EAEFC2A497E097A895C4242607B472AE8F19DA77A9A5A4786"
-    "75541FC813C9213B5CE8C2E598BFBBCD1B369E3D7AEC0274F9B79118D8AA5FBB7634EBD3C4C2AF3B5DA483DF2CFDF1"
-    "E68A3BFC7B6C0D503AF88E82C9EE841A278B144FF8D39F2DB2ACE9415C120190040CD796B02C370F1FA4CC0124F130"
-    "280201033023A1083106020100020101A203020120A30402020100A4053103020101A60531030201400420CCD54085"
-    "5F833A5E1480BFD2D36FAF3AEEE15DF5BEABE2691BC82DDE2A7AA91004107CB81BDDCD09E8F4DF575726279F3229");
+auto wrapped_key = hex2str(
+    "3082017902010004820100934bf94e2aa28a3f83c9f79297250262fbe3276b5a1c91159bbfa3ef8957aac84b59b30b"
+    "455a79c2973480823d8b3863c3deef4a8e243590268d80e18751a0e130f67ce6a1ace9f79b95e097474febc981195b"
+    "1d13a69086c0863f66a7b7fdb48792227b1ac5e2489febdf087ab5486483033a6f001ca5d1ec1e27f5c30f4cec2642"
+    "074a39ae68aee552e196627a8e3d867e67a8c01b11e75f13cca0a97ab668b50cda07a8ecb7cd8e3dd7009c9636534f"
+    "6f239cffe1fc8daa466f78b676c7119efb96bce4e69ca2a25d0b34ed9c3ff999b801597d5220e307eaa5bee507fb94"
+    "d1fa69f9e519b2de315bac92c36f2ea1fa1df4478c0ddedeae8c70e0233cd098040cd796b02c370f1fa4cc0124f130"
+    "2e0201033029a1083106020100020101a203020120a30402020100a4053103020101a6053103020140bf8377020500"
+    "0420ccd540855f833a5e1480bfd2d36faf3aeee15df5beabe2691bc82dde2a7aa910041064c9f689c60ff6223ab6e6"
+    "999e0eb6e5");
 
-string wrapped_key_masked = hex2str(
-    "30820173020100048201008CBEE0DC600215FFC85FC26B57DD2331DDF5D3E106C0A68BFEF167AFD428041D9B7C3316"
-    "110BBB914A86FC24D4EF5C6A4673C9B3CC914C7806453650753B5130C4FE72264A52C1A270286032513F24EB3E033A"
-    "BCC26A9D6AEFD0D0AD3E922E4E737ECDAD3C4DF2ABDB416378E67381BE0391175EC8F05FDFBC3794B7D0D88298010F"
-    "E9B6F788BC049D874575D2D4C33DB582B113694738A9151BBC7603D3556B26FEC0279EE1C1CA44D6F7F91F4C424912"
-    "7F9CC3232DE8B0AEFFD5AFAD4C3D5B846FD26873315606F6457BC19447FD7C6431550D6E6592A0555E61C7A021D149"
-    "BCEE7A858DD6D4A8E230C6015EEDF0A58F4CAA8A6D0E3A1E3794CAEE7854CE92040C6D9721D08589581AB49204A330"
-    "280201033023A1083106020100020101A203020120A30402020100A4053103020101A60531030201400420A61C6E24"
-    "7E25B3E6E69AA78EB03C2D4AC20D1F99A9A024A76F35C8E2CAB9B68D04101FF7A0E793B9EE4AECEBB9AC4C545254");
+auto wrapped_key_masked = hex2str(
+    "3082017902010004820100aad93ed5924f283b4bb5526fbe7a1412f9d9749ec30db9062b29e574a8546f33c8873245"
+    "2f5b8e6a391ee76c39ed1712c61d8df6213dec1cffbc17a8c6d04c7b30893d8daa9b2015213e21946821553207f8f9"
+    "931c4caba23ed3bee28b36947e47f10e0a5c3dc51c988a628daad3e5e1f4005e79c2d5a96c284b4b8d7e4948f331e5"
+    "b85dd5a236f85579f3ea1d1b848487470bdb0ab4f81a12bee42c99fe0df4bee3759453e69ad1d68a809ce06b949f76"
+    "94a990429b2fe81e066ff43e56a21602db70757922a4bcc23ab89f1e35da77586775f423e519c2ea394caf48a28d0c"
+    "8020f1dcf6b3a68ec246f615ae96dae9a079b1f6eb959033c1af5c125fd94168040c6d9721d08589581ab49204a330"
+    "2e0201033029a1083106020100020101a203020120a30402020100a4053103020101a6053103020140bf8377020500"
+    "0420a61c6e247e25b3e6e69aa78eb03c2d4ac20d1f99a9a024a76f35c8e2cab9b68d04102560c70109ae67c030f00b"
+    "98b512a670");
 
-string wrapping_key = hex2str(
+auto wrapping_key = hex2str(
     "308204be020100300d06092a864886f70d0101010500048204a8308204a40201000282010100aec367931d8900ce56"
     "b0067f7d70e1fc653f3f34d194c1fed50018fb43db937b06e673a837313d56b1c725150a3fef86acbddc41bb759c28"
     "54eae32d35841efb5c18d82bc90a1cb5c1d55adf245b02911f0b7cda88c421ff0ebafe7c0d23be312d7bd5921ffaea"
@@ -1927,7 +1923,7 @@ TEST_F(ImportWrappedKeyTest, GoldenKeySuccess) {
 
     auto import_params = AuthorizationSetBuilder()
                              .RsaEncryptionKey(2048, 65537)
-                             .Digest(KM_DIGEST_SHA1)
+                             .Digest(KM_DIGEST_SHA_2_256)
                              .Padding(KM_PAD_RSA_OAEP)
                              .Authorization(TAG_PURPOSE, KM_PURPOSE_WRAP)
                              .build();
@@ -1972,7 +1968,7 @@ TEST_F(ImportWrappedKeyTest, SuccessMaskingKey) {
 
     auto import_params = AuthorizationSetBuilder()
                              .RsaEncryptionKey(2048, 65537)
-                             .Digest(KM_DIGEST_SHA1)
+                             .Digest(KM_DIGEST_SHA_2_256)
                              .Padding(KM_PAD_RSA_OAEP)
                              .Authorization(TAG_PURPOSE, KM_PURPOSE_WRAP)
                              .build();
@@ -2004,7 +2000,7 @@ TEST_F(ImportWrappedKeyTest, WrongMaskingKey) {
 
     auto import_params = AuthorizationSetBuilder()
                              .RsaEncryptionKey(2048, 65537)
-                             .Digest(KM_DIGEST_SHA1)
+                             .Digest(KM_DIGEST_SHA_2_256)
                              .Padding(KM_PAD_RSA_OAEP)
                              .Authorization(TAG_PURPOSE, KM_PURPOSE_WRAP)
                              .build();
@@ -4012,7 +4008,7 @@ static bool verify_attestation_record(const string& challenge, const string& att
                                &att_keymaster_security_level, &att_challenge, &att_sw_enforced,
                                &att_tee_enforced, &att_unique_id));
 
-    EXPECT_EQ(2U, att_attestation_version);
+    EXPECT_EQ(4U, att_attestation_version);
     EXPECT_EQ(KM_SECURITY_LEVEL_SOFTWARE, att_attestation_security_level);
     EXPECT_EQ(expected_keymaster_version, att_keymaster_version);
     EXPECT_EQ(expected_keymaster_security_level, att_keymaster_security_level);
@@ -4072,7 +4068,7 @@ TEST_P(AttestationTest, RsaAttestation) {
         expected_keymaster_version = 0;
         expected_keymaster_security_level = KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT;
     } else {
-        expected_keymaster_version = 3;
+        expected_keymaster_version = 41;
         expected_keymaster_security_level = KM_SECURITY_LEVEL_SOFTWARE;
     }
 
@@ -4094,7 +4090,7 @@ TEST_P(AttestationTest, EcAttestation) {
         expected_keymaster_version = 0;
         expected_keymaster_security_level = KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT;
     } else {
-        expected_keymaster_version = 3;
+        expected_keymaster_version = 41;
         expected_keymaster_security_level = KM_SECURITY_LEVEL_SOFTWARE;
     }
 
@@ -4462,7 +4458,7 @@ TEST_F(HmacKeySharingTest, ComputeSharedHmacCorruptSeed) {
     ASSERT_TRUE(VerifyResponses(sharing_check_value, responses));
 
     // Pick a random param and modify the seed.
-    auto param_to_tweak = rand() & params.size();
+    auto param_to_tweak = rand() % params.size();
     constexpr uint8_t wrong_seed_value[] = {0xF, 0x0, 0x0};
     params[param_to_tweak].SetSeed({wrong_seed_value, sizeof(wrong_seed_value)});
     auto prevent_deletion_of_wrong_seed =
