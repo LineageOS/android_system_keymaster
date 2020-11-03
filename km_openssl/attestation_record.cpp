@@ -193,6 +193,12 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
         case KM_TAG_MIN_MAC_LENGTH:
             integer_ptr = &record->min_mac_length;
             break;
+        case KM_TAG_BOOT_PATCHLEVEL:
+            integer_ptr = &record->boot_patch_level;
+            break;
+        case KM_TAG_VENDOR_PATCHLEVEL:
+            integer_ptr = &record->vendor_patchlevel;
+            break;
 
         /* Non-repeating long unsigned integers */
         case KM_TAG_RSA_PUBLIC_EXPONENT:
@@ -247,6 +253,12 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
         case KM_TAG_IDENTITY_CREDENTIAL_KEY:
             bool_ptr = &record->identity_credential_key;
             break;
+        case KM_TAG_TRUSTED_USER_PRESENCE_REQUIRED:
+            bool_ptr = &record->trusted_user_presence_required;
+            break;
+        case KM_TAG_STORAGE_KEY:
+            bool_ptr = &record->storage_key;
+            break;
 
         /* Byte arrays*/
         case KM_TAG_APPLICATION_ID:
@@ -278,6 +290,9 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
             break;
         case KM_TAG_ATTESTATION_ID_MODEL:
             string_ptr = &record->attestation_id_model;
+            break;
+        case KM_TAG_CONFIRMATION_TOKEN:
+            string_ptr = &record->confirmation_token;
             break;
         }
 
@@ -647,6 +662,36 @@ keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet
 
     // identity credential key
     if (record->identity_credential_key && !auth_list->push_back(TAG_IDENTITY_CREDENTIAL_KEY))
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+
+    // storage key
+    if (record->storage_key && !auth_list->push_back(TAG_STORAGE_KEY))
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+
+    // trusted user presence required
+    if (record->trusted_user_presence_required &&
+        !auth_list->push_back(TAG_TRUSTED_USER_PRESENCE_REQUIRED))
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+
+    // trusted confirmation required
+    if (record->trusted_confirmation_required &&
+        !auth_list->push_back(TAG_TRUSTED_CONFIRMATION_REQUIRED))
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+
+    // boot patch level
+    if (record->boot_patch_level &&
+        !auth_list->push_back(TAG_BOOT_PATCHLEVEL, ASN1_INTEGER_get(record->boot_patch_level)))
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+
+    // vendor patch level
+    if (record->vendor_patchlevel &&
+        !auth_list->push_back(TAG_VENDOR_PATCHLEVEL, ASN1_INTEGER_get(record->vendor_patchlevel)))
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+
+    // confirmation token
+    if (record->confirmation_token &&
+        !auth_list->push_back(TAG_CONFIRMATION_TOKEN, record->confirmation_token->data,
+                              record->confirmation_token->length))
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 
     // Creation date time
