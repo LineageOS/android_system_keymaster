@@ -16,6 +16,7 @@
 */
 
 #include <keymaster/km_openssl/attestation_utils.h>
+#include <keymaster/km_openssl/certificate_utils.h>
 
 #include <hardware/keymaster_defs.h>
 
@@ -33,14 +34,8 @@ namespace keymaster {
 
 namespace {
 
-constexpr int kDigitalSignatureKeyUsageBit = 0;
-constexpr int kKeyEnciphermentKeyUsageBit = 2;
-constexpr int kDataEnciphermentKeyUsageBit = 3;
-constexpr int kMaxKeyUsageBit = 8;
-
-template <typename T> T && min(T && a, T && b) {
-    return (a < b) ? forward<T>(a) : forward<T>(b);
-}
+constexpr int kDefaultAttestationSerial = 1;
+constexpr const char kDefaultSubject[] = "Android Keystore Key";
 
 struct emptyCert {};
 
@@ -197,69 +192,18 @@ keymaster_error_t build_attestation_extension(const AuthorizationSet& attest_par
     return KM_ERROR_OK;
 }
 
-keymaster_error_t add_key_usage_extension(const AuthorizationSet& tee_enforced,
-                                                 const AuthorizationSet& sw_enforced,
-                                                 X509* certificate) {
-    // Build BIT_STRING with correct contents.
-    ASN1_BIT_STRING_Ptr key_usage(ASN1_BIT_STRING_new());
-    if (!key_usage) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-
-    for (size_t i = 0; i <= kMaxKeyUsageBit; ++i) {
-        if (!ASN1_BIT_STRING_set_bit(key_usage.get(), i, 0)) {
-            return TranslateLastOpenSslError();
-        }
+keymaster_error_t add_attestation_extension(const AuthorizationSet& attest_params,
+                                            const AuthorizationSet& tee_enforced,
+                                            const AuthorizationSet& sw_enforced,
+                                            const AttestationRecordContext& context,
+                                            const uint keymaster_version, X509* certificate) {
+    X509_EXTENSION_Ptr attest_extension;
+    if (auto error = build_attestation_extension(attest_params, tee_enforced, sw_enforced,
+                                                 keymaster_version, context, &attest_extension)) {
+        return error;
     }
 
-    if (tee_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_SIGN) ||
-        tee_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_VERIFY) ||
-        sw_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_SIGN) ||
-        sw_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_VERIFY)) {
-        if (!ASN1_BIT_STRING_set_bit(key_usage.get(), kDigitalSignatureKeyUsageBit, 1)) {
-            return TranslateLastOpenSslError();
-        }
-    }
-
-    if (tee_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_ENCRYPT) ||
-        tee_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_DECRYPT) ||
-        sw_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_ENCRYPT) ||
-        sw_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_DECRYPT)) {
-        if (!ASN1_BIT_STRING_set_bit(key_usage.get(), kKeyEnciphermentKeyUsageBit, 1) ||
-            !ASN1_BIT_STRING_set_bit(key_usage.get(), kDataEnciphermentKeyUsageBit, 1)) {
-            return TranslateLastOpenSslError();
-        }
-    }
-
-    // Convert to octets
-    int len = i2d_ASN1_BIT_STRING(key_usage.get(), nullptr);
-    if (len < 0) {
-        return TranslateLastOpenSslError();
-    }
-    UniquePtr<uint8_t[]> asn1_key_usage(new(std::nothrow) uint8_t[len]);
-    if (!asn1_key_usage.get()) {
-        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-    }
-    uint8_t* p = asn1_key_usage.get();
-    len = i2d_ASN1_BIT_STRING(key_usage.get(), &p);
-    if (len < 0) {
-        return TranslateLastOpenSslError();
-    }
-
-    // Build OCTET_STRING
-    ASN1_OCTET_STRING_Ptr key_usage_str(ASN1_OCTET_STRING_new());
-    if (!key_usage_str.get() ||
-        !ASN1_OCTET_STRING_set(key_usage_str.get(), asn1_key_usage.get(), len)) {
-        return TranslateLastOpenSslError();
-    }
-
-    X509_EXTENSION_Ptr key_usage_extension(X509_EXTENSION_create_by_NID(nullptr,        //
-                                                                        NID_key_usage,  //
-                                                                        true /* critical */,
-                                                                        key_usage_str.get()));
-    if (!key_usage_extension.get()) {
-        return TranslateLastOpenSslError();
-    }
-
-    if (!X509_add_ext(certificate, key_usage_extension.get() /* Don't release; copied */,
+    if (!X509_add_ext(certificate, attest_extension.get() /* Don't release; copied */,
                       -1 /* insert at end */)) {
         return TranslateLastOpenSslError();
     }
@@ -267,125 +211,55 @@ keymaster_error_t add_key_usage_extension(const AuthorizationSet& tee_enforced,
     return KM_ERROR_OK;
 }
 
-bool add_public_key(const EVP_PKEY* key, X509* certificate, keymaster_error_t* error) {
-    if (!X509_set_pubkey(certificate, (EVP_PKEY*)key)) {
-        *error = TranslateLastOpenSslError();
-        return false;
-    }
-    return true;
-}
+}  // anonymous namespace
 
-bool add_attestation_extension(const AuthorizationSet& attest_params,
-                               const AuthorizationSet& tee_enforced,
-                               const AuthorizationSet& sw_enforced,
-                               const AttestationRecordContext& context,
-                               const uint keymaster_version, X509* certificate,
-                               keymaster_error_t* error) {
-    X509_EXTENSION_Ptr attest_extension;
-    *error = build_attestation_extension(attest_params, tee_enforced, sw_enforced,
-                                         keymaster_version, context, &attest_extension);
-    if (*error != KM_ERROR_OK)
-        return false;
+keymaster_error_t make_attestation_cert(
+    const EVP_PKEY* evp_pkey, const uint32_t serial, const char subject[], X509_NAME* issuer,
+    const uint64_t activeDateTimeMilliSeconds, const uint64_t usageExpireDateTimeMilliSeconds,
+    const bool is_signing_key, const bool is_encryption_key, const AuthorizationSet& attest_params,
+    const AuthorizationSet& tee_enforced, const AuthorizationSet& sw_enforced,
+    const AttestationRecordContext& context, const uint keymaster_version, X509_Ptr* cert_out) {
 
-    if (!X509_add_ext(certificate, attest_extension.get() /* Don't release; copied */,
-                      -1 /* insert at end */)) {
-        *error = TranslateLastOpenSslError();
-        return false;
+    // First make the basic certificate with usage extension.
+    X509_Ptr certificate;
+    if (auto error = make_cert(evp_pkey, serial, subject, issuer, activeDateTimeMilliSeconds,
+                               usageExpireDateTimeMilliSeconds, is_signing_key, is_encryption_key,
+                               &certificate)) {
+        return error;
     }
 
-    return true;
+    // Add attestation extension.
+    if (auto error = add_attestation_extension(attest_params, tee_enforced, sw_enforced, context,
+                                               keymaster_version, certificate.get())) {
+        return error;
+    }
+
+    *cert_out = move(certificate);
+    return KM_ERROR_OK;
 }
 
-} // anonymous namespace
-
-keymaster_error_t generate_attestation_common(
-    const EVP_PKEY* evp_key,                // input
-    const AuthorizationSet& sw_enforced,    // input
-    const AuthorizationSet& hw_enforced,    // input
-    const AuthorizationSet& attest_params,  // input. Sub function require app id to be set here.
-    uint64_t
-        activeDateTimeMilliSeconds,  // input, certificate active time in milliseconds since epoch
-    uint64_t usageExpireDateTimeMilliSeconds,  // Input, certificate expire time in milliseconds
-                                               // since epoch
-    const uint keymaster_version,
-    const AttestationRecordContext& context,              // input
+// Generate attestation certificate base on the EVP key and other parameters
+// passed in.  Note that due to sub sub sub function call setup, there are 3 AuthorizationSet
+// passed in, hardware, software, and attest_params.  In attest_params, we expects the
+// challenge, active time and expiration time, and app id.  In hw_enforced, we expects
+// hardware related tags such as TAG_IDENTITY_CREDENTIAL_KEY.
+//
+// The active time and expiration time are expected in milliseconds.
+keymaster_error_t generate_attestation_from_EVP(
+    const EVP_PKEY* evp_key,                  // input
+    const AuthorizationSet& sw_enforced,      // input
+    const AuthorizationSet& tee_enforced,     // input
+    const AuthorizationSet& attest_params,    // input. Sub function require app id to be set here.
+    const AttestationRecordContext& context,  // input
+    const uint keymaster_version,             // input
     const keymaster_cert_chain_t& attestation_chain,      // input
     const keymaster_key_blob_t& attestation_signing_key,  // input
     CertChainPtr* cert_chain_out) {                       // Output.
 
-    if (!cert_chain_out) {
-        return KM_ERROR_UNEXPECTED_NULL_POINTER;
-    }
+    uint32_t serial = kDefaultAttestationSerial;
 
-    X509_Ptr certificate(X509_new());
-    if (!certificate.get()) {
-        return TranslateLastOpenSslError();
-    }
-
-    if (!X509_set_version(certificate.get(), 2 /* version 3, but zero-based */))
-        return TranslateLastOpenSslError();
-
-    ASN1_INTEGER_Ptr serialNumber(ASN1_INTEGER_new());
-    if (!serialNumber.get() || !ASN1_INTEGER_set(serialNumber.get(), 1) ||
-        !X509_set_serialNumber(certificate.get(), serialNumber.get() /* Don't release; copied */))
-        return TranslateLastOpenSslError();
-
-    X509_NAME_Ptr subjectName(X509_NAME_new());
-    if (!subjectName.get() ||
-        !X509_NAME_add_entry_by_txt(subjectName.get(),  //
-                                    "CN",               //
-                                    MBSTRING_ASC,
-                                    reinterpret_cast<const uint8_t*>("Android Keystore Key"),
-                                    -1,  // len
-                                    -1,  // loc
-                                    0 /* set */) ||
-        !X509_set_subject_name(certificate.get(), subjectName.get() /* Don't release; copied */))
-        return TranslateLastOpenSslError();
-
-    ASN1_TIME_Ptr notBefore(ASN1_TIME_new());
-
-    if (!notBefore.get() || !ASN1_TIME_set(notBefore.get(), activeDateTimeMilliSeconds / 1000) ||
-        !X509_set_notBefore(certificate.get(), notBefore.get() /* Don't release; copied */))
-        return TranslateLastOpenSslError();
-
-    ASN1_TIME_Ptr notAfter(ASN1_TIME_new());
-
-    // TODO(swillden): When trusty can use the C++ standard library change the calculation of
-    // notAfterTime to use std::numeric_limits<time_t>::max(), rather than assuming that time_t
-    // is 32 bits.
-    time_t notAfterTime;
-    notAfterTime =
-        (time_t)min(static_cast<uint64_t>(UINT32_MAX), usageExpireDateTimeMilliSeconds / 1000);
-
-    if (!notAfter.get() || !ASN1_TIME_set(notAfter.get(), notAfterTime) ||
-        !X509_set_notAfter(certificate.get(), notAfter.get() /* Don't release; copied */))
-        return TranslateLastOpenSslError();
-
-    keymaster_error_t error = add_key_usage_extension(hw_enforced, sw_enforced, certificate.get());
-    if (error != KM_ERROR_OK) {
-        return error;
-    }
-
-    int evp_key_type = EVP_PKEY_type(evp_key->type);
-
-    const uint8_t* key_material = attestation_signing_key.key_material;
-    EVP_PKEY_Ptr sign_key(d2i_PrivateKey(evp_key_type, nullptr, &key_material,
-                                         attestation_signing_key.key_material_size));
-
-    if (!sign_key.get()) {
-        return TranslateLastOpenSslError();
-    }
-
-    if (!add_public_key(evp_key, certificate.get(), &error) ||
-        !add_attestation_extension(attest_params, hw_enforced, sw_enforced, context,
-                                   keymaster_version, certificate.get(), &error))
-        return error;
-
-    if (attestation_chain.entry_count < 1) {
-        // the attestation chain must have at least the cert for the key that signs the new
-        // cert.
-        return KM_ERROR_UNKNOWN_ERROR;
-    }
+    // The default subject is CN=fake
+    const char* subject = kDefaultSubject;
 
     const uint8_t* p = attestation_chain.entries[0].data;
     X509_Ptr signing_cert(d2i_X509(nullptr, &p, attestation_chain.entries[0].data_length));
@@ -393,40 +267,43 @@ keymaster_error_t generate_attestation_common(
         return TranslateLastOpenSslError();
     }
 
-    // Set issuer to subject of batch certificate.
     X509_NAME* issuerSubject = X509_get_subject_name(signing_cert.get());
     if (!issuerSubject) {
         return KM_ERROR_UNKNOWN_ERROR;
     }
 
-    if (!X509_set_issuer_name(certificate.get(), issuerSubject)) {
-        return TranslateLastOpenSslError();
+    uint64_t activeDateTime = 0;
+    attest_params.GetTagValue(TAG_ACTIVE_DATETIME, &activeDateTime);
+
+    uint64_t usageExpireDateTime = UINT64_MAX;
+    attest_params.GetTagValue(TAG_USAGE_EXPIRE_DATETIME, &usageExpireDateTime);
+
+    bool is_signing_key = tee_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_SIGN) ||
+                          tee_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_VERIFY) ||
+                          sw_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_SIGN) ||
+                          sw_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_VERIFY);
+
+    bool is_encryption_key = tee_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_ENCRYPT) ||
+                             tee_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_DECRYPT) ||
+                             sw_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_ENCRYPT) ||
+                             sw_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_DECRYPT);
+
+    X509_Ptr certificate;
+    if (auto error = make_attestation_cert(evp_key, serial, subject, issuerSubject, activeDateTime,
+                                           usageExpireDateTime, is_signing_key, is_encryption_key,
+                                           attest_params, tee_enforced, sw_enforced, context,
+                                           keymaster_version, &certificate)) {
+        return error;
     }
 
-    UniquePtr<X509V3_CTX> x509v3_ctx(new (std::nothrow) X509V3_CTX);
-    if (!x509v3_ctx.get()) {
+    if (auto error = sign_cert(certificate.get(), signing_cert.get(), attestation_signing_key)) {
+        return error;
+    }
+
+    *cert_chain_out = makeCertChain(certificate.get(), attestation_chain);
+    if (!*cert_chain_out) {
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
-
-    *x509v3_ctx = {};
-    X509V3_set_ctx(x509v3_ctx.get(),    //
-                   signing_cert.get(),  // signing certificate
-                   certificate.get(),   //
-                   nullptr,             // req
-                   nullptr,             // crl
-                   0 /* flags */);
-
-    if (!X509_sign(certificate.get(), sign_key.get(), EVP_sha256()))
-        return TranslateLastOpenSslError();
-
-    if (attest_params.Contains(TAG_DEVICE_UNIQUE_ATTESTATION)) {
-        // When we're pretending to be a StrongBox doing device-unique attestation, we don't chain
-        // back to anything, but just return the plain certificate.
-        *cert_chain_out = makeCertChain(certificate.get());
-    } else {
-        *cert_chain_out = makeCertChain(certificate.get(), attestation_chain);
-    }
-    if (!cert_chain_out->get()) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     return KM_ERROR_OK;
 }
 
@@ -453,45 +330,10 @@ keymaster_error_t generate_attestation(const AsymmetricKey& key,
         return TranslateLastOpenSslError();
     }
 
-    uint64_t activeDateTime = 0;
-    key.authorizations().GetTagValue(TAG_ACTIVE_DATETIME, &activeDateTime);
-
-    uint64_t usageExpireDateTime = UINT64_MAX;
-    key.authorizations().GetTagValue(TAG_USAGE_EXPIRE_DATETIME, &usageExpireDateTime);
-
-    return generate_attestation_common(pkey.get(), key.sw_enforced(), key.hw_enforced(),
-                                       attest_params, activeDateTime, usageExpireDateTime,
-                                       kCurrentKeymasterVersion, context, attestation_chain,
-                                       attestation_signing_key, cert_chain_out);
+    return generate_attestation_from_EVP(
+        pkey.get(), key.sw_enforced(), key.hw_enforced(), attest_params, context,
+        kCurrentKeymasterVersion, attestation_chain, attestation_signing_key, cert_chain_out);
 }
 
-// Generate attestation certificate base on the EVP key and other parameters
-// passed in.  Note that due to sub sub sub function call setup, there are 3 AuthorizationSet
-// passed in, hardware, software, and attest_params.  In attest_params, we expects the
-// challenge, active time and expiration time, and app id.  In hw_enforced, we expects
-// hardware related tags such as TAG_IDENTITY_CREDENTIAL_KEY.
-//
-// The active time and expiration time are expected in milliseconds.
-keymaster_error_t generate_attestation_from_EVP(
-    const EVP_PKEY* evp_key,                  // input
-    const AuthorizationSet& sw_enforced,      // input
-    const AuthorizationSet& hw_enforced,      // input
-    const AuthorizationSet& attest_params,    // input. Sub function require app id to be set here.
-    const AttestationRecordContext& context,  // input
-    const uint keymaster_version,             // input
-    const keymaster_cert_chain_t& attestation_chain,      // input
-    const keymaster_key_blob_t& attestation_signing_key,  // input
-    CertChainPtr* cert_chain_out) {                       // Output.
-
-    uint64_t activeDateTime = 0;
-    attest_params.GetTagValue(TAG_ACTIVE_DATETIME, &activeDateTime);
-
-    uint64_t usageExpireDateTime = UINT64_MAX;
-    attest_params.GetTagValue(TAG_USAGE_EXPIRE_DATETIME, &usageExpireDateTime);
-
-    return generate_attestation_common(
-        evp_key, sw_enforced, hw_enforced, attest_params, activeDateTime, usageExpireDateTime,
-        keymaster_version, context, attestation_chain, attestation_signing_key, cert_chain_out);
-}
 
 }  // namespace keymaster
