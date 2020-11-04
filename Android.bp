@@ -94,6 +94,7 @@ cc_library {
         "km_openssl/attestation_record.cpp",
         "km_openssl/attestation_utils.cpp",
         "km_openssl/block_cipher_operation.cpp",
+        "km_openssl/certificate_utils.cpp",
         "km_openssl/ckdf.cpp",
         "km_openssl/ec_key.cpp",
         "km_openssl/ec_key_factory.cpp",
