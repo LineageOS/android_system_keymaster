@@ -568,7 +568,8 @@ static bool get_ulong(const ASN1_INTEGER* asn1_int, keymaster_tag_t tag,
     UniquePtr<BIGNUM, BIGNUM_Delete> bn(ASN1_INTEGER_to_BN(asn1_int, nullptr));
     if (!bn.get())
         return false;
-    uint64_t ulong = BN_get_word(bn.get());
+    uint64_t ulong = 0;
+    BN_get_u64(bn.get(), &ulong);
     return auth_list->push_back(keymaster_param_long(tag, ulong));
 }
 
