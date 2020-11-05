@@ -1,0 +1,46 @@
+shared_test_libs = [
+    "libbase",
+    "libcrypto",
+    "libcutils",
+    "libhidlbase",
+    "libsoftkeymasterdevice",
+    "libkeymaster_messages",
+    "libkeymaster_portable",
+    "liblog",
+    "libutils",
+]
+
+test_cflags = [
+    "-Wall",
+    "-Werror",
+    "-Wextra",
+    "-DKEYMASTER_NAME_TAGS",
+    "-Wunused-variable",
+]
+
+cc_test {
+    name: "keymaster_tests",
+    cflags: test_cflags,
+    srcs: [
+        "gtest_main.cpp",
+        "keymaster_configuration_test.cpp",
+        "hmac_test.cpp",
+        "android_keymaster_test_utils.cpp",
+        "ckdf_test.cpp",
+        "hkdf_test.cpp",
+        "kdf_test.cpp",
+        "kdf1_test.cpp",
+        "kdf2_test.cpp",
+        "ecies_kem_test.cpp",
+        "nist_curve_key_exchange_test.cpp",
+        "authorization_set_test.cpp",
+        "key_blob_test.cpp",
+        "android_keymaster_messages_test.cpp",
+        "android_keymaster_test.cpp",
+        "keymaster_enforcement_test.cpp",
+        "attestation_record_test.cpp",
+        "wrapped_key_test.cpp",
+    ],
+    shared_libs: shared_test_libs,
+    test_suites: ["general-tests"],
+}
