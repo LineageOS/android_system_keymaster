@@ -43,18 +43,21 @@ std::ostream& operator<<(std::ostream& os, const keymaster_key_param_t& param) {
     case KM_UINT_REP:
         os << " (Rep)";
     /* Falls through */
+        [[fallthrough]];
     case KM_UINT:
         os << " Int: " << param.integer;
         break;
     case KM_ENUM_REP:
         os << " (Rep)";
     /* Falls through */
+        [[fallthrough]];
     case KM_ENUM:
         os << " Enum: " << param.enumerated;
         break;
     case KM_ULONG_REP:
         os << " (Rep)";
     /* Falls through */
+        [[fallthrough]];
     case KM_ULONG:
         os << " Long: " << param.long_integer;
         break;

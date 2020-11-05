@@ -27,9 +27,9 @@
 namespace keymaster {
 namespace test {
 
-class TestKeymasterEnforcement : public SoftKeymasterEnforcement {
+class EnforcementTestKeymasterEnforcement : public SoftKeymasterEnforcement {
   public:
-    TestKeymasterEnforcement()
+    EnforcementTestKeymasterEnforcement()
         : SoftKeymasterEnforcement(3, 3), current_time_(10000), report_token_valid_(true) {}
 
     keymaster_error_t AuthorizeOperation(const keymaster_purpose_t purpose, const km_id_t keyid,
@@ -82,7 +82,7 @@ class KeymasterBaseTest : public ::testing::Test {
     }
     virtual ~KeymasterBaseTest() {}
 
-    TestKeymasterEnforcement kmen;
+    EnforcementTestKeymasterEnforcement kmen;
 
     tm past_tm;
     tm* future_tm;
