@@ -213,12 +213,14 @@ keymaster_error_t add_attestation_extension(const AuthorizationSet& attest_param
 
 }  // anonymous namespace
 
-keymaster_error_t make_attestation_cert(
-    const EVP_PKEY* evp_pkey, const uint32_t serial, const char subject[], X509_NAME* issuer,
-    const uint64_t activeDateTimeMilliSeconds, const uint64_t usageExpireDateTimeMilliSeconds,
-    const bool is_signing_key, const bool is_encryption_key, const AuthorizationSet& attest_params,
-    const AuthorizationSet& tee_enforced, const AuthorizationSet& sw_enforced,
-    const AttestationRecordContext& context, const uint keymaster_version, X509_Ptr* cert_out) {
+keymaster_error_t
+make_attestation_cert(const EVP_PKEY* evp_pkey, const uint32_t serial, const X509_NAME* subject,
+                      const X509_NAME* issuer, const uint64_t activeDateTimeMilliSeconds,
+                      const uint64_t usageExpireDateTimeMilliSeconds, const bool is_signing_key,
+                      const bool is_encryption_key, const AuthorizationSet& attest_params,
+                      const AuthorizationSet& tee_enforced, const AuthorizationSet& sw_enforced,
+                      const AttestationRecordContext& context, const uint keymaster_version,
+                      X509_Ptr* cert_out) {
 
     // First make the basic certificate with usage extension.
     X509_Ptr certificate;
@@ -255,25 +257,24 @@ keymaster_error_t generate_attestation_from_EVP(
     const keymaster_cert_chain_t& attestation_chain,      // input
     const keymaster_key_blob_t& attestation_signing_key,  // input
     CertChainPtr* cert_chain_out) {                       // Output.
-    return generate_attestation_from_EVP_with_subject_name(
-        evp_key, sw_enforced, tee_enforced, attest_params, context, keymaster_version,
-        attestation_chain, attestation_signing_key,
-        kDefaultSubject,  // "Android Keystore Key"
-        cert_chain_out);
-}
 
-keymaster_error_t generate_attestation_from_EVP_with_subject_name(
-    const EVP_PKEY* evp_key,                  // input
-    const AuthorizationSet& sw_enforced,      // input
-    const AuthorizationSet& tee_enforced,     // input
-    const AuthorizationSet& attest_params,    // input. Sub function require app id to be set here.
-    const AttestationRecordContext& context,  // input
-    const uint keymaster_version,             // input
-    const keymaster_cert_chain_t& attestation_chain,      // input
-    const keymaster_key_blob_t& attestation_signing_key,  // input
-    const char key_subject_common_name[],                 // input
-    CertChainPtr* cert_chain_out) {                       // Output.
     uint32_t serial = kDefaultAttestationSerial;
+    attest_params.GetTagValue(TAG_CERTIFICATE_SERIAL, &serial);
+
+    keymaster_blob_t att_subject = {nullptr, 0};
+    X509_NAME_Ptr subjectName;
+
+    if (attest_params.GetTagValue(TAG_CERTIFICATE_SUBJECT, &att_subject) &&
+        att_subject.data_length > 0) {
+        if (auto error =
+                make_name_from_der(att_subject.data, att_subject.data_length, &subjectName)) {
+            return error;
+        }
+    } else {
+        if (auto error = make_name_from_str(kDefaultSubject, &subjectName)) {
+            return error;
+        }
+    }
 
     const uint8_t* p = attestation_chain.entries[0].data;
     X509_Ptr signing_cert(d2i_X509(nullptr, &p, attestation_chain.entries[0].data_length));
@@ -303,7 +304,7 @@ keymaster_error_t generate_attestation_from_EVP_with_subject_name(
                              sw_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_DECRYPT);
 
     X509_Ptr certificate;
-    if (auto error = make_attestation_cert(evp_key, serial, key_subject_common_name, issuerSubject,
+    if (auto error = make_attestation_cert(evp_key, serial, subjectName.get(), issuerSubject,
                                            activeDateTime, usageExpireDateTime, is_signing_key,
                                            is_encryption_key, attest_params, tee_enforced,
                                            sw_enforced, context, keymaster_version, &certificate)) {
