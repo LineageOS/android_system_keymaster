@@ -91,7 +91,8 @@ uint32_t GetOsVersion(const char* version_str) {
         regexec(&regex, version_str, kPlatformVersionMatchCount, matches, 0 /* flags */);
     regfree(&regex);
     if (not_match) {
-        ALOGI("Platform version string does not match expected format.  Using version 0.");
+        ALOGI("Platform version string \"%s\" does not match expected format.  Using version 0.",
+              version_str);
         return 0;
     }
 
