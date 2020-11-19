@@ -128,6 +128,8 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
         case KM_TAG_MAC_LENGTH:
         case KM_TAG_ATTESTATION_CHALLENGE:
         case KM_TAG_RESET_SINCE_ID_ROTATION:
+        case KM_TAG_CERTIFICATE_SERIAL:
+        case KM_TAG_CERTIFICATE_SUBJECT:
 
         /* Tags ignored because they have no meaning off-device */
         case KM_TAG_USER_ID:
