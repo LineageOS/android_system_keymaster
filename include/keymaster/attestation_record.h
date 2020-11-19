@@ -20,12 +20,13 @@
 #include <hardware/keymaster_defs.h>
 
 #include <keymaster/authorization_set.h>
+#include <keymaster/km_version.h>
 
 #include <openssl/asn1t.h>
 
 namespace keymaster {
 
-constexpr uint kCurrentKeymasterVersion = 41;
+constexpr KmVersion kCurrentKmVersion = KmVersion::KEYMASTER_4_1;
 
 struct stack_st_ASN1_TYPE_Delete {
     void operator()(stack_st_ASN1_TYPE* p) { sk_ASN1_TYPE_free(p); }
@@ -204,6 +205,10 @@ class AttestationRecordContext {
     virtual ~AttestationRecordContext() {}
 
   public:
+    explicit AttestationRecordContext(KmVersion version) : version_(version) {}
+
+    KmVersion GetKmVersion() const { return version_; }
+
     /**
      * Returns the security level (SW or TEE) of this keymaster implementation.
      */
@@ -247,6 +252,9 @@ class AttestationRecordContext {
                           bool* /* device_locked */) const {
         return KM_ERROR_UNIMPLEMENTED;
     }
+
+  private:
+    const KmVersion version_;
 };
 
 /**
@@ -274,14 +282,6 @@ keymaster_error_t build_attestation_record(const AuthorizationSet& attestation_p
                                            UniquePtr<uint8_t[]>* asn1_key_desc,
                                            size_t* asn1_key_desc_len);
 
-// Builds attestation record, same as above, except this allows the keymaster
-// version to be set to different value than the default.
-keymaster_error_t
-build_attestation_record(const AuthorizationSet& attestation_params, AuthorizationSet sw_enforced,
-                         AuthorizationSet tee_enforced, const AttestationRecordContext& context,
-                         const uint keymaster_version, UniquePtr<uint8_t[]>* asn1_key_desc,
-                         size_t* asn1_key_desc_len);
-
 /**
  * Helper functions for attestation record tests. Caller takes ownership of
  * |attestation_challenge->data| and |unique_id->data|, deallocate using delete[].
@@ -307,6 +307,35 @@ keymaster_error_t parse_root_of_trust(const uint8_t* asn1_key_desc, size_t asn1_
 keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIST* record);
 
 keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet* auth_list);
+
+/**
+ * Convert a KeymasterContext::Version to the keymaster version number used in attestations.
+ */
+inline static uint version_to_attestation_km_version(KmVersion version) {
+    return static_cast<uint>(version);
+}
+
+/**
+ * Convert a KeymasterContext::Version to the corresponding attestation format version number.
+ */
+inline static uint version_to_attestation_version(KmVersion version) {
+    switch (version) {
+    default:
+    case KmVersion::KEYMASTER_1:
+        return 0;  // Attestation not actually supported.
+    case KmVersion::KEYMASTER_2:
+        return 1;
+    case KmVersion::KEYMASTER_3:
+        return 2;
+    case KmVersion::KEYMASTER_4:
+        return 3;
+    case KmVersion::KEYMASTER_4_1:
+        return 4;
+    case KmVersion::KEYMINT_1:
+        return 5;
+    }
+}
+
 }  // namespace keymaster
 
 #endif  // SYSTEM_KEYMASTER_ATTESTATION_RECORD_H_

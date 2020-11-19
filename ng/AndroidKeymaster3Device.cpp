@@ -222,12 +222,13 @@ void addClientAndAppData(const hidl_vec<uint8_t>& clientId, const hidl_vec<uint8
 
 AndroidKeymaster3Device::AndroidKeymaster3Device()
     : impl_(new ::keymaster::AndroidKeymaster(
-            [] () -> auto {
-                auto context = new PureSoftKeymasterContext();
-                context->SetSystemVersion(GetOsVersion(), GetOsPatchlevel());
-                return context;
-            } (), kOperationTableSize)), profile_(KeymasterHardwareProfile::SW) {}
-
+          []() -> auto {
+              auto context = new PureSoftKeymasterContext(KmVersion::KEYMASTER_3);
+              context->SetSystemVersion(GetOsVersion(), GetOsPatchlevel());
+              return context;
+          }(),
+          kOperationTableSize)),
+      profile_(KeymasterHardwareProfile::SW) {}
 
 AndroidKeymaster3Device::AndroidKeymaster3Device(KeymasterContext* context, KeymasterHardwareProfile profile)
     : impl_(new ::keymaster::AndroidKeymaster(context, kOperationTableSize)), profile_(profile) {}
@@ -496,19 +497,22 @@ Return<ErrorCode> AndroidKeymaster3Device::abort(uint64_t operationHandle) {
 IKeymasterDevice* CreateKeymasterDevice() {
     return new AndroidKeymaster3Device();
 }
+
 IKeymasterDevice* CreateKeymasterDevice(keymaster2_device_t* km2_device) {
     if (ConfigureDevice(km2_device) != KM_ERROR_OK) return nullptr;
     auto context = new Keymaster2PassthroughContext(km2_device);
     context->SetSystemVersion(GetOsVersion(), GetOsPatchlevel());
     return new AndroidKeymaster3Device(context, KeymasterHardwareProfile::KM2);
 }
+
 IKeymasterDevice* CreateKeymasterDevice(keymaster1_device_t* km1_device) {
-    auto context = new Keymaster1PassthroughContext(km1_device);
+    auto context = new Keymaster1PassthroughContext(KmVersion::KEYMASTER_3, km1_device);
     context->SetSystemVersion(GetOsVersion(), GetOsPatchlevel());
     return new AndroidKeymaster3Device(context, KeymasterHardwareProfile::KM1);
 }
+
 IKeymasterDevice* CreateKeymasterDevice(keymaster0_device_t* km0_device) {
-    auto context = new Keymaster0PassthroughContext(km0_device);
+    auto context = new Keymaster0PassthroughContext(KmVersion::KEYMASTER_3, km0_device);
     context->SetSystemVersion(GetOsVersion(), GetOsPatchlevel());
     return new AndroidKeymaster3Device(context, KeymasterHardwareProfile::KM0);
 }

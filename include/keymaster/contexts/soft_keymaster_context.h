@@ -39,12 +39,14 @@ class Keymaster1Engine;
 class Key;
 
 /**
- * SoftKeymasterContext provides the context for a non-secure implementation of AndroidKeymaster.
+ * SoftKeymasterContext provides the context for a non-secure implementation of AndroidKeymaster
+ * that can wrap a Keymaster0 implementation or an incomplete Keymaster1 implementation (one that
+ * lacks support for all required digests).
  */
 class SoftKeymasterContext: public KeymasterContext, SoftwareKeyBlobMaker, SoftwareRandomSource,
         AttestationRecordContext {
   public:
-    explicit SoftKeymasterContext(const std::string& root_of_trust = "SW");
+    SoftKeymasterContext(KmVersion version, const std::string& root_of_trust = "SW");
     ~SoftKeymasterContext() override;
 
     /**

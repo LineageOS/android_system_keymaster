@@ -47,7 +47,7 @@ AndroidKeyMint1Device::AndroidKeyMint1Device(SecurityLevel securityLevel)
     : impl_(new ::keymaster::AndroidKeymaster(
           [&]() -> auto {
               auto context = new PureSoftKeymasterContext(
-                  static_cast<keymaster_security_level_t>(securityLevel));
+                  KmVersion::KEYMINT_1, static_cast<keymaster_security_level_t>(securityLevel));
               context->SetSystemVersion(::keymaster::GetOsVersion(),
                                         ::keymaster::GetOsPatchlevel());
               return context;

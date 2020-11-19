@@ -220,11 +220,11 @@ keymaster_key_param_set_t hidlKeyParams2Km(const hidl_vec<KeyParameter>& keyPara
     return set;
 }
 
-AndroidKeymaster4Device::AndroidKeymaster4Device(SecurityLevel securityLevel)
+AndroidKeymaster4Device::AndroidKeymaster4Device(KmVersion version, SecurityLevel securityLevel)
     : impl_(new ::keymaster::AndroidKeymaster(
           [&]() -> auto {
               auto context = new PureSoftKeymasterContext(
-                  static_cast<keymaster_security_level_t>(securityLevel));
+                  version, static_cast<keymaster_security_level_t>(securityLevel));
               context->SetSystemVersion(GetOsVersion(), GetOsPatchlevel());
               return context;
           }(),
