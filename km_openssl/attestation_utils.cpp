@@ -255,11 +255,25 @@ keymaster_error_t generate_attestation_from_EVP(
     const keymaster_cert_chain_t& attestation_chain,      // input
     const keymaster_key_blob_t& attestation_signing_key,  // input
     CertChainPtr* cert_chain_out) {                       // Output.
+    return generate_attestation_from_EVP_with_subject_name(
+        evp_key, sw_enforced, tee_enforced, attest_params, context, keymaster_version,
+        attestation_chain, attestation_signing_key,
+        kDefaultSubject,  // "Android Keystore Key"
+        cert_chain_out);
+}
 
+keymaster_error_t generate_attestation_from_EVP_with_subject_name(
+    const EVP_PKEY* evp_key,                  // input
+    const AuthorizationSet& sw_enforced,      // input
+    const AuthorizationSet& tee_enforced,     // input
+    const AuthorizationSet& attest_params,    // input. Sub function require app id to be set here.
+    const AttestationRecordContext& context,  // input
+    const uint keymaster_version,             // input
+    const keymaster_cert_chain_t& attestation_chain,      // input
+    const keymaster_key_blob_t& attestation_signing_key,  // input
+    const char key_subject_common_name[],                 // input
+    CertChainPtr* cert_chain_out) {                       // Output.
     uint32_t serial = kDefaultAttestationSerial;
-
-    // The default subject is CN=fake
-    const char* subject = kDefaultSubject;
 
     const uint8_t* p = attestation_chain.entries[0].data;
     X509_Ptr signing_cert(d2i_X509(nullptr, &p, attestation_chain.entries[0].data_length));
@@ -289,10 +303,10 @@ keymaster_error_t generate_attestation_from_EVP(
                              sw_enforced.Contains(TAG_PURPOSE, KM_PURPOSE_DECRYPT);
 
     X509_Ptr certificate;
-    if (auto error = make_attestation_cert(evp_key, serial, subject, issuerSubject, activeDateTime,
-                                           usageExpireDateTime, is_signing_key, is_encryption_key,
-                                           attest_params, tee_enforced, sw_enforced, context,
-                                           keymaster_version, &certificate)) {
+    if (auto error = make_attestation_cert(evp_key, serial, key_subject_common_name, issuerSubject,
+                                           activeDateTime, usageExpireDateTime, is_signing_key,
+                                           is_encryption_key, attest_params, tee_enforced,
+                                           sw_enforced, context, keymaster_version, &certificate)) {
         return error;
     }
 
