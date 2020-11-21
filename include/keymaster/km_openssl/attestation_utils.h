@@ -64,19 +64,6 @@ keymaster_error_t generate_attestation_from_EVP(
     const keymaster_key_blob_t& attestation_signing_key,  // input
     CertChainPtr* cert_chain_out);                        // Output.
 
-// Like generate_attestation_from_EVP() but allows specifying the subject name.
-keymaster_error_t generate_attestation_from_EVP_with_subject_name(
-    const EVP_PKEY* evp_key,                  // input
-    const AuthorizationSet& sw_enforced,      // input
-    const AuthorizationSet& hw_enforced,      // input
-    const AuthorizationSet& attest_params,    // input. Sub function require app id to be set here.
-    const AttestationRecordContext& context,  // input
-    const uint keymaster_version,             // input
-    const keymaster_cert_chain_t& attestation_chain,      // input
-    const keymaster_key_blob_t& attestation_signing_key,  // input
-    const char key_subject_common_name[],                 // input
-    CertChainPtr* cert_chain_out);                        // Output.
-
 } // namespace keymaster
 
 #endif  // KM_OPENSSL_ATTESTATION_UTILS_H_

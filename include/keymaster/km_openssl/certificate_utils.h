@@ -24,7 +24,9 @@
 
 namespace keymaster {
 
-keymaster_error_t make_common_name(const char name[], X509_NAME_Ptr* name_out);
+keymaster_error_t make_name_from_str(const char name[], X509_NAME_Ptr* name_out);
+
+keymaster_error_t make_name_from_der(const uint8_t* name, size_t length, X509_NAME_Ptr* name_out);
 
 keymaster_error_t get_common_name(X509_NAME* name, UniquePtr<const char[]>* name_out);
 
@@ -35,13 +37,14 @@ keymaster_error_t make_key_usage_extension(bool is_signing_key, bool is_encrypti
 // activation and expiry date.
 // Callers should pass an empty X509_Ptr and check the return value for KM_ERROR_OK (0) before
 // accessing the result.
-keymaster_error_t make_cert_rump(const uint32_t serial, const char subject[], X509_NAME* issuer,
-                                 const uint64_t activeDateTimeMilliSeconds,
+keymaster_error_t make_cert_rump(const uint32_t serial, const X509_NAME* subject,
+                                 const X509_NAME* issuer, const uint64_t activeDateTimeMilliSeconds,
                                  const uint64_t usageExpireDateTimeMilliSeconds,
                                  X509_Ptr* cert_out);
 
-keymaster_error_t make_cert(const EVP_PKEY* evp_pkey, const uint32_t serial, const char subject[],
-                            X509_NAME* issuer, const uint64_t activeDateTimeMilliSeconds,
+keymaster_error_t make_cert(const EVP_PKEY* evp_pkey, const uint32_t serial,
+                            const X509_NAME* subject, const X509_NAME* issuer,
+                            const uint64_t activeDateTimeMilliSeconds,
                             const uint64_t usageExpireDateTimeMilliSeconds,
                             const bool is_signing_key, const bool is_encryption_key,
                             X509_Ptr* cert_out);
