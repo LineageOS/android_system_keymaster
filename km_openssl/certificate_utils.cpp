@@ -38,7 +38,7 @@ template <typename T> T&& min(T&& a, T&& b) {
 
 }  // namespace
 
-keymaster_error_t make_common_name(const char name[], X509_NAME_Ptr* name_out) {
+keymaster_error_t make_name_from_str(const char name[], X509_NAME_Ptr* name_out) {
     if (name_out == nullptr) return KM_ERROR_UNEXPECTED_NULL_POINTER;
     X509_NAME_Ptr x509_name(X509_NAME_new());
     if (!x509_name.get()) {
@@ -52,6 +52,20 @@ keymaster_error_t make_common_name(const char name[], X509_NAME_Ptr* name_out) {
                                     0 /* set */)) {
         return TranslateLastOpenSslError();
     }
+    *name_out = move(x509_name);
+    return KM_ERROR_OK;
+}
+
+keymaster_error_t make_name_from_der(const uint8_t* name, size_t length, X509_NAME_Ptr* name_out) {
+    if (name_out == nullptr || length == 0) {
+        return KM_ERROR_UNEXPECTED_NULL_POINTER;
+    }
+
+    X509_NAME_Ptr x509_name(d2i_X509_NAME(nullptr, &name, length));
+    if (!x509_name.get()) {
+        return TranslateLastOpenSslError();
+    }
+
     *name_out = move(x509_name);
     return KM_ERROR_OK;
 }
@@ -134,15 +148,14 @@ keymaster_error_t make_key_usage_extension(bool is_signing_key, bool is_encrypti
 // activation and expiry date.
 // Callers should pass an empty X509_Ptr and check the return value for KM_ERROR_OK (0) before
 // accessing the result.
-keymaster_error_t make_cert_rump(const uint32_t serial, const char subject[], X509_NAME* issuer,
-                                 const uint64_t activeDateTimeMilliSeconds,
+keymaster_error_t make_cert_rump(const uint32_t serial, const X509_NAME* subject,
+                                 const X509_NAME* issuer, const uint64_t activeDateTimeMilliSeconds,
                                  const uint64_t usageExpireDateTimeMilliSeconds,
                                  X509_Ptr* cert_out) {
 
     // Sanitize pointer arguments.
-    if (cert_out == nullptr || issuer == nullptr) return KM_ERROR_UNEXPECTED_NULL_POINTER;
-    if (!subject || strlen(subject) == 0) {
-        return KM_ERROR_INVALID_ARGUMENT;
+    if (cert_out == nullptr || issuer == nullptr || subject == nullptr) {
+        return KM_ERROR_UNEXPECTED_NULL_POINTER;
     }
 
     // Create certificate structure.
@@ -161,16 +174,11 @@ keymaster_error_t make_cert_rump(const uint32_t serial, const char subject[], X5
         !X509_set_serialNumber(certificate.get(), serialNumber.get() /* Don't release; copied */))
         return TranslateLastOpenSslError();
 
-    // Set Subject Name
-    X509_NAME_Ptr subjectName;
-    if (auto error = make_common_name(subject, &subjectName)) {
-        return error;
-    }
-    if (!X509_set_subject_name(certificate.get(), subjectName.get() /* Don't release; copied */)) {
+    if (!X509_set_subject_name(certificate.get(), const_cast<X509_NAME*>(subject))) {
         return TranslateLastOpenSslError();
     }
 
-    if (!X509_set_issuer_name(certificate.get(), issuer)) {
+    if (!X509_set_issuer_name(certificate.get(), const_cast<X509_NAME*>(issuer))) {
         return TranslateLastOpenSslError();
     }
 
@@ -198,8 +206,9 @@ keymaster_error_t make_cert_rump(const uint32_t serial, const char subject[], X5
     return KM_ERROR_OK;
 }
 
-keymaster_error_t make_cert(const EVP_PKEY* evp_pkey, const uint32_t serial, const char subject[],
-                            X509_NAME* issuer, const uint64_t activeDateTimeMilliSeconds,
+keymaster_error_t make_cert(const EVP_PKEY* evp_pkey, const uint32_t serial,
+                            const X509_NAME* subject, const X509_NAME* issuer,
+                            const uint64_t activeDateTimeMilliSeconds,
                             const uint64_t usageExpireDateTimeMilliSeconds,
                             const bool is_signing_key, const bool is_encryption_key,
                             X509_Ptr* cert_out) {
