@@ -24,6 +24,7 @@
 #include <hardware/keymaster_defs.h>
 
 #include <keymaster/keymaster_context.h>
+#include <keymaster/km_version.h>
 #include <keymaster/legacy_support/keymaster_passthrough_engine.h>
 #include <keymaster/legacy_support/keymaster_passthrough_key.h>
 

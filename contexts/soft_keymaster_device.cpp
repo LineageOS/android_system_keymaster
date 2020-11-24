@@ -160,9 +160,8 @@ static keymaster_error_t map_digests(keymaster1_device_t* dev, SoftKeymasterDevi
     return KM_ERROR_OK;
 }
 
-SoftKeymasterDevice::SoftKeymasterDevice()
-    : wrapped_km1_device_(nullptr),
-      context_(new SoftKeymasterContext),
+SoftKeymasterDevice::SoftKeymasterDevice(KmVersion version)
+    : wrapped_km1_device_(nullptr), context_(new SoftKeymasterContext(version)),
       impl_(new AndroidKeymaster(context_, kOperationTableSize)), configured_(false) {
     LOG_I("Creating device", 0);
     LOG_D("Device address: %p", this);

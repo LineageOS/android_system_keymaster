@@ -29,7 +29,8 @@ namespace keymaster {
 
 class Keymaster0PassthroughContext : public PureSoftKeymasterContext {
   public:
-    explicit Keymaster0PassthroughContext(keymaster0_device_t* dev) : PureSoftKeymasterContext() {
+    Keymaster0PassthroughContext(KmVersion version, keymaster0_device_t* dev)
+        : PureSoftKeymasterContext(version) {
         km0_engine_.reset(new Keymaster0Engine(dev));
         rsa_factory_.reset(new RsaKeymaster0KeyFactory(this, km0_engine_.get()));
         ec_factory_.reset(new EcdsaKeymaster0KeyFactory(this, km0_engine_.get()));

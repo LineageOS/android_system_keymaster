@@ -44,8 +44,8 @@ class PureSoftKeymasterContext : public KeymasterContext,
                                  SoftwareRandomSource {
   public:
     // Security level must only be used for testing.
-    explicit PureSoftKeymasterContext(
-        keymaster_security_level_t security_level = KM_SECURITY_LEVEL_SOFTWARE);
+    PureSoftKeymasterContext(
+        KmVersion version, keymaster_security_level_t security_level = KM_SECURITY_LEVEL_SOFTWARE);
     ~PureSoftKeymasterContext() override;
 
     /*********************************************************************************************
@@ -112,7 +112,7 @@ class PureSoftKeymasterContext : public KeymasterContext,
     uint32_t os_version_;
     uint32_t os_patchlevel_;
     SoftKeymasterEnforcement soft_keymaster_enforcement_;
-    keymaster_security_level_t security_level_;
+    const keymaster_security_level_t security_level_;
 };
 
 }  // namespace keymaster
