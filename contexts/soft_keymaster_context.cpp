@@ -52,9 +52,9 @@ KeymasterBlob string2Blob(const std::string& str) {
 
 }  // anonymous namespace
 
-SoftKeymasterContext::SoftKeymasterContext(const std::string& root_of_trust)
-    : rsa_factory_(new RsaKeyFactory(this)), ec_factory_(new EcKeyFactory(this)),
-      aes_factory_(new AesKeyFactory(this, this)),
+SoftKeymasterContext::SoftKeymasterContext(KmVersion version, const std::string& root_of_trust)
+    : AttestationRecordContext(version), rsa_factory_(new RsaKeyFactory(this)),
+      ec_factory_(new EcKeyFactory(this)), aes_factory_(new AesKeyFactory(this, this)),
       tdes_factory_(new TripleDesKeyFactory(this, this)),
       hmac_factory_(new HmacKeyFactory(this, this)), km1_dev_(nullptr),
       root_of_trust_(string2Blob(root_of_trust)), os_version_(0), os_patchlevel_(0) {}

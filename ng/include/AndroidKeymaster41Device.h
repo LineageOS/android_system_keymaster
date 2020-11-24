@@ -62,7 +62,8 @@ class AndroidKeymaster41Device : public IKeymasterDevice, public V4_0::ng::Andro
     using super = V4_0::ng::AndroidKeymaster4Device;
 
   public:
-    explicit AndroidKeymaster41Device(SecurityLevel securityLevel) : super(securityLevel) {}
+    explicit AndroidKeymaster41Device(SecurityLevel securityLevel)
+        : super(KmVersion::KEYMASTER_4_1, securityLevel) {}
     virtual ~AndroidKeymaster41Device() {}
 
     Return<V41ErrorCode> deviceLocked(bool /* passwordOnly */,

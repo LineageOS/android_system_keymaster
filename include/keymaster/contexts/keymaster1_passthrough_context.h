@@ -38,7 +38,7 @@ class Keymaster1PassthroughContext : public KeymasterContext,
                                      public SoftwareRandomSource,
                                      public SoftwareKeyBlobMaker {
   public:
-    explicit Keymaster1PassthroughContext(keymaster1_device_t* dev);
+    Keymaster1PassthroughContext(KmVersion version, keymaster1_device_t* dev);
 
     /**
      * Sets the system version as reported by the system *itself*.  This is used to verify that the

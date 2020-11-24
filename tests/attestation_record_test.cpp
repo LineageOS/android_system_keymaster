@@ -28,6 +28,8 @@ namespace test {
 
 class TestContext : public AttestationRecordContext {
   public:
+    TestContext() : AttestationRecordContext(kCurrentKmVersion) {}
+
     keymaster_security_level_t GetSecurityLevel() const override {
         return KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT;
     }

@@ -50,9 +50,10 @@ using std::unique_ptr;
 
 namespace keymaster {
 
-PureSoftKeymasterContext::PureSoftKeymasterContext(keymaster_security_level_t security_level)
-    : rsa_factory_(new RsaKeyFactory(this)), ec_factory_(new EcKeyFactory(this)),
-      aes_factory_(new AesKeyFactory(this, this)),
+PureSoftKeymasterContext::PureSoftKeymasterContext(KmVersion version,
+                                                   keymaster_security_level_t security_level)
+    : AttestationRecordContext(version), rsa_factory_(new RsaKeyFactory(this)),
+      ec_factory_(new EcKeyFactory(this)), aes_factory_(new AesKeyFactory(this, this)),
       tdes_factory_(new TripleDesKeyFactory(this, this)),
       hmac_factory_(new HmacKeyFactory(this, this)), os_version_(0), os_patchlevel_(0),
       soft_keymaster_enforcement_(64, 64), security_level_(security_level) {}

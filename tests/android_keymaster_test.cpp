@@ -98,9 +98,9 @@ class TestKeymasterEnforcement : public SoftKeymasterEnforcement {
  */
 class TestKeymasterContext : public SoftKeymasterContext {
   public:
-    TestKeymasterContext() {}
+    TestKeymasterContext() : SoftKeymasterContext(kCurrentKmVersion) {}
     explicit TestKeymasterContext(const string& root_of_trust)
-        : SoftKeymasterContext(root_of_trust) {}
+        : SoftKeymasterContext(kCurrentKmVersion, root_of_trust) {}
 
     KeymasterEnforcement* enforcement_policy() override { return &test_policy_; }
 
@@ -1862,7 +1862,7 @@ string masking_key = hex2str("D796B02C370F1FA4CC0124F14EC8CBEBE987E825246265050F
 
 class ImportWrappedKeyTest : public testing::Test {
   public:
-    ImportWrappedKeyTest() : keymaster_(new PureSoftKeymasterContext(), 16) {}
+    ImportWrappedKeyTest() : keymaster_(new PureSoftKeymasterContext(kCurrentKmVersion), 16) {}
 
   protected:
     void SetUp() override {
