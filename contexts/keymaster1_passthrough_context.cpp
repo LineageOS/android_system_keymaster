@@ -24,6 +24,7 @@
 #include <keymaster/km_openssl/aes_key.h>
 #include <keymaster/km_openssl/attestation_utils.h>
 #include <keymaster/km_openssl/hmac_key.h>
+#include <keymaster/km_version.h>
 #include <keymaster/legacy_support/ec_keymaster1_key.h>
 #include <keymaster/legacy_support/keymaster1_engine.h>
 #include <keymaster/legacy_support/keymaster1_legacy_support.h>
@@ -33,11 +34,11 @@
 
 namespace keymaster {
 
-Keymaster1PassthroughContext::Keymaster1PassthroughContext(keymaster1_device_t* dev)
-        : device_(dev), pt_engine_(KeymasterPassthroughEngine::createInstance(dev)),
-          km1_engine_(new Keymaster1Engine(dev)) {
-
-}
+Keymaster1PassthroughContext::Keymaster1PassthroughContext(KmVersion version,
+                                                           keymaster1_device_t* dev)
+    : AttestationRecordContext(version), device_(dev),
+      pt_engine_(KeymasterPassthroughEngine::createInstance(dev)),
+      km1_engine_(new Keymaster1Engine(dev)) {}
 
 keymaster_error_t Keymaster1PassthroughContext::SetSystemVersion(uint32_t os_version,
         uint32_t os_patchlevel) {

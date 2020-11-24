@@ -300,7 +300,10 @@ cc_library_shared {
         "libutils",
         "libkeymaster4support",
     ],
-    export_include_dirs: ["ng/include"],
+    export_include_dirs: [
+        "ng/include",
+        "include"
+    ],
 }
 
 cc_library_shared {
