@@ -48,6 +48,8 @@ class PureSoftKeymasterContext : public KeymasterContext,
         KmVersion version, keymaster_security_level_t security_level = KM_SECURITY_LEVEL_SOFTWARE);
     ~PureSoftKeymasterContext() override;
 
+    KmVersion GetKmVersion() const override { return AttestationRecordContext::GetKmVersion(); }
+
     /*********************************************************************************************
      * Implement KeymasterContext
      */

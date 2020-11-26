@@ -32,7 +32,9 @@ namespace keymaster {
 
 class Keymaster2PassthroughContext : public KeymasterContext {
   public:
-    explicit Keymaster2PassthroughContext(keymaster2_device_t* dev);
+    explicit Keymaster2PassthroughContext(KmVersion version, keymaster2_device_t* dev);
+
+    KmVersion GetKmVersion() const override { return version_; }
 
     /**
      * Sets the system version as reported by the system *itself*.  This is used to verify that the
@@ -116,6 +118,7 @@ class Keymaster2PassthroughContext : public KeymasterContext {
     UniquePtr<KeymasterPassthroughEngine> engine_;
     uint32_t os_version_;
     uint32_t os_patchlevel_;
+    const KmVersion version_;
 };
 
 }  // namespace keymaster
