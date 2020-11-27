@@ -40,6 +40,8 @@ class Keymaster1PassthroughContext : public KeymasterContext,
   public:
     Keymaster1PassthroughContext(KmVersion version, keymaster1_device_t* dev);
 
+    KmVersion GetKmVersion() const override { return AttestationRecordContext::GetKmVersion(); }
+
     /**
      * Sets the system version as reported by the system *itself*.  This is used to verify that the
      * system believes itself to be running the same version that is reported by the bootloader, in

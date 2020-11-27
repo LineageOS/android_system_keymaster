@@ -22,6 +22,7 @@
 #include <hardware/keymaster_defs.h>
 #include <keymaster/android_keymaster_utils.h>
 #include <keymaster/keymaster_enforcement.h>
+#include <keymaster/km_version.h>
 
 namespace keymaster {
 
@@ -65,6 +66,15 @@ class KeymasterContext {
   public:
     KeymasterContext() {}
     virtual ~KeymasterContext(){};
+
+    /**
+     * Returns the Keymaster/KeyMint version we're currently implementing.
+     *
+     * Because AndroidKeymaster supports multiple versions of Keymaster/KeyMint, with slightly
+     * different behavior, we sometimes need to branch based on the version currently being
+     * implemented.  This method provides the currently-implemented version.
+     */
+    virtual KmVersion GetKmVersion() const = 0;
 
     /**
      * Sets the system version as reported by the system *itself*.  This is used to verify that the
