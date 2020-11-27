@@ -49,6 +49,8 @@ class SoftKeymasterContext: public KeymasterContext, SoftwareKeyBlobMaker, Softw
     SoftKeymasterContext(KmVersion version, const std::string& root_of_trust = "SW");
     ~SoftKeymasterContext() override;
 
+    KmVersion GetKmVersion() const override { return AttestationRecordContext::GetKmVersion(); }
+
     /**
      * Use the specified HW keymaster0 device for the operations it supports.  Takes ownership of
      * the specified device (will call keymaster0_device->common.close());

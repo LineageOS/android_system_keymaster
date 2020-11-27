@@ -22,10 +22,9 @@
 
 namespace keymaster {
 
-Keymaster2PassthroughContext::Keymaster2PassthroughContext(keymaster2_device_t* dev)
-        : device_(dev), engine_(KeymasterPassthroughEngine::createInstance(dev)) {
-
-}
+Keymaster2PassthroughContext::Keymaster2PassthroughContext(KmVersion version,
+                                                           keymaster2_device_t* dev)
+    : device_(dev), engine_(KeymasterPassthroughEngine::createInstance(dev)), version_(version) {}
 
 keymaster_error_t Keymaster2PassthroughContext::SetSystemVersion(uint32_t os_version,
         uint32_t os_patchlevel) {

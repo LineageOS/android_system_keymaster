@@ -500,7 +500,7 @@ IKeymasterDevice* CreateKeymasterDevice() {
 
 IKeymasterDevice* CreateKeymasterDevice(keymaster2_device_t* km2_device) {
     if (ConfigureDevice(km2_device) != KM_ERROR_OK) return nullptr;
-    auto context = new Keymaster2PassthroughContext(km2_device);
+    auto context = new Keymaster2PassthroughContext(KmVersion::KEYMASTER_3, km2_device);
     context->SetSystemVersion(GetOsVersion(), GetOsPatchlevel());
     return new AndroidKeymaster3Device(context, KeymasterHardwareProfile::KM2);
 }
