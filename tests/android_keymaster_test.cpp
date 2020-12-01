@@ -99,8 +99,11 @@ class TestKeymasterEnforcement : public SoftKeymasterEnforcement {
 class TestKeymasterContext : public SoftKeymasterContext {
   public:
     TestKeymasterContext() : SoftKeymasterContext(kCurrentKmVersion) {}
+    TestKeymasterContext(KmVersion version) : SoftKeymasterContext(version) {}
     explicit TestKeymasterContext(const string& root_of_trust)
         : SoftKeymasterContext(kCurrentKmVersion, root_of_trust) {}
+    explicit TestKeymasterContext(KmVersion version, const string& root_of_trust)
+        : SoftKeymasterContext(version, root_of_trust) {}
 
     KeymasterEnforcement* enforcement_policy() override { return &test_policy_; }
 
@@ -115,7 +118,7 @@ class SoftKeymasterTestInstanceCreator : public Keymaster2TestInstanceCreator {
   public:
     keymaster2_device_t* CreateDevice() const override {
         std::cerr << "Creating software-only device" << std::endl;
-        context_ = new TestKeymasterContext;
+        context_ = new TestKeymasterContext(KmVersion::KEYMASTER_4_1);
         SoftKeymasterDevice* device = new SoftKeymasterDevice(context_);
         AuthorizationSet version_info(AuthorizationSetBuilder()
                                           .Authorization(TAG_OS_VERSION, kOsVersion)
@@ -129,6 +132,34 @@ class SoftKeymasterTestInstanceCreator : public Keymaster2TestInstanceCreator {
     bool is_keymaster1_hw() const override { return false; }
     KeymasterContext* keymaster_context() const override { return context_; }
     string name() const override { return "Soft Keymaster2"; }
+    KmVersion km_version() const override { return KmVersion::KEYMASTER_4_1; }
+
+  private:
+    mutable TestKeymasterContext* context_;
+};
+
+/**
+ * Test instance creator that builds a pure software keymint implementation.
+ */
+class SoftKeymintTestInstanceCreator : public Keymaster2TestInstanceCreator {
+  public:
+    keymaster2_device_t* CreateDevice() const override {
+        std::cerr << "Creating software-only keymint device" << std::endl;
+        context_ = new TestKeymasterContext(KmVersion::KEYMINT_1);
+        SoftKeymasterDevice* device = new SoftKeymasterDevice(context_);
+        AuthorizationSet version_info(AuthorizationSetBuilder()
+                                          .Authorization(TAG_OS_VERSION, kOsVersion)
+                                          .Authorization(TAG_OS_PATCHLEVEL, kOsPatchLevel));
+        device->keymaster2_device()->configure(device->keymaster2_device(), &version_info);
+        return device->keymaster2_device();
+    }
+
+    bool algorithm_in_km0_hardware(keymaster_algorithm_t) const override { return false; }
+    int keymaster0_calls() const override { return 0; }
+    bool is_keymaster1_hw() const override { return false; }
+    KeymasterContext* keymaster_context() const override { return context_; }
+    string name() const override { return "Soft Keymint"; }
+    KmVersion km_version() const override { return KmVersion::KEYMINT_1; }
 
   private:
     mutable TestKeymasterContext* context_;
@@ -143,11 +174,13 @@ class Sha256OnlyKeymaster1TestInstanceCreator : public Keymaster2TestInstanceCre
         std::cerr << "Creating keymaster1-backed device that supports only SHA256";
 
         // fake_device doesn't leak because device (below) takes ownership of it.
-        keymaster1_device_t* fake_device = make_device_sha256_only(
-            (new SoftKeymasterDevice(new TestKeymasterContext("PseudoHW")))->keymaster_device());
+        keymaster1_device_t* fake_device =
+            make_device_sha256_only((new SoftKeymasterDevice(new TestKeymasterContext(
+                                         KmVersion::KEYMASTER_4_1, "PseudoHW")))
+                                        ->keymaster_device());
 
         // device doesn't leak; it's cleaned up by device->keymaster_device()->common.close().
-        context_ = new TestKeymasterContext;
+        context_ = new TestKeymasterContext(KmVersion::KEYMASTER_4_1);
         SoftKeymasterDevice* device = new SoftKeymasterDevice(context_);
         device->SetHardwareDevice(fake_device);
 
@@ -164,6 +197,7 @@ class Sha256OnlyKeymaster1TestInstanceCreator : public Keymaster2TestInstanceCre
     bool is_keymaster1_hw() const override { return true; }
     KeymasterContext* keymaster_context() const override { return context_; }
     string name() const override { return "Wrapped fake keymaster1 w/minimal digests"; }
+    KmVersion km_version() const override { return KmVersion::KEYMASTER_4_1; }
 
   private:
     mutable TestKeymasterContext* context_;
@@ -178,11 +212,12 @@ class Keymaster1TestInstanceCreator : public Keymaster2TestInstanceCreator {
         std::cerr << "Creating keymaster1-backed device";
 
         // fake_device doesn't leak because device (below) takes ownership of it.
-        keymaster1_device_t* fake_device =
-            (new SoftKeymasterDevice(new TestKeymasterContext("PseudoHW")))->keymaster_device();
+        keymaster1_device_t* fake_device = (new SoftKeymasterDevice(new TestKeymasterContext(
+                                                KmVersion::KEYMASTER_4_1, "PseudoHW")))
+                                               ->keymaster_device();
 
         // device doesn't leak; it's cleaned up by device->keymaster_device()->common.close().
-        context_ = new TestKeymasterContext;
+        context_ = new TestKeymasterContext(KmVersion::KEYMASTER_4_1);
         SoftKeymasterDevice* device = new SoftKeymasterDevice(context_);
         device->SetHardwareDevice(fake_device);
 
@@ -199,15 +234,17 @@ class Keymaster1TestInstanceCreator : public Keymaster2TestInstanceCreator {
     bool is_keymaster1_hw() const override { return true; }
     KeymasterContext* keymaster_context() const override { return context_; }
     string name() const override { return "Wrapped fake keymaster1 w/full digests"; }
+    KmVersion km_version() const override { return KmVersion::KEYMASTER_4_1; }
 
   private:
     mutable TestKeymasterContext* context_;
 };
 
-static auto test_params = testing::Values(
-    InstanceCreatorPtr(new SoftKeymasterTestInstanceCreator),
-    InstanceCreatorPtr(new Keymaster1TestInstanceCreator),
-    InstanceCreatorPtr(new Sha256OnlyKeymaster1TestInstanceCreator));
+static auto test_params =
+    testing::Values(InstanceCreatorPtr(new SoftKeymasterTestInstanceCreator),
+                    InstanceCreatorPtr(new SoftKeymintTestInstanceCreator),
+                    InstanceCreatorPtr(new Keymaster1TestInstanceCreator),
+                    InstanceCreatorPtr(new Sha256OnlyKeymaster1TestInstanceCreator));
 
 class NewKeyGeneration : public Keymaster2Test {
   protected:
@@ -3956,8 +3993,8 @@ static bool verify_chain(const keymaster_cert_chain_t& chain) {
 
 // Extract attestation record from cert. Returned object is still part of cert; don't free it
 // separately.
-static ASN1_OCTET_STRING* get_attestation_record(X509* certificate) {
-    ASN1_OBJECT_Ptr oid(OBJ_txt2obj(kAttestionRecordOid, 1 /* dotted string format */));
+static ASN1_OCTET_STRING* get_attestation_record(X509* certificate, const char* oid_string) {
+    ASN1_OBJECT_Ptr oid(OBJ_txt2obj(oid_string, 1 /* dotted string format */));
     EXPECT_TRUE(!!oid.get());
     if (!oid.get())
         return nullptr;
@@ -3989,7 +4026,11 @@ static bool verify_attestation_record(const string& challenge, const string& att
     if (!cert.get())
         return false;
 
-    ASN1_OCTET_STRING* attest_rec = get_attestation_record(cert.get());
+    const char* oid =
+        expected_keymaster_version >= (uint32_t)KmVersion::KEYMINT_1 ? kEatTokenOid : kAsn1TokenOid;
+    uint32_t expected_attestation_version =
+        expected_keymaster_version >= (uint32_t)KmVersion::KEYMINT_1 ? 5u : 4u;
+    ASN1_OCTET_STRING* attest_rec = get_attestation_record(cert.get(), oid);
     EXPECT_TRUE(!!attest_rec);
     if (!attest_rec)
         return false;
@@ -4002,13 +4043,27 @@ static bool verify_attestation_record(const string& challenge, const string& att
     keymaster_security_level_t att_keymaster_security_level;
     keymaster_blob_t att_challenge = {};
     keymaster_blob_t att_unique_id = {};
-    EXPECT_EQ(KM_ERROR_OK, parse_attestation_record(
-                               attest_rec->data, attest_rec->length, &att_attestation_version,
-                               &att_attestation_security_level, &att_keymaster_version,
-                               &att_keymaster_security_level, &att_challenge, &att_sw_enforced,
-                               &att_tee_enforced, &att_unique_id));
+    keymaster_blob_t att_boot_key = {};
+    keymaster_verified_boot_t att_boot_state;
+    bool att_dev_locked;
+    std::vector<int64_t> unexpected_eat_claims;
+    if (expected_keymaster_version >= (uint32_t)KmVersion::KEYMINT_1) {
+        EXPECT_EQ(KM_ERROR_OK,
+                  parse_eat_record(attest_rec->data, attest_rec->length, &att_attestation_version,
+                                   &att_attestation_security_level, &att_keymaster_version,
+                                   &att_keymaster_security_level, &att_challenge, &att_sw_enforced,
+                                   &att_tee_enforced, &att_unique_id, &att_boot_key,
+                                   &att_boot_state, &att_dev_locked, &unexpected_eat_claims));
+    } else {
+        EXPECT_EQ(KM_ERROR_OK, parse_attestation_record(
+                                   attest_rec->data, attest_rec->length, &att_attestation_version,
+                                   &att_attestation_security_level, &att_keymaster_version,
+                                   &att_keymaster_security_level, &att_challenge, &att_sw_enforced,
+                                   &att_tee_enforced, &att_unique_id));
+    }
 
-    EXPECT_EQ(4U, att_attestation_version);
+    EXPECT_EQ(std::vector<int64_t>(), unexpected_eat_claims);
+    EXPECT_EQ(expected_attestation_version, att_attestation_version);
     EXPECT_EQ(KM_SECURITY_LEVEL_SOFTWARE, att_attestation_security_level);
     EXPECT_EQ(expected_keymaster_version, att_keymaster_version);
     EXPECT_EQ(expected_keymaster_security_level, att_keymaster_security_level);
@@ -4068,7 +4123,7 @@ TEST_P(AttestationTest, RsaAttestation) {
         expected_keymaster_version = 0;
         expected_keymaster_security_level = KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT;
     } else {
-        expected_keymaster_version = 41;
+        expected_keymaster_version = (uint32_t)GetParam()->km_version();
         expected_keymaster_security_level = KM_SECURITY_LEVEL_SOFTWARE;
     }
 
@@ -4090,7 +4145,7 @@ TEST_P(AttestationTest, EcAttestation) {
         expected_keymaster_version = 0;
         expected_keymaster_security_level = KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT;
     } else {
-        expected_keymaster_version = 41;
+        expected_keymaster_version = (uint32_t)GetParam()->km_version();
         expected_keymaster_security_level = KM_SECURITY_LEVEL_SOFTWARE;
     }
 
@@ -4251,10 +4306,12 @@ TEST_P(KeyUpgradeTest, EcVersionUpgrade) {
 
 TEST(SoftKeymasterWrapperTest, CheckKeymaster2Device) {
     // Make a good fake device, and wrap it.
-    SoftKeymasterDevice* good_fake(new SoftKeymasterDevice(new TestKeymasterContext));
+    SoftKeymasterDevice* good_fake(
+        new SoftKeymasterDevice(new TestKeymasterContext(KmVersion::KEYMASTER_4_1)));
 
     // Wrap it and check it.
-    SoftKeymasterDevice* good_fake_wrapper(new SoftKeymasterDevice(new TestKeymasterContext));
+    SoftKeymasterDevice* good_fake_wrapper(
+        new SoftKeymasterDevice(new TestKeymasterContext(KmVersion::KEYMASTER_4_1)));
     good_fake_wrapper->SetHardwareDevice(good_fake->keymaster_device());
     EXPECT_TRUE(good_fake_wrapper->Keymaster1DeviceIsGood());
 
@@ -4263,11 +4320,12 @@ TEST(SoftKeymasterWrapperTest, CheckKeymaster2Device) {
 
     // Make a "bad" (doesn't support all digests) device;
     keymaster1_device_t* sha256_only_fake = make_device_sha256_only(
-        (new SoftKeymasterDevice(new TestKeymasterContext("256")))->keymaster_device());
+        (new SoftKeymasterDevice(new TestKeymasterContext(KmVersion::KEYMASTER_4_1, "256")))
+            ->keymaster_device());
 
     // Wrap it and check it.
     SoftKeymasterDevice* sha256_only_fake_wrapper(
-        (new SoftKeymasterDevice(new TestKeymasterContext)));
+        (new SoftKeymasterDevice(new TestKeymasterContext(KmVersion::KEYMASTER_4_1))));
     sha256_only_fake_wrapper->SetHardwareDevice(sha256_only_fake);
     EXPECT_FALSE(sha256_only_fake_wrapper->Keymaster1DeviceIsGood());
 
