@@ -180,34 +180,6 @@ SoftKeymasterDevice::SoftKeymasterDevice(SoftKeymasterContext* context)
                              KEYMASTER_SUPPORTS_EC);
 }
 
-keymaster_error_t SoftKeymasterDevice::SetHardwareDevice(keymaster0_device_t* keymaster0_device) {
-    assert(keymaster0_device);
-    LOG_D("Reinitializing SoftKeymasterDevice to use HW keymaster0", 0);
-
-    if (!context_)
-        return KM_ERROR_UNEXPECTED_NULL_POINTER;
-
-    supports_all_digests_ = false;
-    keymaster_error_t error = context_->SetHardwareDevice(keymaster0_device);
-    if (error != KM_ERROR_OK)
-        return error;
-
-    initialize_device_struct(keymaster0_device->flags);
-
-    module_name_ = km1_device_.common.module->name;
-    module_name_.append("(Wrapping ");
-    module_name_.append(keymaster0_device->common.module->name);
-    module_name_.append(")");
-
-    updated_module_ = *km1_device_.common.module;
-    updated_module_.name = module_name_.c_str();
-
-    km1_device_.common.module = &updated_module_;
-
-    wrapped_km1_device_ = nullptr;
-    return KM_ERROR_OK;
-}
-
 keymaster_error_t SoftKeymasterDevice::SetHardwareDevice(keymaster1_device_t* keymaster1_device) {
     assert(keymaster1_device);
     LOG_D("Reinitializing SoftKeymasterDevice to use HW keymaster1", 0);
@@ -365,8 +337,7 @@ void AddClientAndAppData(const keymaster_blob_t* client_id, const keymaster_blob
 }
 
 template <typename T> SoftKeymasterDevice* convert_device(const T* dev) {
-    static_assert((std::is_same<T, keymaster0_device_t>::value ||
-                   std::is_same<T, keymaster1_device_t>::value ||
+    static_assert((std::is_same<T, keymaster1_device_t>::value ||
                    std::is_same<T, keymaster2_device_t>::value),
                   "convert_device should only be applied to keymaster devices");
     return reinterpret_cast<SoftKeymasterDevice*>(dev->context);
