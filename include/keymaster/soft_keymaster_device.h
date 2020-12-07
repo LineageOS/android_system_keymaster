@@ -21,7 +21,6 @@
 #include <map>
 #include <vector>
 
-#include <hardware/keymaster0.h>
 #include <hardware/keymaster1.h>
 #include <hardware/keymaster2.h>
 
@@ -49,12 +48,6 @@ class SoftKeymasterDevice {
     explicit SoftKeymasterDevice(KmVersion version);
 
     explicit SoftKeymasterDevice(SoftKeymasterContext* context);
-
-    /**
-     * Set SoftKeymasterDevice to wrap the speicified HW keymaster0 device.  Takes ownership of the
-     * specified device (will call keymaster0_device->common.close());
-     */
-    keymaster_error_t SetHardwareDevice(keymaster0_device_t* keymaster0_device);
 
     /**
      * Set SoftKeymasterDevice to wrap specified HW keymaster1 device.  Takes ownership of the

@@ -22,7 +22,6 @@
 
 #include <openssl/evp.h>
 
-#include <hardware/keymaster0.h>
 #include <hardware/keymaster1.h>
 
 #include <keymaster/attestation_record.h>
@@ -34,7 +33,6 @@
 namespace keymaster {
 
 class SoftKeymasterKeyRegistrations;
-class Keymaster0Engine;
 class Keymaster1Engine;
 class Key;
 
@@ -50,12 +48,6 @@ class SoftKeymasterContext: public KeymasterContext, SoftwareKeyBlobMaker, Softw
     ~SoftKeymasterContext() override;
 
     KmVersion GetKmVersion() const override { return AttestationRecordContext::GetKmVersion(); }
-
-    /**
-     * Use the specified HW keymaster0 device for the operations it supports.  Takes ownership of
-     * the specified device (will call keymaster0_device->common.close());
-     */
-    keymaster_error_t SetHardwareDevice(keymaster0_device_t* keymaster0_device);
 
     /**
      * Use the specified HW keymaster1 device for performing undigested RSA and EC operations after
@@ -123,12 +115,7 @@ class SoftKeymasterContext: public KeymasterContext, SoftwareKeyBlobMaker, Softw
                                             KeymasterKeyBlob* key_material,
                                             AuthorizationSet* hw_enforced,
                                             AuthorizationSet* sw_enforced) const;
-    keymaster_error_t ParseKeymaster0HwBlob(const KeymasterKeyBlob& blob,
-                                            KeymasterKeyBlob* key_material,
-                                            AuthorizationSet* hw_enforced,
-                                            AuthorizationSet* sw_enforced) const;
 
-    std::unique_ptr<Keymaster0Engine> km0_engine_;
     std::unique_ptr<Keymaster1Engine> km1_engine_;
     std::unique_ptr<KeyFactory> rsa_factory_;
     std::unique_ptr<KeyFactory> ec_factory_;
