@@ -26,7 +26,6 @@
 #include <keymaster/android_keymaster.h>
 #include <keymaster/android_keymaster_messages.h>
 #include <keymaster/contexts/soft_keymaster_context.h>
-#include <keymaster/contexts/keymaster0_passthrough_context.h>
 #include <keymaster/contexts/keymaster1_passthrough_context.h>
 #include <keymaster/contexts/keymaster2_passthrough_context.h>
 #include <keymaster/contexts/pure_soft_keymaster_context.h>
@@ -509,12 +508,6 @@ IKeymasterDevice* CreateKeymasterDevice(keymaster1_device_t* km1_device) {
     auto context = new Keymaster1PassthroughContext(KmVersion::KEYMASTER_3, km1_device);
     context->SetSystemVersion(GetOsVersion(), GetOsPatchlevel());
     return new AndroidKeymaster3Device(context, KeymasterHardwareProfile::KM1);
-}
-
-IKeymasterDevice* CreateKeymasterDevice(keymaster0_device_t* km0_device) {
-    auto context = new Keymaster0PassthroughContext(KmVersion::KEYMASTER_3, km0_device);
-    context->SetSystemVersion(GetOsVersion(), GetOsPatchlevel());
-    return new AndroidKeymaster3Device(context, KeymasterHardwareProfile::KM0);
 }
 
 }  // namespace ng

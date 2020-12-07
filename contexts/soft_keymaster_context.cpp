@@ -31,10 +31,7 @@
 #include <keymaster/km_openssl/hmac_key.h>
 #include <keymaster/km_openssl/openssl_err.h>
 #include <keymaster/km_openssl/triple_des_key.h>
-#include <keymaster/legacy_support/ec_keymaster0_key.h>
 #include <keymaster/legacy_support/ec_keymaster1_key.h>
-#include <keymaster/legacy_support/keymaster0_engine.h>
-#include <keymaster/legacy_support/rsa_keymaster0_key.h>
 #include <keymaster/legacy_support/rsa_keymaster1_key.h>
 #include <keymaster/logger.h>
 
@@ -60,23 +57,6 @@ SoftKeymasterContext::SoftKeymasterContext(KmVersion version, const std::string&
       root_of_trust_(string2Blob(root_of_trust)), os_version_(0), os_patchlevel_(0) {}
 
 SoftKeymasterContext::~SoftKeymasterContext() {}
-
-keymaster_error_t SoftKeymasterContext::SetHardwareDevice(keymaster0_device_t* keymaster0_device) {
-    if (!keymaster0_device)
-        return KM_ERROR_UNEXPECTED_NULL_POINTER;
-
-    if ((keymaster0_device->flags & KEYMASTER_SOFTWARE_ONLY) != 0) {
-        LOG_E("SoftKeymasterContext only wraps hardware keymaster0 devices", 0);
-        return KM_ERROR_INVALID_ARGUMENT;
-    }
-
-    km0_engine_.reset(new Keymaster0Engine(keymaster0_device));
-    rsa_factory_.reset(new RsaKeymaster0KeyFactory(this, km0_engine_.get()));
-    ec_factory_.reset(new EcdsaKeymaster0KeyFactory(this, km0_engine_.get()));
-    // Keep AES and HMAC factories.
-
-    return KM_ERROR_OK;
-}
 
 keymaster_error_t SoftKeymasterContext::SetHardwareDevice(keymaster1_device_t* keymaster1_device) {
     if (!keymaster1_device)
@@ -321,8 +301,6 @@ keymaster_error_t SoftKeymasterContext::ParseKeyBlob(const KeymasterKeyBlob& blo
     if (km1_dev_) {
         error = ParseKeymaster1HwBlob(blob, additional_params, &key_material, &hw_enforced,
                                       &sw_enforced);
-    } else if (km0_engine_) {
-        error = ParseKeymaster0HwBlob(blob, &key_material, &hw_enforced, &sw_enforced);
     } else {
         return KM_ERROR_INVALID_KEY_BLOB;
     }
@@ -345,45 +323,12 @@ keymaster_error_t SoftKeymasterContext::DeleteKey(const KeymasterKeyBlob& blob) 
         return km1_engine_->DeleteKey(blob);
     }
 
-    if (km0_engine_) {
-        // This could be a keymaster0 hardware key, and it could be either raw or encapsulated in an
-        // integrity-assured blob.  If it's integrity-assured, we can't validate it strongly,
-        // because we don't have the necessary additional_params data.  However, the probability
-        // that anything other than an integrity-assured blob would have all of the structure
-        // required to decode as a valid blob is low -- unless it's maliciously-constructed, but the
-        // deserializer should be proof against bad data, as should the keymaster0 hardware.
-        //
-        // Thus, we first try to parse it as integrity-assured.  If that works, we pass the result
-        // to the underlying hardware.  If not, we pass blob unmodified to the underlying hardware.
-        KeymasterKeyBlob key_material;
-        AuthorizationSet hw_enforced, sw_enforced;
-        keymaster_error_t error = DeserializeIntegrityAssuredBlob_NoHmacCheck(
-            blob, &key_material, &hw_enforced, &sw_enforced);
-        if (error == KM_ERROR_OK && km0_engine_->DeleteKey(key_material))
-            return KM_ERROR_OK;
-
-        km0_engine_->DeleteKey(blob);
-
-        // We succeed unconditionally at this point, even if delete failed.  Failure indicates that
-        // either the blob is a software blob (which we can't distinguish with certainty without
-        // additional_params) or because it is a hardware blob and the hardware failed.  In the
-        // first case, there is no error.  In the second case, the client can't do anything to fix
-        // it anyway, so it's not too harmful to simply swallow the error.  This is not ideal, but
-        // it's the least-bad alternative.
-        return KM_ERROR_OK;
-    }
-
     // Nothing to do for software-only contexts.
     return KM_ERROR_OK;
 }
 
 keymaster_error_t SoftKeymasterContext::DeleteAllKeys() const {
-    if (km1_engine_)
-        return km1_engine_->DeleteAllKeys();
-
-    if (km0_engine_ && !km0_engine_->DeleteAllKeys())
-        return KM_ERROR_UNKNOWN_ERROR;
-
+    if (km1_engine_) return km1_engine_->DeleteAllKeys();
     return KM_ERROR_OK;
 }
 
@@ -422,25 +367,6 @@ keymaster_error_t SoftKeymasterContext::ParseKeymaster1HwBlob(
     sw_enforced->Reinitialize(characteristics->sw_enforced);
     *key_material = blob;
     return KM_ERROR_OK;
-}
-
-keymaster_error_t SoftKeymasterContext::ParseKeymaster0HwBlob(const KeymasterKeyBlob& blob,
-                                                              KeymasterKeyBlob* key_material,
-                                                              AuthorizationSet* hw_enforced,
-                                                              AuthorizationSet* sw_enforced) const {
-    assert(km0_engine_);
-
-    unique_ptr<EVP_PKEY, EVP_PKEY_Delete> tmp_key(km0_engine_->GetKeymaster0PublicKey(blob));
-
-    if (!tmp_key)
-        return KM_ERROR_INVALID_KEY_BLOB;
-
-    LOG_D("Module \"%s\" accepted key", km0_engine_->device()->common.module->name);
-    keymaster_error_t error = FakeKeyAuthorizations(tmp_key.get(), hw_enforced, sw_enforced);
-    if (error == KM_ERROR_OK)
-        *key_material = blob;
-
-    return error;
 }
 
 keymaster_error_t SoftKeymasterContext::GenerateAttestation(const Key& key,
