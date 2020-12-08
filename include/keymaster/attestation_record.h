@@ -444,7 +444,22 @@ keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet
  * Convert a KeymasterContext::Version to the keymaster version number used in attestations.
  */
 inline static uint version_to_attestation_km_version(KmVersion version) {
-    return static_cast<uint>(version);
+    switch (version) {
+    default:
+    case KmVersion::KEYMASTER_1:
+    case KmVersion::KEYMASTER_1_1:
+        return 0;  // Attestation not actually supported.
+    case KmVersion::KEYMASTER_2:
+        return 2;
+    case KmVersion::KEYMASTER_3:
+        return 3;
+    case KmVersion::KEYMASTER_4:
+        return 4;
+    case KmVersion::KEYMASTER_4_1:
+        return 41;
+    case KmVersion::KEYMINT_1:
+        return 100;
+    }
 }
 
 /**
