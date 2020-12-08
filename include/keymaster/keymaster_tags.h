@@ -207,6 +207,7 @@ DECLARE_KEYMASTER_ENUM_TAG(KM_ENUM, TAG_ORIGIN, keymaster_key_origin_t);
 DECLARE_KEYMASTER_ENUM_TAG(KM_ENUM, TAG_USER_AUTH_TYPE, hw_authenticator_type_t);
 DECLARE_KEYMASTER_ENUM_TAG(KM_ENUM_REP, TAG_KDF, keymaster_kdf_t);
 DECLARE_KEYMASTER_ENUM_TAG(KM_ENUM, TAG_EC_CURVE, keymaster_ec_curve_t);
+DECLARE_KEYMASTER_ENUM_TAG(KM_ENUM_REP, TAG_RSA_OAEP_MGF_DIGEST, keymaster_digest_t);
 
 //
 // Overloaded function "Authorization" to create keymaster_key_param_t objects for all of tags.

@@ -94,6 +94,10 @@ RsaDigestingOperationFactory::SupportedPaddingModes(size_t* padding_mode_count) 
 RsaOperation* RsaCryptingOperationFactory::CreateRsaOperation(Key&& key,
                                                               const AuthorizationSet& begin_params,
                                                               keymaster_error_t* error) {
+    keymaster_digest_t mgf_digest = KM_DIGEST_NONE;
+    key.authorizations().GetTagValue(TAG_RSA_OAEP_MGF_DIGEST, &mgf_digest);
+    *error = GetAndValidateMgfDigest(begin_params, key, &mgf_digest);
+    if (*error != KM_ERROR_OK) return nullptr;
     UniquePtr<RsaOperation> op(
         RsaOperationFactory::CreateRsaOperation(move(key), begin_params, error));
     if (op.get()) {
@@ -111,6 +115,7 @@ RsaOperation* RsaCryptingOperationFactory::CreateRsaOperation(Key&& key,
                 *error = KM_ERROR_INCOMPATIBLE_DIGEST;
                 return nullptr;
             }
+            static_cast<RsaCryptOperation*>(op.get())->setOaepMgfDigest(mgf_digest);
             break;
 
         default:
@@ -119,6 +124,35 @@ RsaOperation* RsaCryptingOperationFactory::CreateRsaOperation(Key&& key,
         }
     }
     return op.release();
+}
+
+keymaster_error_t RsaCryptingOperationFactory::GetAndValidateMgfDigest(
+    const AuthorizationSet& begin_params, const Key& key, keymaster_digest_t* digest) const {
+    *digest = KM_DIGEST_SHA1;
+    if (!begin_params.Contains(TAG_PADDING, KM_PAD_RSA_OAEP)) {
+        *digest = KM_DIGEST_NONE;
+        return KM_ERROR_OK;
+    }
+    // If begin params does not specify any mgf digest
+    if (!begin_params.GetTagValue(TAG_RSA_OAEP_MGF_DIGEST, digest)) {
+        // And the authorizations has MGF Digest tag specified.
+        if (key.authorizations().GetTagCount(TAG_RSA_OAEP_MGF_DIGEST) > 0) {
+            // And key authorizations does not contain SHA1 for Mgf digest.
+            if (!key.authorizations().Contains(TAG_RSA_OAEP_MGF_DIGEST, KM_DIGEST_SHA1)) {
+                // Then it is an error.
+                LOG_E("%d MGF digests specified in begin params and SHA1 not authorized",
+                      begin_params.GetTagCount(TAG_RSA_OAEP_MGF_DIGEST));
+                return KM_ERROR_UNSUPPORTED_MGF_DIGEST;
+            }
+        }
+    } else if (!supported(*digest) || (*digest == KM_DIGEST_NONE)) {
+        LOG_E("MGF Digest %d not supported", *digest);
+        return KM_ERROR_UNSUPPORTED_MGF_DIGEST;
+    } else if (!key.authorizations().Contains(TAG_RSA_OAEP_MGF_DIGEST, *digest)) {
+        LOG_E("MGF Digest %d was specified, but not authorized by key", *digest);
+        return KM_ERROR_INCOMPATIBLE_MGF_DIGEST;
+    }
+    return KM_ERROR_OK;
 }
 
 static const keymaster_padding_t supported_crypt_padding[] = {KM_PAD_NONE, KM_PAD_RSA_OAEP,
@@ -196,31 +230,11 @@ keymaster_error_t RsaOperation::InitDigest() {
         if (require_digest()) return KM_ERROR_INCOMPATIBLE_DIGEST;
         return KM_ERROR_OK;
     }
-
-    switch (digest_) {
-    case KM_DIGEST_NONE:
-        return KM_ERROR_OK;
-    case KM_DIGEST_MD5:
-        digest_algorithm_ = EVP_md5();
-        return KM_ERROR_OK;
-    case KM_DIGEST_SHA1:
-        digest_algorithm_ = EVP_sha1();
-        return KM_ERROR_OK;
-    case KM_DIGEST_SHA_2_224:
-        digest_algorithm_ = EVP_sha224();
-        return KM_ERROR_OK;
-    case KM_DIGEST_SHA_2_256:
-        digest_algorithm_ = EVP_sha256();
-        return KM_ERROR_OK;
-    case KM_DIGEST_SHA_2_384:
-        digest_algorithm_ = EVP_sha384();
-        return KM_ERROR_OK;
-    case KM_DIGEST_SHA_2_512:
-        digest_algorithm_ = EVP_sha512();
-        return KM_ERROR_OK;
-    default:
+    digest_algorithm_ = KmDigestToEvpDigest(digest_);
+    if (digest_algorithm_ == nullptr) {
         return KM_ERROR_UNSUPPORTED_DIGEST;
     }
+    return KM_ERROR_OK;
 }
 
 RsaDigestingOperation::RsaDigestingOperation(AuthorizationSet&& hw_enforced,
@@ -468,13 +482,22 @@ keymaster_error_t RsaCryptOperation::SetOaepDigestIfRequired(EVP_PKEY_CTX* pkey_
     if (padding() != KM_PAD_RSA_OAEP) return KM_ERROR_OK;
 
     assert(digest_algorithm_ != nullptr);
-    if (!EVP_PKEY_CTX_set_rsa_oaep_md(pkey_ctx, digest_algorithm_))
+    if (!EVP_PKEY_CTX_set_rsa_oaep_md(pkey_ctx, digest_algorithm_)) {
         return TranslateLastOpenSslError();
-
+    }
+    assert(mgf_digest_algorithm_ != nullptr);
     // MGF1 MD is always SHA1.
-    if (!EVP_PKEY_CTX_set_rsa_mgf1_md(pkey_ctx, EVP_sha1())) return TranslateLastOpenSslError();
-
+    if (!EVP_PKEY_CTX_set_rsa_mgf1_md(pkey_ctx, mgf_digest_algorithm_)) {
+        return TranslateLastOpenSslError();
+    }
     return KM_ERROR_OK;
+}
+
+keymaster_error_t RsaCryptOperation::Begin(const AuthorizationSet& input_params,
+                                           AuthorizationSet* output_params) {
+    keymaster_error_t error = RsaOperation::Begin(input_params, output_params);
+    if (error != KM_ERROR_OK) return error;
+    return InitMgfDigest();
 }
 
 int RsaCryptOperation::GetOpensslPadding(keymaster_error_t* error) {
@@ -489,6 +512,17 @@ int RsaCryptOperation::GetOpensslPadding(keymaster_error_t* error) {
     default:
         return -1;
     }
+}
+
+keymaster_error_t RsaCryptOperation::InitMgfDigest() {
+    if (mgf_digest_ == KM_DIGEST_NONE) {
+        return KM_ERROR_OK;
+    }
+    mgf_digest_algorithm_ = KmDigestToEvpDigest(mgf_digest_);
+    if (mgf_digest_algorithm_ == nullptr) {
+        return KM_ERROR_UNSUPPORTED_DIGEST;
+    }
+    return KM_ERROR_OK;
 }
 
 struct EVP_PKEY_CTX_Delete {

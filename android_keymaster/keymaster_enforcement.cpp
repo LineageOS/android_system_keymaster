@@ -348,6 +348,7 @@ keymaster_error_t KeymasterEnforcement::AuthorizeBegin(const keymaster_purpose_t
         /* Algorithm specific parameters not used for access control. */
         case KM_TAG_RSA_PUBLIC_EXPONENT:
         case KM_TAG_ECIES_SINGLE_HASH_MODE:
+        case KM_TAG_RSA_OAEP_MGF_DIGEST:
 
         /* Informational tags. */
         case KM_TAG_CREATION_DATETIME:
