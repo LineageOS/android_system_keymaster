@@ -42,7 +42,8 @@ class KeymasterPassthroughKeyFactory : public KeyFactory {
 
     keymaster_error_t GenerateKey(const AuthorizationSet& key_description,
                                   KeymasterKeyBlob* key_blob, AuthorizationSet* hw_enforced,
-                                  AuthorizationSet* sw_enforced) const override {
+                                  AuthorizationSet* sw_enforced,
+                                  CertificateChain* /* cert_chain */) const override {
         return engine_->GenerateKey(key_description, key_blob, hw_enforced, sw_enforced);
     }
 
@@ -50,7 +51,8 @@ class KeymasterPassthroughKeyFactory : public KeyFactory {
                                 keymaster_key_format_t input_key_material_format,
                                 const KeymasterKeyBlob& input_key_material,
                                 KeymasterKeyBlob* output_key_blob, AuthorizationSet* hw_enforced,
-                                AuthorizationSet* sw_enforced) const override {
+                                AuthorizationSet* sw_enforced,
+                                CertificateChain* /* cert_chain */) const override {
         return engine_->ImportKey(key_description, input_key_material_format, input_key_material,
                                   output_key_blob, hw_enforced, sw_enforced);
     }

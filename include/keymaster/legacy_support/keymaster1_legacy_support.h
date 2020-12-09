@@ -65,13 +65,14 @@ template <typename KM1_SOFTDIGEST_FACTORY> class Keymaster1ArbitrationFactory : 
           passthrough_factory_(ptengine, algorithm), legacy_support_(dev) {}
     keymaster_error_t GenerateKey(const AuthorizationSet& key_description,
                                   KeymasterKeyBlob* key_blob, AuthorizationSet* hw_enforced,
-                                  AuthorizationSet* sw_enforced) const {
+                                  AuthorizationSet* sw_enforced,
+                                  CertificateChain* cert_chain) const {
         if (legacy_support_.RequiresSoftwareDigesting(key_description)) {
             return software_digest_factory_.GenerateKey(key_description, key_blob, hw_enforced,
-                                                        sw_enforced);
+                                                        sw_enforced, cert_chain);
         } else {
             return passthrough_factory_.GenerateKey(key_description, key_blob, hw_enforced,
-                                                    sw_enforced);
+                                                    sw_enforced, cert_chain);
         }
     }
 
@@ -79,15 +80,15 @@ template <typename KM1_SOFTDIGEST_FACTORY> class Keymaster1ArbitrationFactory : 
                                 keymaster_key_format_t input_key_material_format,
                                 const KeymasterKeyBlob& input_key_material,
                                 KeymasterKeyBlob* output_key_blob, AuthorizationSet* hw_enforced,
-                                AuthorizationSet* sw_enforced) const {
+                                AuthorizationSet* sw_enforced, CertificateChain* cert_chain) const {
         if (legacy_support_.RequiresSoftwareDigesting(key_description)) {
             return software_digest_factory_.ImportKey(key_description, input_key_material_format,
                                                       input_key_material, output_key_blob,
-                                                      hw_enforced, sw_enforced);
+                                                      hw_enforced, sw_enforced, cert_chain);
         } else {
             return passthrough_factory_.ImportKey(key_description, input_key_material_format,
                                                   input_key_material, output_key_blob, hw_enforced,
-                                                  sw_enforced);
+                                                  sw_enforced, cert_chain);
         }
     }
 
@@ -136,7 +137,8 @@ template <typename KM1_SOFTDIGEST_FACTORY> class Keymaster1ArbitrationFactory : 
 template <>
 keymaster_error_t Keymaster1ArbitrationFactory<EcdsaKeymaster1KeyFactory>::GenerateKey(
     const AuthorizationSet& key_description, KeymasterKeyBlob* key_blob,
-    AuthorizationSet* hw_enforced, AuthorizationSet* sw_enforced) const;
+    AuthorizationSet* hw_enforced, AuthorizationSet* sw_enforced,
+    CertificateChain* cert_chain) const;
 
 template <>
 keymaster_error_t Keymaster1ArbitrationFactory<EcdsaKeymaster1KeyFactory>::LoadKey(
