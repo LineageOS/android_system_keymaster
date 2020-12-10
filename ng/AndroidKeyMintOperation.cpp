@@ -1,5 +1,4 @@
 /*
- *
  * Copyright 2020, The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,22 +14,18 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "android.hardware.keymint@1.0-impl"
+#define LOG_TAG "android.hardware.security.keymint-impl"
 #include <log/log.h>
 
-#include "include/AndroidKeyMint1Operation.h"
+#include "AndroidKeyMintOperation.h"
 
-#include "KeyMintAidlUtils.h"
-#include <aidl/android/hardware/keymint/ErrorCode.h>
+#include <aidl/android/hardware/security/keymint/ErrorCode.h>
+
 #include <keymaster/android_keymaster.h>
 
-namespace aidl {
-namespace android {
-namespace hardware {
-namespace keymint {
-namespace V1_0 {
+#include "KeyMintUtils.h"
 
-using ::aidl::android::hardware::keymint::ErrorCode;
+namespace aidl::android::hardware::security::keymint {
 
 using ::keymaster::AbortOperationRequest;
 using ::keymaster::AbortOperationResponse;
@@ -39,25 +34,24 @@ using ::keymaster::FinishOperationResponse;
 using ::keymaster::UpdateOperationRequest;
 using ::keymaster::UpdateOperationResponse;
 
-AndroidKeyMint1Operation::AndroidKeyMint1Operation(
+AndroidKeyMintOperation::AndroidKeyMintOperation(
     const shared_ptr<::keymaster::AndroidKeymaster> implementation,
     keymaster_operation_handle_t opHandle)
     : impl_(std::move(implementation)), opHandle_(opHandle) {}
 
-AndroidKeyMint1Operation::~AndroidKeyMint1Operation() {
+AndroidKeyMintOperation::~AndroidKeyMintOperation() {
     if (opHandle_ != 0) {
         abort();
     }
 }
 
-ScopedAStatus AndroidKeyMint1Operation::update(const optional<KeyParameterArray>& params,
-                                               const optional<vector<uint8_t>>& input,
-                                               const optional<HardwareAuthToken>& /* authToken */,
-                                               const optional<VerificationToken>&
-                                               /* verificationToken */,
-                                               optional<KeyParameterArray>* updatedParams,
-                                               optional<ByteArray>* output,
-                                               int32_t* inputConsumed) {
+ScopedAStatus AndroidKeyMintOperation::update(const optional<KeyParameterArray>& params,
+                                              const optional<vector<uint8_t>>& input,
+                                              const optional<HardwareAuthToken>& /* authToken */,
+                                              const optional<VerificationToken>&
+                                              /* verificationToken */,
+                                              optional<KeyParameterArray>* updatedParams,
+                                              optional<ByteArray>* output, int32_t* inputConsumed) {
     if (!updatedParams || !output || !inputConsumed) {
         return kmError2ScopedAStatus(KM_ERROR_OUTPUT_PARAMETER_NULL);
     }
@@ -92,14 +86,14 @@ ScopedAStatus AndroidKeyMint1Operation::update(const optional<KeyParameterArray>
     return kmError2ScopedAStatus(response.error);
 }
 
-ScopedAStatus AndroidKeyMint1Operation::finish(const optional<KeyParameterArray>& params,
-                                               const optional<vector<uint8_t>>& input,
-                                               const optional<vector<uint8_t>>& signature,
-                                               const optional<HardwareAuthToken>& /* authToken */,
-                                               const optional<VerificationToken>&
-                                               /* verificationToken */,
-                                               optional<KeyParameterArray>* updatedParams,
-                                               vector<uint8_t>* output) {
+ScopedAStatus AndroidKeyMintOperation::finish(const optional<KeyParameterArray>& params,
+                                              const optional<vector<uint8_t>>& input,
+                                              const optional<vector<uint8_t>>& signature,
+                                              const optional<HardwareAuthToken>& /* authToken */,
+                                              const optional<VerificationToken>&
+                                              /* verificationToken */,
+                                              optional<KeyParameterArray>* updatedParams,
+                                              vector<uint8_t>* output) {
 
     if (!updatedParams || !output) {
         return ScopedAStatus(AStatus_fromServiceSpecificError(
@@ -136,7 +130,7 @@ ScopedAStatus AndroidKeyMint1Operation::finish(const optional<KeyParameterArray>
     return kmError2ScopedAStatus(response.error);
 }
 
-ScopedAStatus AndroidKeyMint1Operation::abort() {
+ScopedAStatus AndroidKeyMintOperation::abort() {
     AbortOperationRequest request;
     request.op_handle = opHandle_;
 
@@ -147,8 +141,4 @@ ScopedAStatus AndroidKeyMint1Operation::abort() {
     return kmError2ScopedAStatus(response.error);
 }
 
-}  // namespace V1_0
-}  // namespace keymint
-}  // namespace hardware
-}  // namespace android
-}  // namespace aidl
+}  // namespace aidl::android::hardware::security::keymint

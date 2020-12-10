@@ -1,49 +1,40 @@
 /*
- **
- ** Copyright 2020, The Android Open Source Project
- **
- ** Licensed under the Apache License, Version 2.0 (the "License");
- ** you may not use this file except in compliance with the License.
- ** You may obtain a copy of the License at
- **
- **     http://www.apache.org/licenses/LICENSE-2.0
- **
- ** Unless required by applicable law or agreed to in writing, software
- ** distributed under the License is distributed on an "AS IS" BASIS,
- ** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- ** See the License for the specific language governing permissions and
- ** limitations under the License.
+ * Copyright 2020, The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
-#define LOG_TAG "android.hardware.keymint@1.0-impl"
+#define LOG_TAG "android.hardware.security.keymint-impl"
 #include <log/log.h>
 
-#include "include/AndroidKeyMint1Device.h"
+#include "AndroidKeyMintDevice.h"
 
-#include "KeyMintAidlUtils.h"
-#include "include/AndroidKeyMint1Operation.h"
-
-#include <aidl/android/hardware/keymint/ErrorCode.h>
+#include <aidl/android/hardware/security/keymint/ErrorCode.h>
 
 #include <keymaster/android_keymaster.h>
 #include <keymaster/contexts/pure_soft_keymaster_context.h>
 #include <keymaster/keymaster_configuration.h>
 
-namespace aidl {
-namespace android {
-namespace hardware {
-namespace keymint {
-namespace V1_0 {
+#include "AndroidKeyMintOperation.h"
+#include "KeyMintUtils.h"
 
-using ::aidl::android::hardware::keymint::ErrorCode;
-using ::aidl::android::hardware::keymint::HardwareAuthToken;
-using ::aidl::android::hardware::keymint::VerificationToken;
+namespace aidl::android::hardware::security::keymint {
 
 using namespace ::keymaster;
 
 constexpr size_t kOperationTableSize = 16;
 
-AndroidKeyMint1Device::AndroidKeyMint1Device(SecurityLevel securityLevel)
+AndroidKeyMintDevice::AndroidKeyMintDevice(SecurityLevel securityLevel)
     : impl_(new ::keymaster::AndroidKeymaster(
           [&]() -> auto {
               auto context = new PureSoftKeymasterContext(
@@ -55,9 +46,9 @@ AndroidKeyMint1Device::AndroidKeyMint1Device(SecurityLevel securityLevel)
           kOperationTableSize)),
       securityLevel_(securityLevel) {}
 
-AndroidKeyMint1Device::~AndroidKeyMint1Device() {}
+AndroidKeyMintDevice::~AndroidKeyMintDevice() {}
 
-ScopedAStatus AndroidKeyMint1Device::getHardwareInfo(KeyMintHardwareInfo* info) {
+ScopedAStatus AndroidKeyMintDevice::getHardwareInfo(KeyMintHardwareInfo* info) {
     info->versionNumber = 1;
     info->securityLevel = securityLevel_;
     info->keyMintName = "FakeKeyMintDevice";
@@ -66,9 +57,9 @@ ScopedAStatus AndroidKeyMint1Device::getHardwareInfo(KeyMintHardwareInfo* info) 
     return ScopedAStatus::ok();
 }
 
-ScopedAStatus AndroidKeyMint1Device::verifyAuthorization(int64_t challenge,                   //
-                                                         const HardwareAuthToken& authToken,  //
-                                                         VerificationToken* verificationToken) {
+ScopedAStatus AndroidKeyMintDevice::verifyAuthorization(int64_t challenge,                   //
+                                                        const HardwareAuthToken& authToken,  //
+                                                        VerificationToken* verificationToken) {
 
     VerifyAuthorizationRequest request;
     request.challenge = static_cast<uint64_t>(challenge);
@@ -96,7 +87,7 @@ ScopedAStatus AndroidKeyMint1Device::verifyAuthorization(int64_t challenge,     
     return ScopedAStatus::ok();
 }
 
-ScopedAStatus AndroidKeyMint1Device::addRngEntropy(const vector<uint8_t>& data) {
+ScopedAStatus AndroidKeyMintDevice::addRngEntropy(const vector<uint8_t>& data) {
     if (data.size() == 0) {
         return ScopedAStatus::ok();
     }
@@ -110,10 +101,10 @@ ScopedAStatus AndroidKeyMint1Device::addRngEntropy(const vector<uint8_t>& data) 
     return kmError2ScopedAStatus(response.error);
 }
 
-ScopedAStatus AndroidKeyMint1Device::generateKey(const vector<KeyParameter>& keyParams,
-                                                 ByteArray* generatedKeyBlob,
-                                                 KeyCharacteristics* generatedKeyCharacteristics,
-                                                 vector<Certificate>* /* certChain */) {
+ScopedAStatus AndroidKeyMintDevice::generateKey(const vector<KeyParameter>& keyParams,
+                                                ByteArray* generatedKeyBlob,
+                                                KeyCharacteristics* generatedKeyCharacteristics,
+                                                vector<Certificate>* /* certChain */) {
 
     GenerateKeyRequest request;
     request.key_description.Reinitialize(KmParamSet(keyParams));
@@ -141,11 +132,11 @@ ScopedAStatus AndroidKeyMint1Device::generateKey(const vector<KeyParameter>& key
     return ScopedAStatus::ok();
 }
 
-ScopedAStatus AndroidKeyMint1Device::importKey(const vector<KeyParameter>& keyParams,
-                                               KeyFormat keyFormat, const vector<uint8_t>& keyData,
-                                               ByteArray* importedKeyBlob,
-                                               KeyCharacteristics* importedKeyCharacteristics,
-                                               vector<Certificate>* /* certChain */) {
+ScopedAStatus AndroidKeyMintDevice::importKey(const vector<KeyParameter>& keyParams,
+                                              KeyFormat keyFormat, const vector<uint8_t>& keyData,
+                                              ByteArray* importedKeyBlob,
+                                              KeyCharacteristics* importedKeyCharacteristics,
+                                              vector<Certificate>* /* certChain */) {
 
     ImportKeyRequest request;
     request.key_description.Reinitialize(KmParamSet(keyParams));
@@ -166,7 +157,7 @@ ScopedAStatus AndroidKeyMint1Device::importKey(const vector<KeyParameter>& keyPa
     return ScopedAStatus::ok();
 }
 
-ScopedAStatus AndroidKeyMint1Device::importWrappedKey(
+ScopedAStatus AndroidKeyMintDevice::importWrappedKey(
     const vector<uint8_t>& wrappedKeyData, const vector<uint8_t>& wrappingKeyBlob,
     const vector<uint8_t>& maskingKey, const vector<KeyParameter>& unwrappingParams,
     int64_t passwordSid, int64_t biometricSid, ByteArray* importedKeyBlob,
@@ -194,9 +185,9 @@ ScopedAStatus AndroidKeyMint1Device::importWrappedKey(
     return ScopedAStatus::ok();
 }
 
-ScopedAStatus AndroidKeyMint1Device::upgradeKey(const vector<uint8_t>& keyBlobToUpgrade,
-                                                const vector<KeyParameter>& upgradeParams,
-                                                vector<uint8_t>* keyBlob) {
+ScopedAStatus AndroidKeyMintDevice::upgradeKey(const vector<uint8_t>& keyBlobToUpgrade,
+                                               const vector<KeyParameter>& upgradeParams,
+                                               vector<uint8_t>* keyBlob) {
 
     UpgradeKeyRequest request;
     request.SetKeyMaterial(keyBlobToUpgrade.data(), keyBlobToUpgrade.size());
@@ -213,7 +204,7 @@ ScopedAStatus AndroidKeyMint1Device::upgradeKey(const vector<uint8_t>& keyBlobTo
     return ScopedAStatus::ok();
 }
 
-ScopedAStatus AndroidKeyMint1Device::deleteKey(const vector<uint8_t>& keyBlob) {
+ScopedAStatus AndroidKeyMintDevice::deleteKey(const vector<uint8_t>& keyBlob) {
     DeleteKeyRequest request;
     request.SetKeyMaterial(keyBlob.data(), keyBlob.size());
 
@@ -223,7 +214,7 @@ ScopedAStatus AndroidKeyMint1Device::deleteKey(const vector<uint8_t>& keyBlob) {
     return kmError2ScopedAStatus(response.error);
 }
 
-ScopedAStatus AndroidKeyMint1Device::deleteAllKeys() {
+ScopedAStatus AndroidKeyMintDevice::deleteAllKeys() {
     // There's nothing to be done to delete software key blobs.
     DeleteAllKeysRequest request;
     DeleteAllKeysResponse response;
@@ -232,14 +223,13 @@ ScopedAStatus AndroidKeyMint1Device::deleteAllKeys() {
     return kmError2ScopedAStatus(response.error);
 }
 
-ScopedAStatus AndroidKeyMint1Device::destroyAttestationIds() {
+ScopedAStatus AndroidKeyMintDevice::destroyAttestationIds() {
     return kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
 }
 
-ScopedAStatus AndroidKeyMint1Device::begin(KeyPurpose purpose, const vector<uint8_t>& keyBlob,
-                                           const vector<KeyParameter>& params,
-                                           const HardwareAuthToken& authToken,
-                                           BeginResult* result) {
+ScopedAStatus AndroidKeyMintDevice::begin(KeyPurpose purpose, const vector<uint8_t>& keyBlob,
+                                          const vector<KeyParameter>& params,
+                                          const HardwareAuthToken& authToken, BeginResult* result) {
 
     BeginOperationRequest request;
     request.purpose = legacy_enum_conversion(purpose);
@@ -260,17 +250,13 @@ ScopedAStatus AndroidKeyMint1Device::begin(KeyPurpose purpose, const vector<uint
     result->params = kmParamSet2Aidl(response.output_params);
     result->challenge = response.op_handle;
     result->operation =
-        ndk::SharedRefBase::make<AndroidKeyMint1Operation>(impl_, response.op_handle);
+        ndk::SharedRefBase::make<AndroidKeyMintOperation>(impl_, response.op_handle);
     return ScopedAStatus::ok();
 }
 
 IKeyMintDevice* CreateKeyMintDevice(SecurityLevel securityLevel) {
 
-    return ::new AndroidKeyMint1Device(securityLevel);
+    return ::new AndroidKeyMintDevice(securityLevel);
 }
 
-}  // namespace V1_0
-}  // namespace keymint
-}  // namespace hardware
-}  // namespace android
-}  // namespace aidl
+}  // namespace aidl::android::hardware::security::keymint
