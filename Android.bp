@@ -321,36 +321,6 @@ cc_library_shared {
     export_include_dirs: ["ng/include"],
 }
 
-cc_library {
-    name: "libkeymint",
-    vendor_available: true,
-    srcs: [
-        "android_keymaster/keymaster_configuration.cpp",
-        "legacy_support/keymaster_passthrough_engine.cpp",
-        "legacy_support/keymaster_passthrough_key.cpp",
-        "legacy_support/keymaster_passthrough_operation.cpp",
-        "ng/AndroidKeyMintDevice.cpp",
-        "ng/AndroidKeyMintOperation.cpp",
-        "ng/KeyMintUtils.cpp",
-    ],
-    defaults: ["keymaster_defaults"],
-    shared_libs: [
-	"libhidlbase",
-        "android.hardware.security.keymint-ndk_platform",
-        "libbase",
-        "libbinder_ndk",
-        "libcppbor",
-        "libcrypto",
-        "libcutils",
-        "libkeymaster_messages",
-        "libkeymaster_messages",
-        "libkeymaster_portable",
-        "liblog",
-        "libpuresoftkeymasterdevice",
-        "libutils",
-    ],
-    export_include_dirs: ["include", "ng/include"],
-}
 
 cc_library_shared {
     name: "libkeymint1",
