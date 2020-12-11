@@ -352,6 +352,38 @@ cc_library {
     export_include_dirs: ["include", "ng/include"],
 }
 
+cc_library_shared {
+    name: "libkeymint1",
+    vendor_available: true,
+    srcs: [
+        "legacy_support/keymaster_passthrough_key.cpp",
+        "legacy_support/keymaster_passthrough_engine.cpp",
+        "legacy_support/keymaster_passthrough_operation.cpp",
+        "ng/KeyMintAidlUtils.cpp",
+        "ng/AndroidKeyMint1Device.cpp",
+        "ng/AndroidKeyMint1Operation.cpp",
+        "android_keymaster/keymaster_configuration.cpp",
+    ],
+    defaults: ["keymaster_defaults"],
+    shared_libs: [
+        "libkeymaster_messages",
+        "android.hardware.keymint-ndk_platform",
+        "libbase",
+        "libcrypto",
+        "libcutils",
+        "libbinder_ndk",
+        "libcppbor",
+	"libhidlbase",
+        "libkeymaster_portable",
+        "libkeymaster_messages",
+        "libpuresoftkeymasterdevice",
+        "liblog",
+        "libutils",
+    ],
+    export_include_dirs: ["include", "ng/include"],
+}
+
+
 // libkeymasterfiles is an empty library that exports all of the files in keymaster as includes.
 cc_library_static {
     name: "libkeymasterfiles",
