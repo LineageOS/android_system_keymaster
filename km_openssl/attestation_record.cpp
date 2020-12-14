@@ -188,7 +188,8 @@ insert_unknown_tag(const keymaster_key_param_t& param, cppbor::Map* dest_map,
  * https://tools.ietf.org/html/draft-ietf-rats-eat.
  * The resulting format is a bstr encoded as follows:
  * - Type byte: 0x03
- * - IMEI (without check digit), encoded as a 48-bit binary integer
+ * - IMEI (without check digit), encoded as byte string of length 14 with each byte as the digit's
+ *   value. The IMEI value encoded SHALL NOT include Luhn checksum or SVN information.
  */
 keymaster_error_t imei_to_ueid(const keymaster_blob_t& imei_blob, cppbor::Bstr* out) {
     ASSERT_OR_RETURN_ERROR(imei_blob.data_length == kImeiBlobLength, KM_ERROR_INVALID_TAG);
@@ -197,13 +198,9 @@ keymaster_error_t imei_to_ueid(const keymaster_blob_t& imei_blob, cppbor::Bstr* 
     ueid[0] = kImeiTypeByte;
     // imei_blob corresponds to android.telephony.TelephonyManager#getDeviceId(), which is the
     // 15-digit IMEI (including the check digit), encoded as a string.
-    std::string imei_string(reinterpret_cast<const char*>(imei_blob.data),
-                            kImeiBlobLength -
-                                1);  // Intentionally skip check digit at last position.
-    uint64_t imei_long = std::strtoull(imei_string.c_str(), nullptr, 10);
-    for (int i = 0; i < 6; i++) {
-        // TODO: https://tools.ietf.org/html/draft-ietf-rats-eat does not seem to specify endianness
-        ueid[i + 1] = (imei_long >> (sizeof(uint64_t) * (5 - i))) & 0xff;
+    for (size_t i = 1; i < kUeidLength; i++) {
+        // Convert each character to its numeric value.
+        ueid[i] = imei_blob.data[i - 1] - '0';  // Intentionally skip check digit at last position.
     }
 
     *out = cppbor::Bstr(std::pair(ueid, sizeof(ueid)));
@@ -216,20 +213,14 @@ keymaster_error_t ueid_to_imei_blob(const cppbor::Bstr* ueid, keymaster_blob_t* 
     ASSERT_OR_RETURN_ERROR(ueid_vec.size() == kUeidLength, KM_ERROR_INVALID_TAG);
     ASSERT_OR_RETURN_ERROR(ueid_vec[0] == kImeiTypeByte, KM_ERROR_INVALID_TAG);
 
-    uint64_t imei_long = 0;
-    for (int i = 0; i < 6; i++) {
-        imei_long += ((uint64_t)ueid_vec[i + 1]) << (sizeof(uint64_t) * (5 - i));
-    }
-
     uint8_t* imei_string = (uint8_t*)calloc(kImeiBlobLength, sizeof(uint8_t));
     // Fill string from left to right, and calculate Luhn check digit.
     int luhn_digit_sum = 0;
-    for (unsigned int i = 0; i < kImeiBlobLength - 1; i++) {
-        uint64_t magnitude = pow(10L, (13L - i));
-        int digit_i = (int)(imei_long / magnitude);
+    for (size_t i = 0; i < kImeiBlobLength - 1; i++) {
+        uint8_t digit_i = ueid_vec[i + 1];
+        // Convert digit to its string value.
         imei_string[i] = '0' + digit_i;
         luhn_digit_sum += i % 2 == 0 ? digit_i : digit_i * 2 / 10 + (digit_i * 2) % 10;
-        imei_long %= magnitude;
     }
     imei_string[kImeiBlobLength - 1] = '0' + (10 - luhn_digit_sum % 10) % 10;
 
