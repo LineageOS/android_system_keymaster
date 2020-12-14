@@ -39,27 +39,22 @@ class AsymmetricKey;
 // Hardware and software enforced AuthorizationSet are expected to be built into the AsymmetricKey
 // input. In hardware enforced AuthorizationSet, we expect hardware related tags such as
 // TAG_IDENTITY_CREDENTIAL_KEY.
-keymaster_error_t generate_attestation(const AsymmetricKey& key,
-                                       const AuthorizationSet& attest_params,
-                                       const keymaster_cert_chain_t& attestation_chain,
-                                       const keymaster_key_blob_t& attestation_signing_key,
-                                       const AttestationRecordContext& context,
-                                       CertChainPtr* cert_chain_out);
+CertificateChain generate_attestation(const AsymmetricKey& key,
+                                      const AuthorizationSet& attest_params,
+                                      CertificateChain attestation_chain,
+                                      const keymaster_key_blob_t& attestation_signing_key,
+                                      const AttestationRecordContext& context,
+                                      keymaster_error_t* error);
 
-// Generate attestation certificate based on the EVP key and other parameters passed in.  Note that
-// due to sub sub sub call setup, there are 3 AuthorizationSet passed in, hardware, software, and
-// general.  In attest_params, we expect the challenge, active time and expiration time, and app id.
-// In hw_enforced, we expect hardware related tags such as TAG_IDENTITY_CREDENTIAL_KEY.
-//
-// The active time and expiration time are expected in milliseconds since Jan 1, 1970.
-keymaster_error_t generate_attestation_from_EVP(const EVP_PKEY* evp_key,  //
-                                                const AuthorizationSet& sw_enforced,
-                                                const AuthorizationSet& hw_enforced,
-                                                const AuthorizationSet& attest_params,
-                                                const AttestationRecordContext& context,
-                                                const keymaster_cert_chain_t& attestation_chain,
-                                                const keymaster_key_blob_t& attestation_signing_key,
-                                                CertChainPtr* cert_chain);
+// Generate attestation certificate based on the EVP key and other parameters passed in.
+CertificateChain generate_attestation_from_EVP(const EVP_PKEY* evp_key,  //
+                                               const AuthorizationSet& sw_enforced,
+                                               const AuthorizationSet& hw_enforced,
+                                               const AuthorizationSet& attest_params,
+                                               const AttestationRecordContext& context,
+                                               CertificateChain attestation_chain,
+                                               const keymaster_key_blob_t& attestation_signing_key,
+                                               keymaster_error_t* error);
 
 }  // namespace keymaster
 

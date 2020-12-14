@@ -395,18 +395,6 @@ struct Malloc_Delete {
     void operator()(void* p) { free(p); }
 };
 
-struct CertificateChainDelete {
-    void operator()(keymaster_cert_chain_t* p) {
-        if (!p) return;
-        for (size_t i = 0; i < p->entry_count; ++i)
-            delete[] p->entries[i].data;
-        delete[] p->entries;
-        delete p;
-    }
-};
-
-typedef UniquePtr<keymaster_cert_chain_t, CertificateChainDelete> CertChainPtr;
-
 keymaster_error_t EcKeySizeToCurve(uint32_t key_size_bits, keymaster_ec_curve_t* curve);
 keymaster_error_t EcCurveToKeySize(keymaster_ec_curve_t curve, uint32_t* key_size_bits);
 
@@ -437,6 +425,100 @@ template <class F> class final_action {
 template <class F> inline final_action<F> finally(const F& f) {
     return final_action<F>(f);
 }
+
+struct CertificateChain : public keymaster_cert_chain_t {
+    CertificateChain() : keymaster_cert_chain_t{} {}
+
+    /**
+     * Create a chain with space allocated for `length` certificates.  If allocation fails,
+     * `entries` will be null.
+     */
+    explicit CertificateChain(size_t length) : keymaster_cert_chain_t{} {
+        entries = new (std::nothrow) keymaster_blob_t[length];
+        if (!entries) return;
+        entry_count = length;
+        for (size_t i = 0; i < entry_count; ++i) {
+            entries[i] = {};
+        }
+    }
+
+    CertificateChain(CertificateChain&& other) : keymaster_cert_chain_t{} { *this = move(other); }
+
+    ~CertificateChain() { Clear(); }
+
+    CertificateChain& operator=(CertificateChain&& other) {
+        Clear();
+        (keymaster_cert_chain_t&)(*this) = (keymaster_cert_chain_t&)(other);
+        (keymaster_cert_chain_t&)(other) = {};
+        return *this;
+    }
+
+    /**
+     * Clone `other`.  If anything fails, `entries` will be null.
+     */
+    static CertificateChain clone(const keymaster_cert_chain_t& other) {
+        CertificateChain retval;
+        retval.entry_count = other.entry_count;
+        retval.entries = new (std::nothrow) keymaster_blob_t[retval.entry_count];
+        if (!retval.entries) return {};
+
+        for (auto& entry : retval) {
+            entry = {};
+        }
+
+        for (size_t i = 0; i < retval.entry_count; ++i) {
+            retval.entries[i].data_length = other.entries[i].data_length;
+            retval.entries[i].data = new (std::nothrow) uint8_t[retval.entries[i].data_length];
+            if (!retval.entries[i].data) return {};
+
+            memcpy(const_cast<uint8_t*>(retval.entries[i].data), other.entries[i].data,
+                   retval.entries[i].data_length);
+        }
+
+        return retval;
+    }
+
+    keymaster_blob_t* begin() { return entries; }
+    const keymaster_blob_t* begin() const { return entries; }
+    keymaster_blob_t* end() { return entries + entry_count; }
+    const keymaster_blob_t* end() const { return entries + entry_count; }
+
+    // Insert the provided blob at the front of the chain.  CertificateChain takes ownership of the
+    // contents of `new_entry`.
+    bool push_front(keymaster_blob_t&& new_entry) {
+        keymaster_blob_t* new_entries = new keymaster_blob_t[entry_count + 1];
+        if (!new_entries) return false;
+
+        new_entries[0] = new_entry;
+        new_entry = {};
+        for (size_t i = 1; i < entry_count + 1; ++i) {
+            new_entries[i] = entries[i - 1];
+        }
+
+        delete[] entries;
+        entries = new_entries;
+        ++entry_count;
+        return true;
+    }
+
+    keymaster_cert_chain_t release() {
+        keymaster_cert_chain_t retval = *this;
+        entries = nullptr;
+        entry_count = 0;
+        return retval;
+    }
+
+    void Clear() {
+        if (entries) {
+            for (size_t i = 0; i < entry_count; ++i) {
+                delete[] entries[i].data;
+            }
+            delete[] entries;
+        }
+        entry_count = 0;
+        entries = nullptr;
+    }
+};
 
 }  // namespace keymaster
 
