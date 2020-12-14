@@ -303,7 +303,7 @@ static const char kEatSubmodNameSoftware[] = "software";
 static const char kEatSubmodNameTee[] = "tee";
 
 constexpr size_t kImeiBlobLength = 15;
-constexpr size_t kUeidLength = 7;
+constexpr size_t kUeidLength = 15;
 constexpr uint8_t kImeiTypeByte = 0x03;
 
 class AttestationRecordContext {
