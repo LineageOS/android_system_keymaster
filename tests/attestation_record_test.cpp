@@ -320,18 +320,18 @@ TEST(UnknownTagTest, Simple) {
     bool found_in_software_submod = false;
     bool found_in_hardware_submod = false;
     for (size_t i = 0; i < eat_map->size(); i++) {
-        auto [eat_key, eat_value] = (*eat_map)[i];
+        auto& [eat_key, eat_value] = (*eat_map)[i];
         const cppbor::Int* root_key = eat_key->asInt();
         if ((EatClaim)root_key->value() == EatClaim::SUBMODS) {
             const cppbor::Map* submods_map = eat_value->asMap();
             // Check for each submod whether it contains the expected value.
             for (size_t j = 0; j < submods_map->size(); j++) {
-                auto [submod_key, submod_value] = (*submods_map)[j];
+                auto& [submod_key, submod_value] = (*submods_map)[j];
                 const cppbor::Map* submod_map = submod_value->asMap();
                 bool found_in_submod = false;
                 EatSecurityLevel submod_security_level;
                 for (size_t k = 0; k < submod_map->size(); k++) {
-                    auto [key_item, value_item] = (*submod_map)[k];
+                    auto& [key_item, value_item] = (*submod_map)[k];
                     const cppbor::Int* key_int = key_item->asInt();
                     if (key_int->value() == convert_to_eat_claim(UNKNOWN_TAG_T)) {
                         found_in_submod = true;

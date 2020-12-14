@@ -1487,7 +1487,7 @@ keymaster_error_t parse_eat_record(
     bool verified_or_self_signed = false;
 
     for (size_t i = 0; i < eat_map->size(); i++) {
-        auto [key_item, value_item] = (*eat_map)[i];
+        auto& [key_item, value_item] = (*eat_map)[i];
         const cppbor::Int* key = key_item->asInt();
         ASSERT_OR_RETURN_ERROR(key, (KM_ERROR_INVALID_TAG));
 
@@ -1537,7 +1537,7 @@ keymaster_error_t parse_eat_record(
         case EatClaim::SUBMODS:
             ASSERT_OR_RETURN_ERROR(map_value, KM_ERROR_INVALID_TAG);
             for (size_t j = 0; j < map_value->size(); j++) {
-                auto [submod_key, submod_value] = (*map_value)[j];
+                auto& [submod_key, submod_value] = (*map_value)[j];
                 const cppbor::Map* submod_map = submod_value->asMap();
                 ASSERT_OR_RETURN_ERROR(submod_map, KM_ERROR_INVALID_TAG);
                 error = parse_eat_submod(submod_map, software_enforced, tee_enforced);
@@ -1607,7 +1607,7 @@ keymaster_error_t parse_submod_values(AuthorizationSetBuilder* set_builder,
                                       int* auth_set_security_level, const cppbor::Map* submod_map) {
     ASSERT_OR_RETURN_ERROR(set_builder, KM_ERROR_UNEXPECTED_NULL_POINTER);
     for (size_t i = 0; i < submod_map->size(); i++) {
-        auto [key_item, value_item] = (*submod_map)[i];
+        auto& [key_item, value_item] = (*submod_map)[i];
         const cppbor::Int* key_int = key_item->asInt();
         ASSERT_OR_RETURN_ERROR(key_int, KM_ERROR_INVALID_TAG);
         int key = key_int->value();
