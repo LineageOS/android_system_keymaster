@@ -21,16 +21,16 @@
 
 #include <hardware/keymaster_defs.h>
 
+#include <keymaster/UniquePtr.h>
 #include <keymaster/android_keymaster_utils.h>
 #include <keymaster/authorization_set.h>
 #include <keymaster/key.h>
 #include <keymaster/key_blob_utils/auth_encrypted_key_blob.h>
 #include <keymaster/key_blob_utils/integrity_assured_key_blob.h>
 #include <keymaster/key_blob_utils/ocb_utils.h>
-#include <keymaster/km_openssl/openssl_utils.h>
 #include <keymaster/km_openssl/openssl_err.h>
+#include <keymaster/km_openssl/openssl_utils.h>
 #include <keymaster/logger.h>
-#include <keymaster/UniquePtr.h>
 
 #include <openssl/aes.h>
 
@@ -42,7 +42,7 @@ KeymasterBlob softwareRootOfTrust(SWROT);
 namespace {
 
 bool UpgradeIntegerTag(keymaster_tag_t tag, uint32_t value, AuthorizationSet* set,
-                              bool* set_changed) {
+                       bool* set_changed) {
     int index = set->find(tag);
     if (index == -1) {
         keymaster_key_param_t param;
@@ -53,8 +53,7 @@ bool UpgradeIntegerTag(keymaster_tag_t tag, uint32_t value, AuthorizationSet* se
         return true;
     }
 
-    if (set->params[index].integer > value)
-        return false;
+    if (set->params[index].integer > value) return false;
 
     if (set->params[index].integer != value) {
         set->params[index].integer = value;
@@ -75,7 +74,7 @@ keymaster_error_t TranslateAuthorizationSetError(AuthorizationSet::Error err) {
     return KM_ERROR_OK;
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
 keymaster_error_t BuildHiddenAuthorizations(const AuthorizationSet& input_set,
                                             AuthorizationSet* hidden,
@@ -91,8 +90,7 @@ keymaster_error_t BuildHiddenAuthorizations(const AuthorizationSet& input_set,
     return TranslateAuthorizationSetError(hidden->is_valid());
 }
 
-keymaster_error_t FakeKeyAuthorizations(EVP_PKEY* pubkey,
-                                        AuthorizationSet* hw_enforced,
+keymaster_error_t FakeKeyAuthorizations(EVP_PKEY* pubkey, AuthorizationSet* hw_enforced,
                                         AuthorizationSet* sw_enforced) {
     hw_enforced->Clear();
     sw_enforced->Clear();
@@ -119,12 +117,10 @@ keymaster_error_t FakeKeyAuthorizations(EVP_PKEY* pubkey,
         sw_enforced->push_back(TAG_PURPOSE, KM_PURPOSE_DECRYPT);
 
         RSA_Ptr rsa(EVP_PKEY_get1_RSA(pubkey));
-        if (!rsa)
-            return TranslateLastOpenSslError();
+        if (!rsa) return TranslateLastOpenSslError();
         hw_enforced->push_back(TAG_KEY_SIZE, RSA_size(rsa.get()) * 8);
         uint64_t public_exponent = BN_get_word(rsa->e);
-        if (public_exponent == 0xffffffffL)
-            return KM_ERROR_INVALID_KEY_BLOB;
+        if (public_exponent == 0xffffffffL) return KM_ERROR_INVALID_KEY_BLOB;
         hw_enforced->push_back(TAG_RSA_PUBLIC_EXPONENT, public_exponent);
         break;
     }
@@ -143,13 +139,11 @@ keymaster_error_t FakeKeyAuthorizations(EVP_PKEY* pubkey,
         sw_enforced->push_back(TAG_PURPOSE, KM_PURPOSE_VERIFY);
 
         UniquePtr<EC_KEY, EC_KEY_Delete> ec_key(EVP_PKEY_get1_EC_KEY(pubkey));
-        if (!ec_key.get())
-            return TranslateLastOpenSslError();
+        if (!ec_key.get()) return TranslateLastOpenSslError();
         size_t key_size_bits;
         keymaster_error_t error =
             ec_get_group_size(EC_KEY_get0_group(ec_key.get()), &key_size_bits);
-        if (error != KM_ERROR_OK)
-            return error;
+        if (error != KM_ERROR_OK) return error;
         hw_enforced->push_back(TAG_KEY_SIZE, key_size_bits);
         break;
     }
@@ -164,14 +158,14 @@ keymaster_error_t FakeKeyAuthorizations(EVP_PKEY* pubkey,
     return KM_ERROR_OK;
 }
 
-
 // Note: This parsing code in below is from system/security/softkeymaster/keymaster_openssl.cpp's
 // unwrap_key function, modified for the preferred function signature and formatting.  It does some
 // odd things, but they have been left unchanged to avoid breaking compatibility.
 static const uint8_t SOFT_KEY_MAGIC[] = {'P', 'K', '#', '8'};
-keymaster_error_t ParseOldSoftkeymasterBlob(
-    const KeymasterKeyBlob& blob, KeymasterKeyBlob* key_material, AuthorizationSet* hw_enforced,
-    AuthorizationSet* sw_enforced) {
+keymaster_error_t ParseOldSoftkeymasterBlob(const KeymasterKeyBlob& blob,
+                                            KeymasterKeyBlob* key_material,
+                                            AuthorizationSet* hw_enforced,
+                                            AuthorizationSet* sw_enforced) {
     long publicLen = 0;
     long privateLen = 0;
     const uint8_t* p = blob.key_material;
@@ -185,8 +179,7 @@ keymaster_error_t ParseOldSoftkeymasterBlob(
         return KM_ERROR_INVALID_KEY_BLOB;
     }
 
-    if (memcmp(p, SOFT_KEY_MAGIC, sizeof(SOFT_KEY_MAGIC)) != 0)
-        return KM_ERROR_INVALID_KEY_BLOB;
+    if (memcmp(p, SOFT_KEY_MAGIC, sizeof(SOFT_KEY_MAGIC)) != 0) return KM_ERROR_INVALID_KEY_BLOB;
     p += sizeof(SOFT_KEY_MAGIC);
 
     for (size_t i = 0; i < sizeof(type); i++)
@@ -227,11 +220,9 @@ keymaster_error_t ParseOldSoftkeymasterBlob(
     // auths for a HW-backed key.
     hw_enforced->Clear();
     keymaster_error_t error = FakeKeyAuthorizations(pkey.get(), sw_enforced, sw_enforced);
-    if (error != KM_ERROR_OK)
-        return error;
+    if (error != KM_ERROR_OK) return error;
 
-    if (!key_material->Reset(privateLen))
-        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    if (!key_material->Reset(privateLen)) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     memcpy(key_material->writable_data(), key_start, privateLen);
 
     return KM_ERROR_OK;
@@ -249,8 +240,7 @@ keymaster_error_t ParseOcbAuthEncryptedBlob(const KeymasterKeyBlob& blob,
     KeymasterKeyBlob encrypted_key_material;
     keymaster_error_t error = DeserializeAuthEncryptedBlob(blob, &encrypted_key_material,
                                                            hw_enforced, sw_enforced, &nonce, &tag);
-    if (error != KM_ERROR_OK)
-        return error;
+    if (error != KM_ERROR_OK) return error;
 
     if (nonce.available_read() != OCB_NONCE_LENGTH || tag.available_read() != OCB_TAG_LENGTH)
         return KM_ERROR_INVALID_KEY_BLOB;
@@ -286,8 +276,7 @@ keymaster_error_t SetKeyBlobAuthorizations(const AuthorizationSet& key_descripti
         // Everything else we just copy into sw_enforced, unless the KeyFactory has placed it in
         // hw_enforced, in which case we defer to its decision.
         default:
-            if (hw_enforced->GetTagCount(entry.tag) == 0)
-                sw_enforced->push_back(entry);
+            if (hw_enforced->GetTagCount(entry.tag) == 0) sw_enforced->push_back(entry);
             break;
         }
     }
@@ -306,11 +295,10 @@ keymaster_error_t SetKeyBlobAuthorizations(const AuthorizationSet& key_descripti
     return TranslateAuthorizationSetError(sw_enforced->is_valid());
 }
 
-
-keymaster_error_t UpgradeSoftKeyBlob(const UniquePtr<Key>& key,
-                                 const uint32_t os_version, const uint32_t os_patchlevel,
-                                 const AuthorizationSet& upgrade_params,
-                                 KeymasterKeyBlob* upgraded_key) {
+keymaster_error_t UpgradeSoftKeyBlob(const UniquePtr<Key>& key, const uint32_t os_version,
+                                     const uint32_t os_patchlevel,
+                                     const AuthorizationSet& upgrade_params,
+                                     KeymasterKeyBlob* upgraded_key) {
     bool set_changed = false;
 
     if (os_version == 0) {
@@ -338,10 +326,9 @@ keymaster_error_t UpgradeSoftKeyBlob(const UniquePtr<Key>& key,
 
     AuthorizationSet hidden;
     auto error = BuildHiddenAuthorizations(upgrade_params, &hidden, softwareRootOfTrust);
-    if (error != KM_ERROR_OK)
-        return error;
+    if (error != KM_ERROR_OK) return error;
     return SerializeIntegrityAssuredBlob(key->key_material(), hidden, key->hw_enforced(),
                                          key->sw_enforced(), upgraded_key);
 }
 
-} // namespace keymaster
+}  // namespace keymaster

@@ -59,8 +59,7 @@ SoftKeymasterContext::SoftKeymasterContext(KmVersion version, const std::string&
 SoftKeymasterContext::~SoftKeymasterContext() {}
 
 keymaster_error_t SoftKeymasterContext::SetHardwareDevice(keymaster1_device_t* keymaster1_device) {
-    if (!keymaster1_device)
-        return KM_ERROR_UNEXPECTED_NULL_POINTER;
+    if (!keymaster1_device) return KM_ERROR_UNEXPECTED_NULL_POINTER;
 
     km1_dev_ = keymaster1_device;
 
@@ -115,8 +114,7 @@ SoftKeymasterContext::GetSupportedAlgorithms(size_t* algorithms_count) const {
 OperationFactory* SoftKeymasterContext::GetOperationFactory(keymaster_algorithm_t algorithm,
                                                             keymaster_purpose_t purpose) const {
     KeyFactory* key_factory = GetKeyFactory(algorithm);
-    if (!key_factory)
-        return nullptr;
+    if (!key_factory) return nullptr;
     return key_factory->GetOperationFactory(purpose);
 }
 
@@ -159,8 +157,7 @@ static keymaster_error_t SetAuthorizations(const AuthorizationSet& key_descripti
         // Everything else we just copy into sw_enforced, unless the KeyFactory has placed it in
         // hw_enforced, in which case we defer to its decision.
         default:
-            if (hw_enforced->GetTagCount(entry.tag) == 0)
-                sw_enforced->push_back(entry);
+            if (hw_enforced->GetTagCount(entry.tag) == 0) sw_enforced->push_back(entry);
             break;
         }
     }
@@ -181,13 +178,11 @@ keymaster_error_t SoftKeymasterContext::CreateKeyBlob(const AuthorizationSet& ke
                                                       AuthorizationSet* sw_enforced) const {
     keymaster_error_t error = SetAuthorizations(key_description, origin, os_version_,
                                                 os_patchlevel_, hw_enforced, sw_enforced);
-    if (error != KM_ERROR_OK)
-        return error;
+    if (error != KM_ERROR_OK) return error;
 
     AuthorizationSet hidden;
     error = BuildHiddenAuthorizations(key_description, &hidden, root_of_trust_);
-    if (error != KM_ERROR_OK)
-        return error;
+    if (error != KM_ERROR_OK) return error;
 
     return SerializeIntegrityAssuredBlob(key_material, hidden, *hw_enforced, *sw_enforced, blob);
 }
@@ -197,8 +192,7 @@ keymaster_error_t SoftKeymasterContext::UpgradeKeyBlob(const KeymasterKeyBlob& k
                                                        KeymasterKeyBlob* upgraded_key) const {
     UniquePtr<Key> key;
     keymaster_error_t error = ParseKeyBlob(key_to_upgrade, upgrade_params, &key);
-    if (error != KM_ERROR_OK)
-        return error;
+    if (error != KM_ERROR_OK) return error;
 
     // Three cases here:
     //
@@ -213,7 +207,7 @@ keymaster_error_t SoftKeymasterContext::UpgradeKeyBlob(const KeymasterKeyBlob& k
 
     // Handle case 3.
     if (km1_dev_ && key->hw_enforced().Contains(TAG_PURPOSE) &&
-            !key->hw_enforced().Contains(TAG_OS_PATCHLEVEL))
+        !key->hw_enforced().Contains(TAG_OS_PATCHLEVEL))
         return KM_ERROR_INVALID_ARGUMENT;
 
     // Handle case 1 and 2
@@ -261,7 +255,7 @@ keymaster_error_t SoftKeymasterContext::ParseKeyBlob(const KeymasterKeyBlob& blo
     AuthorizationSet hidden;
     keymaster_error_t error;
 
-    auto constructKey = [&, this] () mutable -> keymaster_error_t {
+    auto constructKey = [&, this]() mutable -> keymaster_error_t {
         // GetKeyFactory
         if (error != KM_ERROR_OK) return error;
         keymaster_algorithm_t algorithm;
@@ -275,28 +269,23 @@ keymaster_error_t SoftKeymasterContext::ParseKeyBlob(const KeymasterKeyBlob& blo
     };
 
     error = BuildHiddenAuthorizations(additional_params, &hidden, root_of_trust_);
-    if (error != KM_ERROR_OK)
-        return error;
+    if (error != KM_ERROR_OK) return error;
 
     // Assume it's an integrity-assured blob (new software-only blob, or new keymaster0-backed
     // blob).
-    error = DeserializeIntegrityAssuredBlob(blob, hidden, &key_material, &hw_enforced, &sw_enforced);
-    if (error != KM_ERROR_INVALID_KEY_BLOB)
-        return constructKey();
+    error =
+        DeserializeIntegrityAssuredBlob(blob, hidden, &key_material, &hw_enforced, &sw_enforced);
+    if (error != KM_ERROR_INVALID_KEY_BLOB) return constructKey();
 
     // Wasn't an integrity-assured blob.  Maybe it's an OCB-encrypted blob.
     error = ParseOcbAuthEncryptedBlob(blob, hidden, &key_material, &hw_enforced, &sw_enforced);
-    if (error == KM_ERROR_OK)
-        LOG_D("Parsed an old keymaster1 software key", 0);
-    if (error != KM_ERROR_INVALID_KEY_BLOB)
-        return constructKey();
+    if (error == KM_ERROR_OK) LOG_D("Parsed an old keymaster1 software key", 0);
+    if (error != KM_ERROR_INVALID_KEY_BLOB) return constructKey();
 
     // Wasn't an OCB-encrypted blob.  Maybe it's an old softkeymaster blob.
     error = ParseOldSoftkeymasterBlob(blob, &key_material, &hw_enforced, &sw_enforced);
-    if (error == KM_ERROR_OK)
-        LOG_D("Parsed an old sofkeymaster key", 0);
-    if (error != KM_ERROR_INVALID_KEY_BLOB)
-        return constructKey();
+    if (error == KM_ERROR_OK) LOG_D("Parsed an old sofkeymaster key", 0);
+    if (error != KM_ERROR_INVALID_KEY_BLOB) return constructKey();
 
     if (km1_dev_) {
         error = ParseKeymaster1HwBlob(blob, additional_params, &key_material, &hw_enforced,
@@ -347,17 +336,14 @@ keymaster_error_t SoftKeymasterContext::ParseKeymaster1HwBlob(
     keymaster_blob_t app_data = {nullptr, 0};
     keymaster_blob_t* client_id_ptr = nullptr;
     keymaster_blob_t* app_data_ptr = nullptr;
-    if (additional_params.GetTagValue(TAG_APPLICATION_ID, &client_id))
-        client_id_ptr = &client_id;
-    if (additional_params.GetTagValue(TAG_APPLICATION_DATA, &app_data))
-        app_data_ptr = &app_data;
+    if (additional_params.GetTagValue(TAG_APPLICATION_ID, &client_id)) client_id_ptr = &client_id;
+    if (additional_params.GetTagValue(TAG_APPLICATION_DATA, &app_data)) app_data_ptr = &app_data;
 
     // Get key characteristics, which incidentally verifies that the HW recognizes the key.
     keymaster_key_characteristics_t* characteristics;
     keymaster_error_t error = km1_dev_->get_key_characteristics(km1_dev_, &blob, client_id_ptr,
                                                                 app_data_ptr, &characteristics);
-    if (error != KM_ERROR_OK)
-        return error;
+    if (error != KM_ERROR_OK) return error;
     unique_ptr<keymaster_key_characteristics_t, Characteristics_Delete> characteristics_deleter(
         characteristics);
 

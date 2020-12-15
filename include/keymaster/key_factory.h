@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef SYSTEM_KEYMASTER_KEY_FACTORY_H_
-#define SYSTEM_KEYMASTER_KEY_FACTORY_H_
+#pragma once
 
 #include <hardware/keymaster_defs.h>
 #include <keymaster/authorization_set.h>
@@ -25,7 +24,7 @@ namespace keymaster {
 class Key;
 class KeymasterContext;
 class OperationFactory;
-template<typename BlobType> struct TKeymasterBlob;
+template <typename BlobType> struct TKeymasterBlob;
 typedef TKeymasterBlob<keymaster_key_blob_t> KeymasterKeyBlob;
 
 /**
@@ -62,5 +61,3 @@ class KeyFactory {
 };
 
 }  // namespace keymaster
-
-#endif  // SYSTEM_KEYMASTER_KEY_FACTORY_H_

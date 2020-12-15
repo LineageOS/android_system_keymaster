@@ -45,14 +45,9 @@ IMPLEMENT_ASN1_FUNCTIONS(KM_AUTH_LIST);
 IMPLEMENT_ASN1_FUNCTIONS(KM_KEY_DESCRIPTION);
 
 static const keymaster_tag_t kDeviceAttestationTags[] = {
-    KM_TAG_ATTESTATION_ID_BRAND,
-    KM_TAG_ATTESTATION_ID_DEVICE,
-    KM_TAG_ATTESTATION_ID_PRODUCT,
-    KM_TAG_ATTESTATION_ID_SERIAL,
-    KM_TAG_ATTESTATION_ID_IMEI,
-    KM_TAG_ATTESTATION_ID_MEID,
-    KM_TAG_ATTESTATION_ID_MANUFACTURER,
-    KM_TAG_ATTESTATION_ID_MODEL,
+    KM_TAG_ATTESTATION_ID_BRAND,        KM_TAG_ATTESTATION_ID_DEVICE, KM_TAG_ATTESTATION_ID_PRODUCT,
+    KM_TAG_ATTESTATION_ID_SERIAL,       KM_TAG_ATTESTATION_ID_IMEI,   KM_TAG_ATTESTATION_ID_MEID,
+    KM_TAG_ATTESTATION_ID_MANUFACTURER, KM_TAG_ATTESTATION_ID_MODEL,
 };
 
 struct KM_AUTH_LIST_Delete {
@@ -762,10 +757,8 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
 
         case KM_BOOL:
             ASSERT_OR_RETURN_ERROR(bool_ptr, KM_ERROR_INVALID_TAG);
-            if (!*bool_ptr)
-                *bool_ptr = ASN1_NULL_new();
-            if (!*bool_ptr)
-                return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+            if (!*bool_ptr) *bool_ptr = ASN1_NULL_new();
+            if (!*bool_ptr) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
             break;
 
         /* Byte arrays*/
@@ -795,8 +788,7 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
         // This must be a keymaster1 key. It's an EC key with no curve.  Insert the curve.
 
         keymaster_error_t error = EcKeySizeToCurve(key_size, &ec_curve);
-        if (error != KM_ERROR_OK)
-            return error;
+        if (error != KM_ERROR_OK) return error;
 
         UniquePtr<ASN1_INTEGER, ASN1_INTEGER_Delete> value(ASN1_INTEGER_new());
         if (!value.get()) {
@@ -1056,12 +1048,10 @@ build_attestation_record(const AuthorizationSet& attestation_params, Authorizati
     };
 
     error = build_auth_list(sw_enforced, key_desc->software_enforced);
-    if (error != KM_ERROR_OK)
-        return error;
+    if (error != KM_ERROR_OK) return error;
 
     error = build_auth_list(tee_enforced, key_desc->tee_enforced);
-    if (error != KM_ERROR_OK)
-        return error;
+    if (error != KM_ERROR_OK) return error;
 
     // Only check tee_enforced for TAG_INCLUDE_UNIQUE_ID.  If we don't have hardware we can't
     // generate unique IDs.
@@ -1081,8 +1071,7 @@ build_attestation_record(const AuthorizationSet& attestation_params, Authorizati
         error = context.GenerateUniqueId(
             creation_datetime, application_id,
             attestation_params.GetTagValue(TAG_RESET_SINCE_ID_ROTATION), &unique_id);
-        if (error != KM_ERROR_OK)
-            return error;
+        if (error != KM_ERROR_OK) return error;
 
         key_desc->unique_id = ASN1_OCTET_STRING_new();
         if (!key_desc->unique_id ||
@@ -1092,15 +1081,13 @@ build_attestation_record(const AuthorizationSet& attestation_params, Authorizati
     }
 
     int len = i2d_KM_KEY_DESCRIPTION(key_desc.get(), nullptr);
-    if (len < 0)
-        return TranslateLastOpenSslError();
+    if (len < 0) return TranslateLastOpenSslError();
     *asn1_key_desc_len = len;
-    asn1_key_desc->reset(new(std::nothrow) uint8_t[*asn1_key_desc_len]);
+    asn1_key_desc->reset(new (std::nothrow) uint8_t[*asn1_key_desc_len]);
     if (!asn1_key_desc->get()) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     uint8_t* p = asn1_key_desc->get();
     len = i2d_KM_KEY_DESCRIPTION(key_desc.get(), &p);
-    if (len < 0)
-        return TranslateLastOpenSslError();
+    if (len < 0) return TranslateLastOpenSslError();
 
     return KM_ERROR_OK;
 }
@@ -1121,16 +1108,14 @@ static bool get_repeated_enums(const ASN1_INTEGER_SET* stack, keymaster_tag_t ta
 template <keymaster_tag_type_t Type, keymaster_tag_t Tag, typename KeymasterEnum>
 static bool get_enum(const ASN1_INTEGER* asn1_int, TypedEnumTag<Type, Tag, KeymasterEnum> tag,
                      AuthorizationSet* auth_list) {
-    if (!asn1_int)
-        return true;
+    if (!asn1_int) return true;
     return auth_list->push_back(tag, static_cast<KeymasterEnum>(ASN1_INTEGER_get(asn1_int)));
 }
 
 // Add the specified ulong tag/value pair to auth_list.
 static bool get_ulong(const ASN1_INTEGER* asn1_int, keymaster_tag_t tag,
                       AuthorizationSet* auth_list) {
-    if (!asn1_int)
-        return true;
+    if (!asn1_int) return true;
     UniquePtr<BIGNUM, BIGNUM_Delete> bn(ASN1_INTEGER_to_BN(asn1_int, nullptr));
     if (!bn.get()) return false;
     uint64_t ulong = 0;
@@ -1140,8 +1125,7 @@ static bool get_ulong(const ASN1_INTEGER* asn1_int, keymaster_tag_t tag,
 
 // Extract the values from the specified ASN.1 record and place them in auth_list.
 keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet* auth_list) {
-    if (!record)
-        return KM_ERROR_OK;
+    if (!record) return KM_ERROR_OK;
 
     // Purpose
     if (!get_repeated_enums(record->purpose, TAG_PURPOSE, auth_list)) {
@@ -1427,8 +1411,7 @@ keymaster_error_t parse_attestation_record(const uint8_t* asn1_key_desc, size_t 
     unique_id->data_length = record->unique_id->length;
 
     keymaster_error_t error = extract_auth_list(record->software_enforced, software_enforced);
-    if (error != KM_ERROR_OK)
-        return error;
+    if (error != KM_ERROR_OK) return error;
 
     return extract_auth_list(record->tee_enforced, tee_enforced);
 }

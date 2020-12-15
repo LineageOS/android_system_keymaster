@@ -17,8 +17,8 @@
 
 #include <keymaster/contexts/keymaster2_passthrough_context.h>
 
-#include <keymaster/legacy_support/keymaster_passthrough_key.h>
 #include <keymaster/legacy_support/keymaster_passthrough_engine.h>
+#include <keymaster/legacy_support/keymaster_passthrough_key.h>
 
 namespace keymaster {
 
@@ -27,14 +27,14 @@ Keymaster2PassthroughContext::Keymaster2PassthroughContext(KmVersion version,
     : device_(dev), engine_(KeymasterPassthroughEngine::createInstance(dev)), version_(version) {}
 
 keymaster_error_t Keymaster2PassthroughContext::SetSystemVersion(uint32_t os_version,
-        uint32_t os_patchlevel) {
+                                                                 uint32_t os_patchlevel) {
     os_version_ = os_version;
     os_patchlevel_ = os_patchlevel;
     return KM_ERROR_OK;
 }
 
 void Keymaster2PassthroughContext::GetSystemVersion(uint32_t* os_version,
-        uint32_t* os_patchlevel) const {
+                                                    uint32_t* os_patchlevel) const {
     if (os_version) *os_version = os_version_;
     if (os_patchlevel) *os_patchlevel = os_patchlevel_;
 }
@@ -46,27 +46,31 @@ KeyFactory* Keymaster2PassthroughContext::GetKeyFactory(keymaster_algorithm_t al
     }
     return result.get();
 }
-OperationFactory* Keymaster2PassthroughContext::GetOperationFactory(keymaster_algorithm_t algorithm,
-        keymaster_purpose_t purpose) const {
+OperationFactory*
+Keymaster2PassthroughContext::GetOperationFactory(keymaster_algorithm_t algorithm,
+                                                  keymaster_purpose_t purpose) const {
     auto keyfactory = GetKeyFactory(algorithm);
     return keyfactory->GetOperationFactory(purpose);
 }
-keymaster_algorithm_t* Keymaster2PassthroughContext::GetSupportedAlgorithms(
-        size_t* algorithms_count) const {
+keymaster_algorithm_t*
+Keymaster2PassthroughContext::GetSupportedAlgorithms(size_t* algorithms_count) const {
     if (algorithms_count) *algorithms_count = 0;
     return nullptr;
 }
 
-keymaster_error_t Keymaster2PassthroughContext::UpgradeKeyBlob(
-        const KeymasterKeyBlob& key_to_upgrade, const AuthorizationSet& upgrade_params,
-        KeymasterKeyBlob* upgraded_key) const {
+keymaster_error_t
+Keymaster2PassthroughContext::UpgradeKeyBlob(const KeymasterKeyBlob& key_to_upgrade,
+                                             const AuthorizationSet& upgrade_params,
+                                             KeymasterKeyBlob* upgraded_key) const {
     if (!upgraded_key) return KM_ERROR_UNEXPECTED_NULL_POINTER;
     *upgraded_key = {};
     return device_->upgrade_key(device_, &key_to_upgrade, &upgrade_params, upgraded_key);
 }
 
-keymaster_error_t Keymaster2PassthroughContext::ParseKeyBlob(const KeymasterKeyBlob& blob,
-        const AuthorizationSet& additional_params, UniquePtr<Key>* key) const {
+keymaster_error_t
+Keymaster2PassthroughContext::ParseKeyBlob(const KeymasterKeyBlob& blob,
+                                           const AuthorizationSet& additional_params,
+                                           UniquePtr<Key>* key) const {
     keymaster_key_characteristics_t characteristics = {};
     keymaster_blob_t clientId;
     keymaster_blob_t applicationData;
@@ -114,17 +118,16 @@ keymaster_error_t Keymaster2PassthroughContext::DeleteAllKeys() const {
 }
 
 keymaster_error_t Keymaster2PassthroughContext::AddRngEntropy(const uint8_t* buf,
-        size_t length) const {
+                                                              size_t length) const {
     return device_->add_rng_entropy(device_, buf, length);
 }
-
 
 KeymasterEnforcement* Keymaster2PassthroughContext::enforcement_policy() {
     return nullptr;
 }
 
-keymaster_error_t Keymaster2PassthroughContext::GenerateAttestation(const Key& key,
-        const AuthorizationSet& attest_params, CertChainPtr* cert_chain) const {
+keymaster_error_t Keymaster2PassthroughContext::GenerateAttestation(
+    const Key& key, const AuthorizationSet& attest_params, CertChainPtr* cert_chain) const {
     if (!cert_chain) return KM_ERROR_UNEXPECTED_NULL_POINTER;
 
     keymaster_cert_chain_t cchain{};
@@ -132,11 +135,11 @@ keymaster_error_t Keymaster2PassthroughContext::GenerateAttestation(const Key& k
     auto rc = device_->attest_key(device_, &key.key_material(), &attest_params, &cchain);
     if (rc == KM_ERROR_OK) {
         cert_chain->reset(new keymaster_cert_chain_t);
-        **cert_chain = { new keymaster_blob_t[cchain.entry_count], cchain.entry_count };
+        **cert_chain = {new keymaster_blob_t[cchain.entry_count], cchain.entry_count};
         for (size_t i = 0; i < cchain.entry_count; ++i) {
-            (*cert_chain)->entries[i] = { dup_array(cchain.entries[i].data,
-                                              cchain.entries[i].data_length),
-                                          cchain.entries[i].data_length };
+            (*cert_chain)->entries[i] = {
+                dup_array(cchain.entries[i].data, cchain.entries[i].data_length),
+                cchain.entries[i].data_length};
             free(const_cast<uint8_t*>(cchain.entries[i].data));
         }
         free(cchain.entries);
@@ -150,4 +153,4 @@ keymaster_error_t Keymaster2PassthroughContext::UnwrapKey(
     return KM_ERROR_UNIMPLEMENTED;
 }
 
-} // namespace keymaster
+}  // namespace keymaster

@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef SYSTEM_KEYMASTER_OPENSSL_UTILS_H_
-#define SYSTEM_KEYMASTER_OPENSSL_UTILS_H_
+#pragma once
 
 #include <openssl/bn.h>
 #include <openssl/ec.h>
@@ -30,7 +29,7 @@
 
 namespace keymaster {
 
-template<typename BlobType> struct TKeymasterBlob;
+template <typename BlobType> struct TKeymasterBlob;
 typedef TKeymasterBlob<keymaster_key_blob_t> KeymasterKeyBlob;
 
 class EvpMdCtxCleaner {
@@ -100,5 +99,3 @@ size_t ec_group_size_bits(EC_KEY* ec_key);
 keymaster_error_t GenerateRandom(uint8_t* buf, size_t length);
 
 }  // namespace keymaster
-
-#endif  // SYSTEM_KEYMASTER_OPENSSL_UTILS_H_
