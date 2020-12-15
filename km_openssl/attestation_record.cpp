@@ -868,7 +868,8 @@ keymaster_error_t build_eat_record(const AuthorizationSet& attestation_params,
 
     eat_record.add(EatClaim::ATTESTATION_VERSION,
                    version_to_attestation_version(context.GetKmVersion()));
-    eat_record.add(EatClaim::KEYMASTER_VERSION, context.GetKmVersion());
+    eat_record.add(EatClaim::KEYMASTER_VERSION,
+                   version_to_attestation_km_version(context.GetKmVersion()));
 
     keymaster_blob_t attestation_challenge = {nullptr, 0};
     if (!attestation_params.GetTagValue(TAG_ATTESTATION_CHALLENGE, &attestation_challenge)) {

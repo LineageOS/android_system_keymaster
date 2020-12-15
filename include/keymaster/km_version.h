@@ -22,15 +22,13 @@ namespace keymaster {
  * Version enumerates the list of Keymaster/KeyMint versions that we may support.  As old
  * versions are deprecated and removed they should be removed from this enum, which will make it
  * possible to easily find the version-dependent code and remove dead branches.
- *
- * The enum values are a bit odd.  They correspond to the Keymaster/KeyMint versions in
- * attestations.
  */
 enum class KmVersion {
-    KEYMASTER_1 = 1,
-    KEYMASTER_2 = 2,
-    KEYMASTER_3 = 3,
-    KEYMASTER_4 = 4,
+    KEYMASTER_1 = 10,
+    KEYMASTER_1_1 = 11,
+    KEYMASTER_2 = 20,
+    KEYMASTER_3 = 30,
+    KEYMASTER_4 = 40,
     KEYMASTER_4_1 = 41,
     KEYMINT_1 = 100,
 };
