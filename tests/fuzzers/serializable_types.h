@@ -85,77 +85,77 @@ enum class SerializableType : uint32_t {
 std::unique_ptr<Serializable> getSerializable(SerializableType serType) {
     switch (serType) {
     case SerializableType::SUPPORTED_ALGORITHMS_REQUEST:
-        return std::make_unique<SupportedAlgorithmsRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<SupportedAlgorithmsRequest>(kMaxMessageVersion);
     case SerializableType::SUPPORTED_BY_ALGORITHM_REQUEST:
-        return std::make_unique<SupportedByAlgorithmRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<SupportedByAlgorithmRequest>(kMaxMessageVersion);
     case SerializableType::SUPPORTED_IMPORT_FORMATS_REQUEST:
-        return std::make_unique<SupportedImportFormatsRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<SupportedImportFormatsRequest>(kMaxMessageVersion);
     case SerializableType::SUPPORTED_EXPORT_FORMATS_REQUEST:
-        return std::make_unique<SupportedExportFormatsRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<SupportedExportFormatsRequest>(kMaxMessageVersion);
     case SerializableType::SUPPORTED_BY_ALGORITHM_AND_PURPOSE_REQUEST:
-        return std::make_unique<SupportedByAlgorithmAndPurposeRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<SupportedByAlgorithmAndPurposeRequest>(kMaxMessageVersion);
     case SerializableType::SUPPORTED_BLOCK_MODES_REQUEST:
-        return std::make_unique<SupportedBlockModesRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<SupportedBlockModesRequest>(kMaxMessageVersion);
     case SerializableType::SUPPORTED_PADDING_MODES_REQUEST:
-        return std::make_unique<SupportedPaddingModesRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<SupportedPaddingModesRequest>(kMaxMessageVersion);
     case SerializableType::SUPPORTED_DIGESTS_REQUEST:
-        return std::make_unique<SupportedDigestsRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<SupportedDigestsRequest>(kMaxMessageVersion);
     case SerializableType::SUPPORTED_ALGORITHMS_RESPONSE:
-        return std::make_unique<SupportedAlgorithmsResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<SupportedAlgorithmsResponse>(kMaxMessageVersion);
     case SerializableType::SUPPORTED_BLOCK_MODES_RESPONSE:
-        return std::make_unique<SupportedBlockModesResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<SupportedBlockModesResponse>(kMaxMessageVersion);
     case SerializableType::SUPPORTED_PADDING_MODES_RESPONSE:
-        return std::make_unique<SupportedPaddingModesResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<SupportedPaddingModesResponse>(kMaxMessageVersion);
     case SerializableType::SUPPORTED_DIGESTS_RESPONSE:
-        return std::make_unique<SupportedDigestsResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<SupportedDigestsResponse>(kMaxMessageVersion);
     case SerializableType::SUPPORTED_IMPORT_FORMATS_RESPONSE:
-        return std::make_unique<SupportedImportFormatsResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<SupportedImportFormatsResponse>(kMaxMessageVersion);
     case SerializableType::SUPPORTED_EXPORT_FORMATS_RESPONSE:
-        return std::make_unique<SupportedExportFormatsResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<SupportedExportFormatsResponse>(kMaxMessageVersion);
     case SerializableType::GENERATE_KEY_REQUEST:
-        return std::make_unique<GenerateKeyRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<GenerateKeyRequest>(kMaxMessageVersion);
     case SerializableType::GENERATE_KEY_RESPONSE:
-        return std::make_unique<GenerateKeyResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<GenerateKeyResponse>(kMaxMessageVersion);
     case SerializableType::GET_KEY_CHARACTERISTICS_REQUEST:
-        return std::make_unique<GetKeyCharacteristicsRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<GetKeyCharacteristicsRequest>(kMaxMessageVersion);
     case SerializableType::GET_KEY_CHARACTERISTICS_RESPONSE:
-        return std::make_unique<GetKeyCharacteristicsResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<GetKeyCharacteristicsResponse>(kMaxMessageVersion);
     case SerializableType::BEGIN_OPERATION_REQUEST:
-        return std::make_unique<BeginOperationRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<BeginOperationRequest>(kMaxMessageVersion);
     case SerializableType::BEGIN_OPERATION_RESPONSE:
-        return std::make_unique<BeginOperationResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<BeginOperationResponse>(kMaxMessageVersion);
     case SerializableType::UPDATE_OPERATION_REQUEST:
-        return std::make_unique<UpdateOperationRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<UpdateOperationRequest>(kMaxMessageVersion);
     case SerializableType::UPDATE_OPERATION_RESPONSE:
-        return std::make_unique<UpdateOperationResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<UpdateOperationResponse>(kMaxMessageVersion);
     case SerializableType::FINISH_OPERATION_REQUEST:
-        return std::make_unique<FinishOperationRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<FinishOperationRequest>(kMaxMessageVersion);
     case SerializableType::FINISH_OPERATION_RESPONSE:
-        return std::make_unique<FinishOperationResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<FinishOperationResponse>(kMaxMessageVersion);
     case SerializableType::ABORT_OPERATION_REQUEST:
-        return std::make_unique<AbortOperationRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<AbortOperationRequest>(kMaxMessageVersion);
     case SerializableType::ABORT_OPERATION_RESPONSE:
-        return std::make_unique<AbortOperationResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<AbortOperationResponse>(kMaxMessageVersion);
     case SerializableType::ADD_ENTROPY_REQUEST:
-        return std::make_unique<AddEntropyRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<AddEntropyRequest>(kMaxMessageVersion);
     case SerializableType::ADD_ENTROPY_RESPONSE:
-        return std::make_unique<AddEntropyResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<AddEntropyResponse>(kMaxMessageVersion);
     case SerializableType::IMPORT_KEY_REQUEST:
-        return std::make_unique<ImportKeyRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<ImportKeyRequest>(kMaxMessageVersion);
     case SerializableType::IMPORT_KEY_RESPONSE:
-        return std::make_unique<ImportKeyResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<ImportKeyResponse>(kMaxMessageVersion);
     case SerializableType::EXPORT_KEY_REQUEST:
-        return std::make_unique<ExportKeyRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<ExportKeyRequest>(kMaxMessageVersion);
     case SerializableType::EXPORT_KEY_RESPONSE:
-        return std::make_unique<ExportKeyResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<ExportKeyResponse>(kMaxMessageVersion);
     case SerializableType::DELETE_KEY_REQUEST:
-        return std::make_unique<DeleteKeyRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<DeleteKeyRequest>(kMaxMessageVersion);
     case SerializableType::DELETE_KEY_RESPONSE:
-        return std::make_unique<DeleteKeyResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<DeleteKeyResponse>(kMaxMessageVersion);
     case SerializableType::DELETE_ALL_KEYS_REQUEST:
-        return std::make_unique<DeleteAllKeysRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<DeleteAllKeysRequest>(kMaxMessageVersion);
     case SerializableType::DELETE_ALL_KEYS_RESPONSE:
-        return std::make_unique<DeleteAllKeysResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<DeleteAllKeysResponse>(kMaxMessageVersion);
     case SerializableType::GET_VERSION_REQUEST:
         // Not versionable
         return std::make_unique<GetVersionRequest>();
@@ -163,33 +163,33 @@ std::unique_ptr<Serializable> getSerializable(SerializableType serType) {
         // Not versionable
         return std::make_unique<GetVersionResponse>();
     case SerializableType::ATTEST_KEY_REQUEST:
-        return std::make_unique<AttestKeyRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<AttestKeyRequest>(kMaxMessageVersion);
     case SerializableType::ATTEST_KEY_RESPONSE:
-        return std::make_unique<AttestKeyResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<AttestKeyResponse>(kMaxMessageVersion);
     case SerializableType::UPGRADE_KEY_REQUEST:
-        return std::make_unique<UpgradeKeyRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<UpgradeKeyRequest>(kMaxMessageVersion);
     case SerializableType::UPGRADE_KEY_RESPONSE:
-        return std::make_unique<UpgradeKeyResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<UpgradeKeyResponse>(kMaxMessageVersion);
     case SerializableType::CONFIGURE_REQUEST:
-        return std::make_unique<ConfigureRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<ConfigureRequest>(kMaxMessageVersion);
     case SerializableType::CONFIGURE_RESPONSE:
-        return std::make_unique<ConfigureResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<ConfigureResponse>(kMaxMessageVersion);
     case SerializableType::DEVICE_LOCKED_REQUEST:
-        return std::make_unique<DeviceLockedRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<DeviceLockedRequest>(kMaxMessageVersion);
     case SerializableType::GET_HMAC_SHARING_PARAMETERS_RESPONSE:
-        return std::make_unique<GetHmacSharingParametersResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<GetHmacSharingParametersResponse>(kMaxMessageVersion);
     case SerializableType::COMPUTE_SHARED_HMAC_REQUEST:
-        return std::make_unique<ComputeSharedHmacRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<ComputeSharedHmacRequest>(kMaxMessageVersion);
     case SerializableType::COMPUTE_SHARED_HMAC_RESPONSE:
-        return std::make_unique<ComputeSharedHmacResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<ComputeSharedHmacResponse>(kMaxMessageVersion);
     case SerializableType::IMPORT_WRAPPED_KEY_REQUEST:
-        return std::make_unique<ImportWrappedKeyRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<ImportWrappedKeyRequest>(kMaxMessageVersion);
     case SerializableType::IMPORT_WRAPPED_KEY_RESPONSE:
-        return std::make_unique<ImportWrappedKeyResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<ImportWrappedKeyResponse>(kMaxMessageVersion);
     case SerializableType::VERIFY_AUTHORIZATION_REQUEST:
-        return std::make_unique<VerifyAuthorizationRequest>(MAX_MESSAGE_VERSION);
+        return std::make_unique<VerifyAuthorizationRequest>(kMaxMessageVersion);
     case SerializableType::VERIFY_AUTHORIZATION_RESPONSE:
-        return std::make_unique<VerifyAuthorizationResponse>(MAX_MESSAGE_VERSION);
+        return std::make_unique<VerifyAuthorizationResponse>(kMaxMessageVersion);
 
     // These are not messages, and expect an empty constructor.
     case SerializableType::HMAC_SHARING_PARAMETERS:
