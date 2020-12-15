@@ -63,7 +63,7 @@ CertificateChain makeCertChain(X509* certificate, CertificateChain chain,
 keymaster_error_t build_attestation_extension(const AuthorizationSet& attest_params,
                                               const AuthorizationSet& tee_enforced,
                                               const AuthorizationSet& sw_enforced,
-                                              const AttestationRecordContext& context,
+                                              const AttestationContext& context,
                                               X509_EXTENSION_Ptr* extension) {
     ASN1_OBJECT_Ptr oid(
         OBJ_txt2obj(kAsn1TokenOid, 1 /* accept numerical dotted string form only */));
@@ -93,7 +93,7 @@ keymaster_error_t build_attestation_extension(const AuthorizationSet& attest_par
 keymaster_error_t build_eat_extension(const AuthorizationSet& attest_params,
                                       const AuthorizationSet& tee_enforced,
                                       const AuthorizationSet& sw_enforced,
-                                      const AttestationRecordContext& context,
+                                      const AttestationContext& context,  //
                                       X509_EXTENSION_Ptr* extension) {
     ASN1_OBJECT_Ptr oid(
         OBJ_txt2obj(kEatTokenOid, 1 /* accept numerical dotted string form only */));
@@ -124,7 +124,7 @@ keymaster_error_t build_eat_extension(const AuthorizationSet& attest_params,
 keymaster_error_t add_attestation_extension(const AuthorizationSet& attest_params,
                                             const AuthorizationSet& tee_enforced,
                                             const AuthorizationSet& sw_enforced,
-                                            const AttestationRecordContext& context,
+                                            const AttestationContext& context,  //
                                             X509* certificate) {
     X509_EXTENSION_Ptr attest_extension;
     if (context.GetKmVersion() < KmVersion::KEYMINT_1) {
@@ -155,7 +155,7 @@ make_attestation_cert(const EVP_PKEY* evp_pkey, const uint32_t serial, const X50
                       const uint64_t usageExpireDateTimeMilliSeconds, const bool is_signing_key,
                       const bool is_encryption_key, const AuthorizationSet& attest_params,
                       const AuthorizationSet& tee_enforced, const AuthorizationSet& sw_enforced,
-                      const AttestationRecordContext& context, X509_Ptr* cert_out) {
+                      const AttestationContext& context, X509_Ptr* cert_out) {
 
     // First make the basic certificate with usage extension.
     X509_Ptr certificate;
@@ -180,7 +180,7 @@ CertificateChain generate_attestation_from_EVP(const EVP_PKEY* evp_key,  //
                                                const AuthorizationSet& sw_enforced,
                                                const AuthorizationSet& tee_enforced,
                                                const AuthorizationSet& attest_params,
-                                               const AttestationRecordContext& context,
+                                               const AttestationContext& context,
                                                CertificateChain attestation_chain,
                                                const keymaster_key_blob_t& attestation_signing_key,
                                                keymaster_error_t* error) {
@@ -257,8 +257,7 @@ CertificateChain generate_attestation(const AsymmetricKey& key,
                                       const AuthorizationSet& attest_params,
                                       CertificateChain attestation_chain,
                                       const keymaster_key_blob_t& attestation_signing_key,
-                                      const AttestationRecordContext& context,
-                                      keymaster_error_t* error) {
+                                      const AttestationContext& context, keymaster_error_t* error) {
 
     // assume the conversion to EVP key correctly encodes the key type such
     // that EVP_PKEY_type(evp_key->type) returns correctly.

@@ -36,7 +36,7 @@ namespace keymaster {
 
 Keymaster1PassthroughContext::Keymaster1PassthroughContext(KmVersion version,
                                                            keymaster1_device_t* dev)
-    : AttestationRecordContext(version), device_(dev),
+    : SoftAttestationContext(version), device_(dev),
       pt_engine_(KeymasterPassthroughEngine::createInstance(dev)),
       km1_engine_(new Keymaster1Engine(dev)) {}
 
