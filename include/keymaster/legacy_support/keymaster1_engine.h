@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef SYSTEM_KEYMASTER_KEYMASTER1_ENGINE_H_
-#define SYSTEM_KEYMASTER_KEYMASTER1_ENGINE_H_
+#pragma once
 
 #include <memory>
 
@@ -30,7 +29,6 @@
 #include <keymaster/android_keymaster_utils.h>
 #include <keymaster/authorization_set.h>
 #include <keymaster/km_openssl/openssl_utils.h>
-
 
 namespace keymaster {
 
@@ -119,5 +117,3 @@ class Keymaster1Engine {
 };
 
 }  // namespace keymaster
-
-#endif  // SYSTEM_KEYMASTER_KEYMASTER1_ENGINE_H_

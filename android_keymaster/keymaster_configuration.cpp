@@ -46,8 +46,7 @@ constexpr size_t kMonthMatch = 2;
 constexpr size_t kPlatformPatchlevelMatchCount = kMonthMatch + 1;
 
 uint32_t match_to_uint32(const char* expression, const regmatch_t& match) {
-    if (match.rm_so == -1)
-        return 0;
+    if (match.rm_so == -1) return 0;
 
     size_t len = match.rm_eo - match.rm_so;
     std::string s(expression + match.rm_so, len);

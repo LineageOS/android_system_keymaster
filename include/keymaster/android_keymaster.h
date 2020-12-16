@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef SYSTEM_KEYMASTER_ANDROID_KEYMASTER_H_
-#define SYSTEM_KEYMASTER_ANDROID_KEYMASTER_H_
+#pragma once
 
 #include <keymaster/android_keymaster_messages.h>
 #include <keymaster/authorization_set.h>
@@ -94,13 +93,11 @@ class AndroidKeymaster {
 
   private:
     keymaster_error_t LoadKey(const keymaster_key_blob_t& key_blob,
-                              const AuthorizationSet& additional_params,
-                              const KeyFactory** factory, UniquePtr<Key>* key);
+                              const AuthorizationSet& additional_params, const KeyFactory** factory,
+                              UniquePtr<Key>* key);
 
     UniquePtr<KeymasterContext> context_;
     UniquePtr<OperationTable> operation_table_;
 };
 
 }  // namespace keymaster
-
-#endif  //  SYSTEM_KEYMASTER_ANDROID_KEYMASTER_H_

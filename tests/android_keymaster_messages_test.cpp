@@ -34,8 +34,7 @@ template <typename Message>
 Message* round_trip(int32_t ver, const Message& message, size_t expected_size) {
     size_t size = message.SerializedSize();
     EXPECT_EQ(expected_size, size);
-    if (size == 0)
-        return nullptr;
+    if (size == 0) return nullptr;
 
     UniquePtr<uint8_t[]> buf(new uint8_t[size]);
     EXPECT_EQ(buf.get() + size, message.Serialize(buf.get(), buf.get() + size));
@@ -55,8 +54,7 @@ struct EmptyKeymasterResponse : public KeymasterResponse {
         return buf;
     }
     bool NonErrorDeserialize(const uint8_t** buf_ptr, const uint8_t* end) {
-        if (*buf_ptr >= end)
-            return false;
+        if (*buf_ptr >= end) return false;
         EXPECT_EQ(0, **buf_ptr);
         (*buf_ptr)++;
         return true;

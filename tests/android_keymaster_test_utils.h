@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef SYSTEM_KEYMASTER_ANDROID_KEYMASTER_TEST_UTILS_H_
-#define SYSTEM_KEYMASTER_ANDROID_KEYMASTER_TEST_UTILS_H_
+#pragma once
 
 /*
  * Utilities used to help with testing.  Not used in production code.
@@ -66,8 +65,7 @@ bool contains(const AuthorizationSet& set, TypedEnumTag<KM_ENUM_REP, Tag, Keymas
               KeymasterEnum val) {
     int pos = -1;
     while ((pos = set.find(tag, pos)) != -1)
-        if (static_cast<KeymasterEnum>(set[pos].enumerated) == val)
-            return true;
+        if (static_cast<KeymasterEnum>(set[pos].enumerated) == val) return true;
     return false;
 }
 
@@ -81,8 +79,7 @@ template <keymaster_tag_t Tag>
 bool contains(const AuthorizationSet& set, TypedTag<KM_UINT_REP, Tag> tag, uint32_t val) {
     int pos = -1;
     while ((pos = set.find(tag, pos)) != -1)
-        if (set[pos].integer == val)
-            return true;
+        if (set[pos].integer == val) return true;
     return false;
 }
 
@@ -95,17 +92,15 @@ bool contains(const AuthorizationSet& set, TypedTag<KM_ULONG, Tag> tag, uint64_t
 template <keymaster_tag_t Tag>
 bool contains(const AuthorizationSet& set, TypedTag<KM_BYTES, Tag> tag, const std::string& val) {
     int pos = set.find(tag);
-    return pos != -1 &&
-           std::string(reinterpret_cast<const char*>(set[pos].blob.data),
-                       set[pos].blob.data_length) == val;
+    return pos != -1 && std::string(reinterpret_cast<const char*>(set[pos].blob.data),
+                                    set[pos].blob.data_length) == val;
 }
 
 template <keymaster_tag_t Tag>
 bool contains(const AuthorizationSet& set, TypedTag<KM_BIGNUM, Tag> tag, const std::string& val) {
     int pos = set.find(tag);
-    return pos != -1 &&
-           std::string(reinterpret_cast<const char*>(set[pos].blob.data),
-                       set[pos].blob.data_length) == val;
+    return pos != -1 && std::string(reinterpret_cast<const char*>(set[pos].blob.data),
+                                    set[pos].blob.data_length) == val;
 }
 
 inline bool contains(const AuthorizationSet& set, keymaster_tag_t tag) {
@@ -355,5 +350,3 @@ keymaster1_device_t* make_device_sha256_only(keymaster1_device_t* device);
 
 }  // namespace test
 }  // namespace keymaster
-
-#endif  // SYSTEM_KEYMASTER_ANDROID_KEYMASTER_TEST_UTILS_H_

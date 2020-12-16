@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef SYSTEM_KEYMASTER_SOFT_KEYMASTER_CONTEXT_H_
-#define SYSTEM_KEYMASTER_SOFT_KEYMASTER_CONTEXT_H_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -27,8 +26,8 @@
 #include <keymaster/attestation_record.h>
 #include <keymaster/keymaster_context.h>
 #include <keymaster/km_openssl/software_random_source.h>
-#include <keymaster/soft_key_factory.h>
 #include <keymaster/random_source.h>
+#include <keymaster/soft_key_factory.h>
 
 namespace keymaster {
 
@@ -41,8 +40,10 @@ class Key;
  * that can wrap a Keymaster0 implementation or an incomplete Keymaster1 implementation (one that
  * lacks support for all required digests).
  */
-class SoftKeymasterContext: public KeymasterContext, SoftwareKeyBlobMaker, SoftwareRandomSource,
-        AttestationRecordContext {
+class SoftKeymasterContext : public KeymasterContext,
+                             SoftwareKeyBlobMaker,
+                             SoftwareRandomSource,
+                             AttestationRecordContext {
   public:
     SoftKeymasterContext(KmVersion version, const std::string& root_of_trust = "SW");
     ~SoftKeymasterContext() override;
@@ -129,5 +130,3 @@ class SoftKeymasterContext: public KeymasterContext, SoftwareKeyBlobMaker, Softw
 };
 
 }  // namespace keymaster
-
-#endif  // SYSTEM_KEYMASTER_SOFT_KEYMASTER_CONTEXT_H_

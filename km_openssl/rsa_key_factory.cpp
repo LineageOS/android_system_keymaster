@@ -53,8 +53,7 @@ keymaster_error_t RsaKeyFactory::GenerateKey(const AuthorizationSet& key_descrip
                                              KeymasterKeyBlob* key_blob,
                                              AuthorizationSet* hw_enforced,
                                              AuthorizationSet* sw_enforced) const {
-    if (!key_blob || !hw_enforced || !sw_enforced)
-        return KM_ERROR_OUTPUT_PARAMETER_NULL;
+    if (!key_blob || !hw_enforced || !sw_enforced) return KM_ERROR_OUTPUT_PARAMETER_NULL;
 
     const AuthorizationSet& authorizations(key_description);
 
@@ -88,13 +87,11 @@ keymaster_error_t RsaKeyFactory::GenerateKey(const AuthorizationSet& key_descrip
         !RSA_generate_key_ex(rsa_key.get(), key_size, exponent.get(), nullptr /* callback */))
         return TranslateLastOpenSslError();
 
-    if (EVP_PKEY_set1_RSA(pkey.get(), rsa_key.get()) != 1)
-        return TranslateLastOpenSslError();
+    if (EVP_PKEY_set1_RSA(pkey.get(), rsa_key.get()) != 1) return TranslateLastOpenSslError();
 
     KeymasterKeyBlob key_material;
     keymaster_error_t error = EvpKeyToKeyMaterial(pkey.get(), &key_material);
-    if (error != KM_ERROR_OK)
-        return error;
+    if (error != KM_ERROR_OK) return error;
 
     return blob_maker_.CreateKeyBlob(authorizations, KM_ORIGIN_GENERATED, key_material, key_blob,
                                      hw_enforced, sw_enforced);
@@ -106,8 +103,7 @@ keymaster_error_t RsaKeyFactory::ImportKey(const AuthorizationSet& key_descripti
                                            KeymasterKeyBlob* output_key_blob,
                                            AuthorizationSet* hw_enforced,
                                            AuthorizationSet* sw_enforced) const {
-    if (!output_key_blob || !hw_enforced || !sw_enforced)
-        return KM_ERROR_OUTPUT_PARAMETER_NULL;
+    if (!output_key_blob || !hw_enforced || !sw_enforced) return KM_ERROR_OUTPUT_PARAMETER_NULL;
 
     AuthorizationSet authorizations;
     uint64_t public_exponent;
@@ -115,8 +111,7 @@ keymaster_error_t RsaKeyFactory::ImportKey(const AuthorizationSet& key_descripti
     keymaster_error_t error =
         UpdateImportKeyDescription(key_description, input_key_material_format, input_key_material,
                                    &authorizations, &public_exponent, &key_size);
-    if (error != KM_ERROR_OK)
-        return error;
+    if (error != KM_ERROR_OK) return error;
     return blob_maker_.CreateKeyBlob(authorizations, KM_ORIGIN_IMPORTED, input_key_material,
                                      output_key_blob, hw_enforced, sw_enforced);
 }
@@ -133,18 +128,15 @@ keymaster_error_t RsaKeyFactory::UpdateImportKeyDescription(const AuthorizationS
     UniquePtr<EVP_PKEY, EVP_PKEY_Delete> pkey;
     keymaster_error_t error =
         KeyMaterialToEvpKey(key_format, key_material, keymaster_key_type(), &pkey);
-    if (error != KM_ERROR_OK)
-        return error;
+    if (error != KM_ERROR_OK) return error;
 
     UniquePtr<RSA, RsaKey::RSA_Delete> rsa_key(EVP_PKEY_get1_RSA(pkey.get()));
-    if (!rsa_key.get())
-        return TranslateLastOpenSslError();
+    if (!rsa_key.get()) return TranslateLastOpenSslError();
 
     updated_description->Reinitialize(key_description);
 
     *public_exponent = BN_get_word(rsa_key->e);
-    if (*public_exponent == 0xffffffffL)
-        return KM_ERROR_INVALID_KEY_BLOB;
+    if (*public_exponent == 0xffffffffL) return KM_ERROR_INVALID_KEY_BLOB;
     if (!updated_description->GetTagValue(TAG_RSA_PUBLIC_EXPONENT, public_exponent))
         updated_description->push_back(TAG_RSA_PUBLIC_EXPONENT, *public_exponent);
     if (*public_exponent != BN_get_word(rsa_key->e)) {
@@ -165,8 +157,7 @@ keymaster_error_t RsaKeyFactory::UpdateImportKeyDescription(const AuthorizationS
     keymaster_algorithm_t algorithm = KM_ALGORITHM_RSA;
     if (!updated_description->GetTagValue(TAG_ALGORITHM, &algorithm))
         updated_description->push_back(TAG_ALGORITHM, KM_ALGORITHM_RSA);
-    if (algorithm != KM_ALGORITHM_RSA)
-        return KM_ERROR_IMPORT_PARAMETER_MISMATCH;
+    if (algorithm != KM_ALGORITHM_RSA) return KM_ERROR_IMPORT_PARAMETER_MISMATCH;
 
     return KM_ERROR_OK;
 }
