@@ -42,21 +42,21 @@ std::ostream& operator<<(std::ostream& os, const keymaster_key_param_t& param) {
         break;
     case KM_UINT_REP:
         os << " (Rep)";
-    /* Falls through */
+        /* Falls through */
         [[fallthrough]];
     case KM_UINT:
         os << " Int: " << param.integer;
         break;
     case KM_ENUM_REP:
         os << " (Rep)";
-    /* Falls through */
+        /* Falls through */
         [[fallthrough]];
     case KM_ENUM:
         os << " Enum: " << param.enumerated;
         break;
     case KM_ULONG_REP:
         os << " (Rep)";
-    /* Falls through */
+        /* Falls through */
         [[fallthrough]];
     case KM_ULONG:
         os << " Long: " << param.long_integer;
@@ -146,12 +146,10 @@ string hex2str(string a) {
 namespace keymaster {
 
 bool operator==(const AuthorizationSet& a, const AuthorizationSet& b) {
-    if (a.size() != b.size())
-        return false;
+    if (a.size() != b.size()) return false;
 
     for (size_t i = 0; i < a.size(); ++i)
-        if (!(a[i] == b[i]))
-            return false;
+        if (!(a[i] == b[i])) return false;
     return true;
 }
 
@@ -291,8 +289,7 @@ keymaster_error_t Keymaster2Test::UpdateOperation(const AuthorizationSet& additi
     if (error == KM_ERROR_OK && out_tmp.data)
         output->append(reinterpret_cast<const char*>(out_tmp.data), out_tmp.data_length);
     free((void*)out_tmp.data);
-    if (output_params)
-        output_params->Reinitialize(out_params);
+    if (output_params) output_params->Reinitialize(out_params);
     keymaster_free_param_set(&out_params);
     return error;
 }
@@ -327,8 +324,7 @@ keymaster_error_t Keymaster2Test::FinishOperation(const AuthorizationSet& additi
     if (out_tmp.data)
         output->append(reinterpret_cast<const char*>(out_tmp.data), out_tmp.data_length);
     free((void*)out_tmp.data);
-    if (output_params)
-        output_params->Reinitialize(out_params);
+    if (output_params) output_params->Reinitialize(out_params);
     keymaster_free_param_set(&out_params);
     return error;
 }
@@ -620,8 +616,7 @@ keymaster_error_t Keymaster2Test::ExportKey(keymaster_key_format_t format, strin
     keymaster_error_t error = device()->export_key(device(), format, &blob_, &client_id_,
                                                    nullptr /* app_data */, &export_tmp);
 
-    if (error != KM_ERROR_OK)
-        return error;
+    if (error != KM_ERROR_OK) return error;
 
     *export_data = string(reinterpret_cast<const char*>(export_tmp.data), export_tmp.data_length);
     free((void*)export_tmp.data);
@@ -753,8 +748,7 @@ class Sha256OnlyWrapper {
         auto alg_ptr = std::find_if(params->params, end, [](keymaster_key_param_t& p) {
             return p.tag == KM_TAG_ALGORITHM;
         });
-        if (alg_ptr == end)
-            return nullptr;
+        if (alg_ptr == end) return nullptr;
         return alg_ptr;
     }
 
@@ -798,8 +792,7 @@ class Sha256OnlyWrapper {
                                                    size_t* digests_length) {
         keymaster_error_t error = unwrap(dev)->get_supported_digests(
             unwrap(dev), algorithm, purpose, digests, digests_length);
-        if (error != KM_ERROR_OK)
-            return error;
+        if (error != KM_ERROR_OK) return error;
 
         std::vector<keymaster_digest_t> filtered_digests;
         std::copy_if(*digests, *digests + *digests_length, std::back_inserter(filtered_digests),
@@ -838,8 +831,7 @@ class Sha256OnlyWrapper {
                                           keymaster_key_blob_t* key_blob,
                                           keymaster_key_characteristics_t** characteristics) {
         auto alg_ptr = get_algorithm_param(params);
-        if (!alg_ptr)
-            return KM_ERROR_UNSUPPORTED_ALGORITHM;
+        if (!alg_ptr) return KM_ERROR_UNSUPPORTED_ALGORITHM;
         if (alg_ptr->enumerated == KM_ALGORITHM_HMAC && !all_digests_supported(params))
             return KM_ERROR_UNSUPPORTED_DIGEST;
 
@@ -860,8 +852,7 @@ class Sha256OnlyWrapper {
                keymaster_key_format_t key_format, const keymaster_blob_t* key_data,
                keymaster_key_blob_t* key_blob, keymaster_key_characteristics_t** characteristics) {
         auto alg_ptr = get_algorithm_param(params);
-        if (!alg_ptr)
-            return KM_ERROR_UNSUPPORTED_ALGORITHM;
+        if (!alg_ptr) return KM_ERROR_UNSUPPORTED_ALGORITHM;
         if (alg_ptr->enumerated == KM_ALGORITHM_HMAC && !all_digests_supported(params))
             return KM_ERROR_UNSUPPORTED_DIGEST;
 
@@ -884,8 +875,7 @@ class Sha256OnlyWrapper {
                                    const keymaster_key_param_set_t* in_params,
                                    keymaster_key_param_set_t* out_params,
                                    keymaster_operation_handle_t* operation_handle) {
-        if (!all_digests_supported(in_params))
-            return KM_ERROR_UNSUPPORTED_DIGEST;
+        if (!all_digests_supported(in_params)) return KM_ERROR_UNSUPPORTED_DIGEST;
         return unwrap(dev)->begin(unwrap(dev), purpose, key, in_params, out_params,
                                   operation_handle);
     }

@@ -21,7 +21,6 @@
 #include <keymaster/key_blob_utils/ocb_utils.h>
 #include <keymaster/logger.h>
 
-
 namespace keymaster {
 
 const uint32_t CURRENT_BLOB_VERSION = 0;
@@ -36,8 +35,7 @@ keymaster_error_t SerializeAuthEncryptedBlob(const KeymasterKeyBlob& encrypted_k
                   encrypted_key_material.SerializedSize() + tag.SerializedSize() +
                   hw_enforced.SerializedSize() + sw_enforced.SerializedSize();
 
-    if (!key_blob->Reset(size))
-        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    if (!key_blob->Reset(size)) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 
     uint8_t* buf = key_blob->writable_data();
     const uint8_t* end = key_blob->key_material + key_blob->key_material_size;
@@ -48,8 +46,7 @@ keymaster_error_t SerializeAuthEncryptedBlob(const KeymasterKeyBlob& encrypted_k
     buf = tag.Serialize(buf, end);
     buf = hw_enforced.Serialize(buf, end);
     buf = sw_enforced.Serialize(buf, end);
-    if (buf != key_blob->key_material + key_blob->key_material_size)
-        return KM_ERROR_UNKNOWN_ERROR;
+    if (buf != key_blob->key_material + key_blob->key_material_size) return KM_ERROR_UNKNOWN_ERROR;
 
     return KM_ERROR_OK;
 }
@@ -84,15 +81,13 @@ keymaster_error_t DeserializeAuthEncryptedBlob(const KeymasterKeyBlob& key_blob,
                                                AuthorizationSet* hw_enforced,
                                                AuthorizationSet* sw_enforced, Buffer* nonce,
                                                Buffer* tag) {
-    if (!key_blob.key_material || key_blob.key_material_size == 0)
-        return KM_ERROR_INVALID_KEY_BLOB;
+    if (!key_blob.key_material || key_blob.key_material_size == 0) return KM_ERROR_INVALID_KEY_BLOB;
 
     const uint8_t* tmp = key_blob.key_material;
     const uint8_t** buf_ptr = &tmp;
     const uint8_t* end = tmp + key_blob.key_material_size;
 
-    if (end <= *buf_ptr)
-        return KM_ERROR_INVALID_KEY_BLOB;
+    if (end <= *buf_ptr) return KM_ERROR_INVALID_KEY_BLOB;
 
     uint8_t version = *(*buf_ptr)++;
     if (version != CURRENT_BLOB_VERSION ||  //

@@ -103,18 +103,15 @@ keymaster_error_t RsaKeymaster1KeyFactory::LoadKey(KeymasterKeyBlob&& key_materi
                                                    AuthorizationSet&& hw_enforced,
                                                    AuthorizationSet&& sw_enforced,
                                                    UniquePtr<Key>* key) const {
-    if (!key)
-        return KM_ERROR_OUTPUT_PARAMETER_NULL;
+    if (!key) return KM_ERROR_OUTPUT_PARAMETER_NULL;
 
     keymaster_error_t error;
     RSA_Ptr rsa(engine_->BuildRsaKey(key_material, additional_params, &error));
-    if (!rsa.get())
-        return error;
+    if (!rsa.get()) return error;
 
     key->reset(new (std::nothrow)
                    RsaKeymaster1Key(rsa.release(), move(hw_enforced), move(sw_enforced), this));
-    if (!(*key))
-        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    if (!(*key)) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 
     (*key)->key_material() = move(key_material);
     return KM_ERROR_OK;

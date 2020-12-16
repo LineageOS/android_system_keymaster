@@ -111,8 +111,7 @@ TEST(AttestAsn1Test, Simple) {
 
     std::ofstream output("attest.der",
                          std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
-    if (output)
-        output.write(reinterpret_cast<const char*>(asn1.get()), asn1_len);
+    if (output) output.write(reinterpret_cast<const char*>(asn1.get()), asn1_len);
     output.close();
 
     AuthorizationSet parsed_hw_set;
