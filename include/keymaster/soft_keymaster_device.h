@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef SYSTEM_KEYMASTER_SOFT_KEYMASTER_DEVICE_H_
-#define SYSTEM_KEYMASTER_SOFT_KEYMASTER_DEVICE_H_
+#pragma once
 
 #include <cstdlib>
 #include <map>
@@ -24,9 +23,9 @@
 #include <hardware/keymaster1.h>
 #include <hardware/keymaster2.h>
 
+#include <keymaster/UniquePtr.h>
 #include <keymaster/android_keymaster.h>
 #include <keymaster/contexts/soft_keymaster_context.h>
-#include <keymaster/UniquePtr.h>
 
 namespace keymaster {
 
@@ -243,5 +242,3 @@ class SoftKeymasterDevice {
 };
 
 }  // namespace keymaster
-
-#endif  // EXTERNAL_KEYMASTER_TRUSTY_KEYMASTER_DEVICE_H_

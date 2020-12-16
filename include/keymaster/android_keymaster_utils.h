@@ -18,7 +18,7 @@
 #define SYSTEM_KEYMASTER_ANDROID_KEYMASTER_UTILS_H_
 
 #include <stdint.h>
-#ifndef  __clang__
+#ifndef __clang__
 // We need to diable foritfy level for memset in gcc because we want to use
 // memset unoptimized. This would falsely trigger __warn_memset_zero_len in
 // /usr/include/bits/string3.h. The inline checking function is only supposed to
@@ -27,7 +27,7 @@
 #undef __USE_FORTIFY_LEVEL
 #endif
 #include <string.h>
-#ifndef  __clang__
+#ifndef __clang__
 #pragma pop_macro("__USE_FORTIFY_LEVEL")
 #endif
 #include <time.h>  // for time_t.
@@ -144,8 +144,7 @@ template <typename T, size_t N> inline bool array_contains(const T (&a)[N], T va
 #define OPTNONE __attribute__((optimize("O0")))
 #endif  // not __clang__
 inline OPTNONE void* memset_s(void* s, int c, size_t n) {
-    if (!s)
-        return s;
+    if (!s) return s;
     return memset(s, c, n);
 }
 #undef OPTNONE
@@ -237,37 +236,29 @@ template <typename T> T hton(T t) {
     return retval;
 }
 
-inline
-const uint8_t* const & accessBlobData(const keymaster_key_blob_t* blob) {
+inline const uint8_t* const& accessBlobData(const keymaster_key_blob_t* blob) {
     return blob->key_material;
 }
-inline
-const uint8_t*& accessBlobData(keymaster_key_blob_t* blob) {
+inline const uint8_t*& accessBlobData(keymaster_key_blob_t* blob) {
     return blob->key_material;
 }
-inline
-const size_t& accessBlobSize(const keymaster_key_blob_t* blob) {
+inline const size_t& accessBlobSize(const keymaster_key_blob_t* blob) {
     return blob->key_material_size;
 }
-inline
-size_t& accessBlobSize(keymaster_key_blob_t* blob) {
+inline size_t& accessBlobSize(keymaster_key_blob_t* blob) {
     return blob->key_material_size;
 }
 
-inline
-const uint8_t* const & accessBlobData(const keymaster_blob_t* blob) {
+inline const uint8_t* const& accessBlobData(const keymaster_blob_t* blob) {
     return blob->data;
 }
-inline
-const uint8_t*& accessBlobData(keymaster_blob_t* blob) {
+inline const uint8_t*& accessBlobData(keymaster_blob_t* blob) {
     return blob->data;
 }
-inline
-const size_t & accessBlobSize(const keymaster_blob_t* blob) {
+inline const size_t& accessBlobSize(const keymaster_blob_t* blob) {
     return blob->data_length;
 }
-inline
-size_t& accessBlobSize(keymaster_blob_t* blob) {
+inline size_t& accessBlobSize(keymaster_blob_t* blob) {
     return blob->data_length;
 }
 
@@ -276,8 +267,7 @@ size_t& accessBlobSize(keymaster_blob_t* blob) {
  * keymaster_key_blob_t.  It manages its own memory, which makes avoiding memory leaks
  * much easier.
  */
-template <typename BlobType>
-struct TKeymasterBlob : public BlobType {
+template <typename BlobType> struct TKeymasterBlob : public BlobType {
     TKeymasterBlob() {
         accessBlobData(this) = nullptr;
         accessBlobSize(this) = 0;
@@ -286,37 +276,31 @@ struct TKeymasterBlob : public BlobType {
     TKeymasterBlob(const uint8_t* data, size_t size) {
         accessBlobSize(this) = 0;
         accessBlobData(this) = dup_buffer(data, size);
-        if (accessBlobData(this))
-            accessBlobSize(this) = size;
+        if (accessBlobData(this)) accessBlobSize(this) = size;
     }
 
     explicit TKeymasterBlob(size_t size) {
         accessBlobSize(this) = 0;
         accessBlobData(this) = new (std::nothrow) uint8_t[size];
-        if (accessBlobData(this))
-            accessBlobSize(this) = size;
+        if (accessBlobData(this)) accessBlobSize(this) = size;
     }
 
     explicit TKeymasterBlob(const BlobType& blob) {
         accessBlobSize(this) = 0;
         accessBlobData(this) = dup_buffer(accessBlobData(&blob), accessBlobSize(&blob));
-        if (accessBlobData(this))
-            accessBlobSize(this) = accessBlobSize(&blob);
+        if (accessBlobData(this)) accessBlobSize(this) = accessBlobSize(&blob);
     }
 
-    template<size_t N>
-    explicit TKeymasterBlob(const uint8_t (&data)[N]) {
+    template <size_t N> explicit TKeymasterBlob(const uint8_t (&data)[N]) {
         accessBlobSize(this) = 0;
         accessBlobData(this) = dup_buffer(data, N);
-        if (accessBlobData(this))
-            accessBlobSize(this) = N;
+        if (accessBlobData(this)) accessBlobSize(this) = N;
     }
 
     TKeymasterBlob(const TKeymasterBlob& blob) {
         accessBlobSize(this) = 0;
         accessBlobData(this) = dup_buffer(accessBlobData(&blob), accessBlobSize(&blob));
-        if (accessBlobData(this))
-            accessBlobSize(this) = accessBlobSize(&blob);
+        if (accessBlobData(this)) accessBlobSize(this) = accessBlobSize(&blob);
     }
 
     TKeymasterBlob(TKeymasterBlob&& rhs) {
@@ -363,8 +347,7 @@ struct TKeymasterBlob : public BlobType {
     const uint8_t* Reset(size_t new_size) {
         Clear();
         accessBlobData(this) = new (std::nothrow) uint8_t[new_size];
-        if (accessBlobData(this))
-            accessBlobSize(this) = new_size;
+        if (accessBlobData(this)) accessBlobSize(this) = new_size;
         return accessBlobData(this);
     }
 
@@ -414,8 +397,7 @@ struct Malloc_Delete {
 
 struct CertificateChainDelete {
     void operator()(keymaster_cert_chain_t* p) {
-        if (!p)
-            return;
+        if (!p) return;
         for (size_t i = 0; i < p->entry_count; ++i)
             delete[] p->entries[i].data;
         delete[] p->entries;
@@ -428,22 +410,18 @@ typedef UniquePtr<keymaster_cert_chain_t, CertificateChainDelete> CertChainPtr;
 keymaster_error_t EcKeySizeToCurve(uint32_t key_size_bits, keymaster_ec_curve_t* curve);
 keymaster_error_t EcCurveToKeySize(keymaster_ec_curve_t curve, uint32_t* key_size_bits);
 
-template<typename T> struct remove_reference      {typedef T type;};
-template<typename T> struct remove_reference<T&>  {typedef T type;};
-template<typename T> struct remove_reference<T&&> {typedef T type;};
-template<typename T>
-using remove_reference_t = typename remove_reference<T>::type;
-template<typename T>
-remove_reference_t<T>&& move(T&& x) {
+template <typename T> struct remove_reference { typedef T type; };
+template <typename T> struct remove_reference<T&> { typedef T type; };
+template <typename T> struct remove_reference<T&&> { typedef T type; };
+template <typename T> using remove_reference_t = typename remove_reference<T>::type;
+template <typename T> remove_reference_t<T>&& move(T&& x) {
     return static_cast<remove_reference_t<T>&&>(x);
 }
 
-template<typename T>
-constexpr T&& forward(remove_reference_t<T>& x) {
+template <typename T> constexpr T&& forward(remove_reference_t<T>& x) {
     return static_cast<T&&>(x);
 }
-template<typename T>
-constexpr T&& forward(remove_reference_t<T>&& x) {
+template <typename T> constexpr T&& forward(remove_reference_t<T>&& x) {
     return static_cast<T&&>(x);
 }
 

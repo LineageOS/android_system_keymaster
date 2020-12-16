@@ -22,8 +22,7 @@ Logger* Logger::instance_ = nullptr;
 
 /* static */
 int Logger::Log(LogLevel level, const char* fmt, va_list args) {
-    if (!instance_)
-        return 0;
+    if (!instance_) return 0;
     return instance_->log_msg(level, fmt, args);
 }
 
@@ -77,6 +76,5 @@ int Logger::Severe(const char* fmt, ...) {
     va_end(args);
     return result;
 }
-
 
 }  // namespace keymaster

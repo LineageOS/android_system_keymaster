@@ -14,30 +14,23 @@
  * limitations under the License.
  */
 
-#ifndef INCLUDE_KEYMASTER_UNIQUEPTR_H_
-#define INCLUDE_KEYMASTER_UNIQUEPTR_H_
+#pragma once
 
-#include <stddef.h> // for size_t
+#include <stddef.h>  // for size_t
 
 namespace keymaster {
 
 // Default deleter for pointer types.
-template <typename T>
-struct DefaultDelete {
+template <typename T> struct DefaultDelete {
     enum { type_must_be_complete = sizeof(T) };
     DefaultDelete() {}
-    void operator()(T* p) const {
-        delete p;
-    }
+    void operator()(T* p) const { delete p; }
 };
 
 // Default deleter for array types.
-template <typename T>
-struct DefaultDelete<T[]> {
+template <typename T> struct DefaultDelete<T[]> {
     enum { type_must_be_complete = sizeof(T) };
-    void operator()(T* p) const {
-        delete[] p;
-    }
+    void operator()(T* p) const { delete[] p; }
 };
 
 // A smart pointer that deletes the given pointer on destruction.
@@ -48,29 +41,24 @@ struct DefaultDelete<T[]> {
 // to unique_ptr.
 // Use thus:
 //   UniquePtr<C> c(new C);
-template <typename T, typename D = DefaultDelete<T> >
-class UniquePtr {
-    template<typename U, typename UD>
-    friend
-    class UniquePtr;
-public:
+template <typename T, typename D = DefaultDelete<T>> class UniquePtr {
+    template <typename U, typename UD> friend class UniquePtr;
+
+  public:
     UniquePtr() : mPtr(nullptr) {}
     // Construct a new UniquePtr, taking ownership of the given raw pointer.
-    explicit UniquePtr(T* ptr) : mPtr(ptr) {
-    }
+    explicit UniquePtr(T* ptr) : mPtr(ptr) {}
     // NOLINTNEXTLINE(google-explicit-constructor)
     UniquePtr(const decltype(nullptr)&) : mPtr(nullptr) {}
 
-    UniquePtr(UniquePtr && other): mPtr(other.mPtr) {
-        other.mPtr = nullptr;
-    }
+    UniquePtr(UniquePtr&& other) : mPtr(other.mPtr) { other.mPtr = nullptr; }
 
     template <typename U>
     // NOLINTNEXTLINE(google-explicit-constructor)
     UniquePtr(UniquePtr<U>&& other) : mPtr(other.mPtr) {
         other.mPtr = nullptr;
     }
-    UniquePtr& operator=(UniquePtr && other) {
+    UniquePtr& operator=(UniquePtr&& other) {
         if (&other != this) {
             reset();
             mPtr = other.release();
@@ -78,9 +66,7 @@ public:
         return *this;
     }
 
-    ~UniquePtr() {
-        reset();
-    }
+    ~UniquePtr() { reset(); }
 
     // Accessors.
     T& operator*() const { return *mPtr; }
@@ -108,7 +94,7 @@ public:
         }
     }
 
-private:
+  private:
     // The raw pointer.
     T* mPtr;
 
@@ -117,24 +103,20 @@ private:
     template <typename T2> bool operator!=(const UniquePtr<T2>& p) const;
 
     UniquePtr(const UniquePtr&) = delete;
-    UniquePtr & operator=(const UniquePtr&) = delete;
+    UniquePtr& operator=(const UniquePtr&) = delete;
 };
 
 // Partial specialization for array types. Like std::unique_ptr, this removes
 // operator* and operator-> but adds operator[].
-template <typename T, typename D>
-class UniquePtr<T[], D> {
-public:
+template <typename T, typename D> class UniquePtr<T[], D> {
+  public:
     UniquePtr() : mPtr(nullptr) {}
-    explicit UniquePtr(T* ptr) : mPtr(ptr) {
-    }
+    explicit UniquePtr(T* ptr) : mPtr(ptr) {}
     // NOLINTNEXTLINE(google-explicit-constructor)
     UniquePtr(const decltype(nullptr)&) : mPtr(nullptr) {}
 
-    UniquePtr(UniquePtr && other): mPtr(other.mPtr) {
-        other.mPtr = nullptr;
-    }
-    UniquePtr& operator=(UniquePtr && other) {
+    UniquePtr(UniquePtr&& other) : mPtr(other.mPtr) { other.mPtr = nullptr; }
+    UniquePtr& operator=(UniquePtr&& other) {
         if (&other != this) {
             reset();
             mPtr = other.release();
@@ -142,13 +124,9 @@ public:
         return *this;
     }
 
-    ~UniquePtr() {
-        reset();
-    }
+    ~UniquePtr() { reset(); }
 
-    T& operator[](size_t i) const {
-        return mPtr[i];
-    }
+    T& operator[](size_t i) const { return mPtr[i]; }
     T* get() const { return mPtr; }
 
     T* release() __attribute__((warn_unused_result)) {
@@ -167,14 +145,14 @@ public:
         }
     }
 
-private:
+  private:
     T* mPtr;
 
     UniquePtr(const UniquePtr&) = delete;
-    UniquePtr & operator=(const UniquePtr&) = delete;
+    UniquePtr& operator=(const UniquePtr&) = delete;
 };
 
-} // namespace keymaster
+}  // namespace keymaster
 
 #if UNIQUE_PTR_TESTS
 
@@ -273,5 +251,3 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 #endif
-
-#endif  // INCLUDE_KEYMASTER_UNIQUEPTR_H_

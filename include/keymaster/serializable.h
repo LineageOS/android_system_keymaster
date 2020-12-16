@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef SYSTEM_KEYMASTER_SERIALIZABLE_H_
-#define SYSTEM_KEYMASTER_SERIALIZABLE_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -69,7 +68,7 @@ class Serializable {
  * Convert a pointer into a value.  This is used to make sure compiler won't optimize away pointer
  * overflow checks. (See http://www.kb.cert.org/vuls/id/162289)
  */
-template <typename T> inline uintptr_t __pval(const T *p) {
+template <typename T> inline uintptr_t __pval(const T* p) {
     return reinterpret_cast<uintptr_t>(p);
 }
 
@@ -159,8 +158,7 @@ bool copy_size_and_data_from_buf(const uint8_t** buf_ptr, const uint8_t* end, si
 template <typename T>
 inline bool copy_uint32_from_buf(const uint8_t** buf_ptr, const uint8_t* end, T* value) {
     uint32_t val;
-    if (!copy_from_buf(buf_ptr, end, &val, sizeof(val)))
-        return false;
+    if (!copy_from_buf(buf_ptr, end, &val, sizeof(val))) return false;
     *value = static_cast<T>(val);
     return true;
 }
@@ -182,20 +180,17 @@ inline bool copy_uint64_from_buf(const uint8_t** buf_ptr, const uint8_t* end, ui
 template <typename T>
 inline bool copy_uint32_array_from_buf(const uint8_t** buf_ptr, const uint8_t* end,
                                        UniquePtr<T[]>* data, size_t* count) {
-    if (!copy_uint32_from_buf(buf_ptr, end, count))
-        return false;
+    if (!copy_uint32_from_buf(buf_ptr, end, count)) return false;
 
     uintptr_t array_end = __pval(*buf_ptr) + *count * sizeof(uint32_t);
-    if (*count >= UINT32_MAX / sizeof(uint32_t) ||
-        array_end < __pval(*buf_ptr) || array_end > __pval(end))
+    if (*count >= UINT32_MAX / sizeof(uint32_t) || array_end < __pval(*buf_ptr) ||
+        array_end > __pval(end))
         return false;
 
     data->reset(new (std::nothrow) T[*count]);
-    if (!data->get())
-        return false;
+    if (!data->get()) return false;
     for (size_t i = 0; i < *count; ++i)
-        if (!copy_uint32_from_buf(buf_ptr, end, &(*data)[i]))
-            return false;
+        if (!copy_uint32_from_buf(buf_ptr, end, &(*data)[i])) return false;
     return true;
 }
 
@@ -263,5 +258,3 @@ class Buffer : public Serializable {
 };
 
 }  // namespace keymaster
-
-#endif  // SYSTEM_KEYMASTER_SERIALIZABLE_H_
