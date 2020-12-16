@@ -19,27 +19,29 @@
 
 namespace keymaster {
 
+namespace {
+
 /*
  * Helper functions for working with key blobs.
  */
 
-static void set_key_blob(keymaster_key_blob_t* key_blob, const void* key_material, size_t length) {
+void set_key_blob(keymaster_key_blob_t* key_blob, const void* key_material, size_t length) {
     delete[] key_blob->key_material;
     key_blob->key_material = dup_buffer(key_material, length);
     key_blob->key_material_size = length;
 }
 
-static size_t key_blob_size(const keymaster_key_blob_t& key_blob) {
+size_t key_blob_size(const keymaster_key_blob_t& key_blob) {
     return sizeof(uint32_t) /* key size */ + key_blob.key_material_size;
 }
 
-static uint8_t* serialize_key_blob(const keymaster_key_blob_t& key_blob, uint8_t* buf,
-                                   const uint8_t* end) {
+uint8_t* serialize_key_blob(const keymaster_key_blob_t& key_blob, uint8_t* buf,
+                            const uint8_t* end) {
     return append_size_and_data_to_buf(buf, end, key_blob.key_material, key_blob.key_material_size);
 }
 
-static bool deserialize_key_blob(keymaster_key_blob_t* key_blob, const uint8_t** buf_ptr,
-                                 const uint8_t* end) {
+bool deserialize_key_blob(keymaster_key_blob_t* key_blob, const uint8_t** buf_ptr,
+                          const uint8_t* end) {
     delete[] key_blob->key_material;
     key_blob->key_material = nullptr;
     UniquePtr<uint8_t[]> deserialized_key_material;
@@ -50,15 +52,15 @@ static bool deserialize_key_blob(keymaster_key_blob_t* key_blob, const uint8_t**
     return true;
 }
 
-static size_t blob_size(const keymaster_blob_t& blob) {
+size_t blob_size(const keymaster_blob_t& blob) {
     return sizeof(uint32_t) /* data size */ + blob.data_length;
 }
 
-static uint8_t* serialize_blob(const keymaster_blob_t& blob, uint8_t* buf, const uint8_t* end) {
+uint8_t* serialize_blob(const keymaster_blob_t& blob, uint8_t* buf, const uint8_t* end) {
     return append_size_and_data_to_buf(buf, end, blob.data, blob.data_length);
 }
 
-static bool deserialize_blob(keymaster_blob_t* blob, const uint8_t** buf_ptr, const uint8_t* end) {
+bool deserialize_blob(keymaster_blob_t* blob, const uint8_t** buf_ptr, const uint8_t* end) {
     delete[] blob->data;
     *blob = {};
     UniquePtr<uint8_t[]> deserialized_blob;
@@ -67,6 +69,8 @@ static bool deserialize_blob(keymaster_blob_t* blob, const uint8_t** buf_ptr, co
     blob->data = deserialized_blob.release();
     return true;
 }
+
+}  // namespace
 
 size_t KeymasterResponse::SerializedSize() const {
     if (error != KM_ERROR_OK)
