@@ -677,8 +677,7 @@ TEST_P(SigningOperationsTest, EcdsaAllSizesAndHashes) {
 
             string message(1024, 'a');
             string signature;
-            if (digest == KM_DIGEST_NONE)
-                message.resize(key_size / 8);
+            if (digest == KM_DIGEST_NONE) message.resize(key_size / 8);
             SignMessage(message, &signature, digest);
         }
     }
@@ -1136,7 +1135,9 @@ TEST_P(VerificationOperationsTest, RsaAllDigestAndPadCombinations) {
     };
 
     vector<keymaster_padding_t> padding_modes{
-        KM_PAD_NONE, KM_PAD_RSA_PKCS1_1_5_SIGN, KM_PAD_RSA_PSS,
+        KM_PAD_NONE,
+        KM_PAD_RSA_PKCS1_1_5_SIGN,
+        KM_PAD_RSA_PSS,
     };
 
     int trial_count = 0;
@@ -2385,7 +2386,8 @@ struct AesCtrSp80038aTestVector {
 static const AesCtrSp80038aTestVector kAesCtrSp80038aTestVectors[] = {
     // AES-128
     {
-        "2b7e151628aed2a6abf7158809cf4f3c", "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+        "2b7e151628aed2a6abf7158809cf4f3c",
+        "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
         "6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e51"
         "30c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710",
         "874d6191b620e3261bef6864990db6ce9806f66b7970fdff8617187bb9fffdff"
@@ -2393,7 +2395,8 @@ static const AesCtrSp80038aTestVector kAesCtrSp80038aTestVectors[] = {
     },
     // AES-192
     {
-        "8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b", "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+        "8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b",
+        "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
         "6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e51"
         "30c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710",
         "1abc932417521ca24f2b0459fe7e6e0b090339ec0aa6faefd5ccc2c6f4ce8e94"
@@ -3599,13 +3602,11 @@ static bool verify_chain(const keymaster_cert_chain_t& chain) {
         X509_Ptr key_cert(parse_cert_blob(key_cert_blob));
         X509_Ptr signing_cert(parse_cert_blob(signing_cert_blob));
         EXPECT_TRUE(!!key_cert.get() && !!signing_cert.get());
-        if (!key_cert.get() || !signing_cert.get())
-            return false;
+        if (!key_cert.get() || !signing_cert.get()) return false;
 
         EVP_PKEY_Ptr signing_pubkey(X509_get_pubkey(signing_cert.get()));
         EXPECT_TRUE(!!signing_pubkey.get());
-        if (!signing_pubkey.get())
-            return false;
+        if (!signing_pubkey.get()) return false;
 
         EXPECT_EQ(1, X509_verify(key_cert.get(), signing_pubkey.get()))
             << "Verification of certificate " << i << " failed";
@@ -3619,18 +3620,15 @@ static bool verify_chain(const keymaster_cert_chain_t& chain) {
 static ASN1_OCTET_STRING* get_attestation_record(X509* certificate, const char* oid_string) {
     ASN1_OBJECT_Ptr oid(OBJ_txt2obj(oid_string, 1 /* dotted string format */));
     EXPECT_TRUE(!!oid.get());
-    if (!oid.get())
-        return nullptr;
+    if (!oid.get()) return nullptr;
 
     int location = X509_get_ext_by_OBJ(certificate, oid.get(), -1 /* search from beginning */);
     EXPECT_NE(-1, location);
-    if (location == -1)
-        return nullptr;
+    if (location == -1) return nullptr;
 
     X509_EXTENSION* attest_rec_ext = X509_get_ext(certificate, location);
     EXPECT_TRUE(!!attest_rec_ext);
-    if (!attest_rec_ext)
-        return nullptr;
+    if (!attest_rec_ext) return nullptr;
 
     ASN1_OCTET_STRING* attest_rec = X509_EXTENSION_get_data(attest_rec_ext);
     EXPECT_TRUE(!!attest_rec);
@@ -3646,8 +3644,7 @@ static bool verify_attestation_record(const string& challenge, const string& att
 
     X509_Ptr cert(parse_cert_blob(attestation_cert));
     EXPECT_TRUE(!!cert.get());
-    if (!cert.get())
-        return false;
+    if (!cert.get()) return false;
 
     const char* oid =
         expected_keymaster_version >= (uint32_t)KmVersion::KEYMINT_1 ? kEatTokenOid : kAsn1TokenOid;
@@ -3655,8 +3652,7 @@ static bool verify_attestation_record(const string& challenge, const string& att
         expected_keymaster_version >= (uint32_t)KmVersion::KEYMINT_1 ? 5u : 4u;
     ASN1_OCTET_STRING* attest_rec = get_attestation_record(cert.get(), oid);
     EXPECT_TRUE(!!attest_rec);
-    if (!attest_rec)
-        return false;
+    if (!attest_rec) return false;
 
     AuthorizationSet att_sw_enforced;
     AuthorizationSet att_tee_enforced;

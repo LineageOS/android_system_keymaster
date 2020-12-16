@@ -21,12 +21,12 @@
 #include <openssl/engine.h>
 #include <openssl/rand.h>
 
-#include <keymaster/authorization_set.h>
 #include <keymaster/android_keymaster_utils.h>
-#include <keymaster/keymaster_tags.h>
+#include <keymaster/authorization_set.h>
 #include <keymaster/key_blob_utils/auth_encrypted_key_blob.h>
 #include <keymaster/key_blob_utils/integrity_assured_key_blob.h>
 #include <keymaster/key_blob_utils/ocb_utils.h>
+#include <keymaster/keymaster_tags.h>
 
 #include "android_keymaster_test_utils.h"
 

@@ -94,19 +94,16 @@ keymaster_error_t EcdsaKeymaster1KeyFactory::LoadKey(KeymasterKeyBlob&& key_mate
                                                      AuthorizationSet&& hw_enforced,
                                                      AuthorizationSet&& sw_enforced,
                                                      UniquePtr<Key>* key) const {
-    if (!key)
-        return KM_ERROR_OUTPUT_PARAMETER_NULL;
+    if (!key) return KM_ERROR_OUTPUT_PARAMETER_NULL;
 
     keymaster_error_t error;
     unique_ptr<EC_KEY, EC_KEY_Delete> ecdsa(
         engine_->BuildEcKey(key_material, additional_params, &error));
-    if (!ecdsa)
-        return error;
+    if (!ecdsa) return error;
 
     key->reset(new (std::nothrow)
                    EcdsaKeymaster1Key(ecdsa.release(), move(hw_enforced), move(sw_enforced), this));
-    if (!(*key))
-        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    if (!(*key)) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 
     (*key)->key_material() = move(key_material);
     return KM_ERROR_OK;
