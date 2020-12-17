@@ -337,7 +337,7 @@ cc_library {
     defaults: ["keymaster_defaults"],
     shared_libs: [
 	"libhidlbase",
-        "android.hardware.security.keymint-ndk_platform",
+        "android.hardware.security.keymint-unstable-ndk_platform",
         "libbase",
         "libbinder_ndk",
         "libcppbor",
