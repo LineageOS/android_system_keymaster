@@ -598,13 +598,9 @@ struct GetVersionResponse : public KeymasterResponse {
     uint8_t* NonErrorSerialize(uint8_t* buf, const uint8_t* end) const override;
     bool NonErrorDeserialize(const uint8_t** buf_ptr, const uint8_t* end) override;
 
-    int32_t MessageVersion() {
-        return ::keymaster::MessageVersion(major_ver, minor_ver, subminor_ver);
-    }
-
-    uint32_t major_ver;
-    uint32_t minor_ver;
-    uint32_t subminor_ver;
+    uint8_t major_ver;
+    uint8_t minor_ver;
+    uint8_t subminor_ver;
 };
 
 struct AttestKeyRequest : public KeymasterMessage {
