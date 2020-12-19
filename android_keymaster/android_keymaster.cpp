@@ -35,15 +35,6 @@ namespace keymaster {
 
 namespace {
 
-// kSubminorVer is kind of a misnomer because it's not tied to the major or minor versions, because
-// AndroidKeymaster has to play the role of different KM versions, which are reflected in the major
-// and minor numbers.  kSubminorVer therefor indicates the "code version", suitable for logging so
-// that we can know what TA version is present on a device.  To make this easy, we format it as a
-// date, YYMMDDVV, where VV is a per-day version field, which seems unlikely to be used frequently,
-// so will usually be zero. Ideally, the date should match the date the commit lands in AOSP, though
-// that may be hard to do with precision.
-const uint32_t kSubminorVer = 20121400;
-
 keymaster_error_t CheckVersionInfo(const AuthorizationSet& tee_enforced,
                                    const AuthorizationSet& sw_enforced,
                                    const KeymasterContext& context) {
@@ -93,32 +84,10 @@ bool check_supported(const KeymasterContext& context, keymaster_algorithm_t algo
 void AndroidKeymaster::GetVersion(const GetVersionRequest&, GetVersionResponse* rsp) {
     if (rsp == nullptr) return;
 
+    rsp->major_ver = 2;
     rsp->minor_ver = 0;
-    switch (context_->GetKmVersion()) {
-    case KmVersion::KEYMASTER_1_1:
-        rsp->minor_ver = 1;
-        [[fallthrough]];
-    case KmVersion::KEYMASTER_1:
-        rsp->major_ver = 1;
-        break;
-    case KmVersion::KEYMASTER_2:
-        rsp->major_ver = 2;
-        break;
-    case KmVersion::KEYMASTER_3:
-        rsp->major_ver = 3;
-        break;
-    case KmVersion::KEYMASTER_4_1:
-        rsp->minor_ver = 1;
-        [[fallthrough]];
-    case KmVersion::KEYMASTER_4:
-        rsp->major_ver = 4;
-        break;
-    case KmVersion::KEYMINT_1:
-        rsp->major_ver = 10;
-        break;
-    }
-
-    rsp->subminor_ver = kSubminorVer;
+    rsp->subminor_ver = 0;
+    rsp->error = KM_ERROR_OK;
 }
 
 void AndroidKeymaster::SupportedAlgorithms(const SupportedAlgorithmsRequest& /* request */,
