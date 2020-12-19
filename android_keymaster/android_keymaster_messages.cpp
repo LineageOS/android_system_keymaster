@@ -423,15 +423,24 @@ size_t GetVersionResponse::NonErrorSerializedSize() const {
 }
 
 uint8_t* GetVersionResponse::NonErrorSerialize(uint8_t* buf, const uint8_t* end) const {
-    buf = append_uint32_to_buf(buf, end, major_ver);
-    buf = append_uint32_to_buf(buf, end, minor_ver);
-    return append_uint32_to_buf(buf, end, subminor_ver);
+    if (buf + NonErrorSerializedSize() <= end) {
+        *buf++ = major_ver;
+        *buf++ = minor_ver;
+        *buf++ = subminor_ver;
+    } else {
+        buf += NonErrorSerializedSize();
+    }
+    return buf;
 }
 
 bool GetVersionResponse::NonErrorDeserialize(const uint8_t** buf_ptr, const uint8_t* end) {
-    return copy_uint32_from_buf(buf_ptr, end, &major_ver) &&
-           copy_uint32_from_buf(buf_ptr, end, &minor_ver) &&
-           copy_uint32_from_buf(buf_ptr, end, &subminor_ver);
+    if (*buf_ptr + NonErrorSerializedSize() > end) return false;
+    const uint8_t* tmp = *buf_ptr;
+    major_ver = *tmp++;
+    minor_ver = *tmp++;
+    subminor_ver = *tmp++;
+    *buf_ptr = tmp;
+    return true;
 }
 
 AttestKeyRequest::~AttestKeyRequest() {
