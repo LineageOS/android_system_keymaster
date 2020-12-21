@@ -158,6 +158,7 @@ class Keymaster2TestInstanceCreator {
 
     virtual int minimal_digest_set() const { return false; }
     virtual bool is_keymaster1_hw() const = 0;
+    virtual bool is_keymint() const { return false; }
     virtual KeymasterContext* keymaster_context() const = 0;
     virtual KmVersion km_version() const = 0;
 
