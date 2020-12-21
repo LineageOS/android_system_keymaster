@@ -33,6 +33,7 @@ using ::keymaster::FinishOperationRequest;
 using ::keymaster::FinishOperationResponse;
 using ::keymaster::UpdateOperationRequest;
 using ::keymaster::UpdateOperationResponse;
+using namespace km_utils;
 
 AndroidKeyMintOperation::AndroidKeyMintOperation(
     const shared_ptr<::keymaster::AndroidKeymaster> implementation,
