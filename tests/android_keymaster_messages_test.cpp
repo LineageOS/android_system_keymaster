@@ -494,7 +494,7 @@ TEST(RoundTrip, GetVersionResponse) {
     msg.subminor_ver = 38;
 
     size_t size = msg.SerializedSize();
-    ASSERT_EQ(16U, size);
+    ASSERT_EQ(7U, size);
 
     UniquePtr<uint8_t[]> buf(new uint8_t[size]);
     EXPECT_EQ(buf.get() + size, msg.Serialize(buf.get(), buf.get() + size));
