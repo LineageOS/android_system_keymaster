@@ -145,10 +145,17 @@ class KeymasterContext {
     virtual KeymasterEnforcement* enforcement_policy() = 0;
 
     /**
-     * Generate an attestation certificate, with chain, using the factory attestation key.
+     * Generate an attestation certificate, with chain.
+     *
+     * If attest_key is null, the certificate will be signed with the factory attestation key (from
+     * AttestationContext) and have the issuer subject set to the subject name from the signing key
+     * certificate.  If attest_key is non-null, it will be used to sign the certificate and the
+     * provided issuer subject will be used (must contain a DER-encoded X.509 NAME).
      */
     virtual CertificateChain GenerateAttestation(const Key& key,
                                                  const AuthorizationSet& attest_params,
+                                                 UniquePtr<Key> attest_key,
+                                                 const KeymasterBlob& issuer_subject,
                                                  keymaster_error_t* error) const = 0;
 
     /**

@@ -261,8 +261,14 @@ keymaster_error_t PureSoftKeymasterContext::AddRngEntropy(const uint8_t* buf, si
 }
 
 CertificateChain
-PureSoftKeymasterContext::GenerateAttestation(const Key& key, const AuthorizationSet& attest_params,
+PureSoftKeymasterContext::GenerateAttestation(const Key& key,                         //
+                                              const AuthorizationSet& attest_params,  //
+                                              UniquePtr<Key> attest_key,
+                                              const KeymasterBlob& issuer_subject,
                                               keymaster_error_t* error) const {
+    if (!error) return {};
+    *error = KM_ERROR_OK;
+
     keymaster_algorithm_t key_algorithm;
     if (!key.authorizations().GetTagValue(TAG_ALGORITHM, &key_algorithm)) {
         *error = KM_ERROR_UNKNOWN_ERROR;
@@ -278,14 +284,10 @@ PureSoftKeymasterContext::GenerateAttestation(const Key& key, const Authorizatio
     // SoftKeymasterContext we can assume that the Key is an AsymmetricKey. So we can downcast.
     const AsymmetricKey& asymmetric_key = static_cast<const AsymmetricKey&>(key);
 
-    CertificateChain attestation_chain = getAttestationChain(key_algorithm, error);
+    AttestKeyInfo attest_key_info(attest_key, &issuer_subject, error);
     if (*error != KM_ERROR_OK) return {};
 
-    auto attestation_key = getAttestationKey(key_algorithm, error);
-    if (*error != KM_ERROR_OK) return {};
-
-    return generate_attestation(asymmetric_key, attest_params, move(attestation_chain),
-                                *attestation_key, *this, error);
+    return generate_attestation(asymmetric_key, attest_params, move(attest_key_info), *this, error);
 }
 
 CertificateChain PureSoftKeymasterContext::GenerateSelfSignedCertificate(

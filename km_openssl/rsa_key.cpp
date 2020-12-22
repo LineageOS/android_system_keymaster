@@ -34,6 +34,9 @@ bool RsaKey::InternalToEvp(EVP_PKEY* pkey) const {
 
 bool RsaKey::SupportedMode(keymaster_purpose_t purpose, keymaster_padding_t padding) {
     switch (purpose) {
+    case KM_PURPOSE_ATTEST_KEY:
+        return true;
+
     case KM_PURPOSE_SIGN:
     case KM_PURPOSE_VERIFY:
         return padding == KM_PAD_NONE || padding == KM_PAD_RSA_PSS ||
@@ -53,6 +56,9 @@ bool RsaKey::SupportedMode(keymaster_purpose_t purpose, keymaster_padding_t padd
 
 bool RsaKey::SupportedMode(keymaster_purpose_t purpose, keymaster_digest_t digest) {
     switch (purpose) {
+    case KM_PURPOSE_ATTEST_KEY:
+        return true;
+
     case KM_PURPOSE_SIGN:
     case KM_PURPOSE_VERIFY:
         return digest == KM_DIGEST_NONE || digest == KM_DIGEST_SHA_2_256;

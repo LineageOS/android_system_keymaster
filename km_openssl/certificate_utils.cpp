@@ -269,9 +269,7 @@ keymaster_error_t make_cert_rump(const X509_NAME* issuer,
 }
 
 keymaster_error_t make_cert(const EVP_PKEY* evp_pkey, const X509_NAME* issuer,
-                            const CertificateCallerParams& cert_params, const bool is_signing_key,
-                            const bool is_encryption_key, const bool is_key_agreement_key,
-                            X509_Ptr* cert_out) {
+                            const CertificateCallerParams& cert_params, X509_Ptr* cert_out) {
 
     // Make the rump certificate with serial, subject, not before and not after dates.
     X509_Ptr certificate;
@@ -286,8 +284,9 @@ keymaster_error_t make_cert(const EVP_PKEY* evp_pkey, const X509_NAME* issuer,
 
     // Make and add the key usage extension.
     X509_EXTENSION_Ptr key_usage_extension;
-    if (auto error = make_key_usage_extension(is_signing_key, is_encryption_key,
-                                              is_key_agreement_key, &key_usage_extension)) {
+    if (auto error =
+            make_key_usage_extension(cert_params.is_signing_key, cert_params.is_encryption_key,
+                                     cert_params.is_agreement_key, &key_usage_extension)) {
         return error;
     }
     if (!X509_add_ext(certificate.get(), key_usage_extension.get() /* Don't release; copied */,
@@ -300,6 +299,8 @@ keymaster_error_t make_cert(const EVP_PKEY* evp_pkey, const X509_NAME* issuer,
 }
 
 keymaster_error_t sign_cert(X509* certificate, const EVP_PKEY* signing_key) {
+    if (!certificate || !signing_key) return KM_ERROR_UNEXPECTED_NULL_POINTER;
+
     // X509_sign takes the key as non-const, but per the BoringSSL dev team, that's a legacy
     // mistake that hasn't yet been corrected.
     auto sk = const_cast<EVP_PKEY*>(signing_key);
@@ -308,21 +309,6 @@ keymaster_error_t sign_cert(X509* certificate, const EVP_PKEY* signing_key) {
         return TranslateLastOpenSslError();
     }
     return KM_ERROR_OK;
-}
-
-// Takes a certificate a signing certificate and the raw private signing_key. And signs
-// the certificate with the latter.
-keymaster_error_t sign_cert(X509* certificate, const keymaster_key_blob_t& signing_key) {
-    if (!certificate) return KM_ERROR_UNEXPECTED_NULL_POINTER;
-
-    const uint8_t* key_material = signing_key.key_material;
-    EVP_PKEY_Ptr sign_key(
-        d2i_AutoPrivateKey(nullptr, &key_material, signing_key.key_material_size));
-    if (!sign_key) {
-        return TranslateLastOpenSslError();
-    }
-
-    return sign_cert(certificate, sign_key.get());
 }
 
 CertificateChain generate_self_signed_cert(const AsymmetricKey& key, const AuthorizationSet& params,
@@ -336,10 +322,6 @@ CertificateChain generate_self_signed_cert(const AsymmetricKey& key, const Autho
         return {};
     }
 
-    bool is_signing_key = key.authorizations().Contains(TAG_PURPOSE, KM_PURPOSE_SIGN);
-    bool is_encryption_key = key.authorizations().Contains(TAG_PURPOSE, KM_PURPOSE_DECRYPT);
-    bool is_key_agreement_key = key.authorizations().Contains(TAG_PURPOSE, KM_PURPOSE_AGREE_KEY);
-
     CertificateCallerParams cert_params{};
     // Self signed certificates are only generated since Keymint 1.0. To keep the API stable for
     // now, we pass KEYMINT_1 to get_certificate_params, which has the intended effect. If
@@ -348,9 +330,12 @@ CertificateChain generate_self_signed_cert(const AsymmetricKey& key, const Autho
     *error = get_certificate_params(params, &cert_params, KmVersion::KEYMINT_1);
     if (*error != KM_ERROR_OK) return {};
 
+    cert_params.is_signing_key = key.authorizations().Contains(TAG_PURPOSE, KM_PURPOSE_SIGN);
+    cert_params.is_encryption_key = key.authorizations().Contains(TAG_PURPOSE, KM_PURPOSE_DECRYPT);
+    cert_params.is_agreement_key = key.authorizations().Contains(TAG_PURPOSE, KM_PURPOSE_AGREE_KEY);
+
     X509_Ptr cert;
-    *error = make_cert(pkey.get(), cert_params.subject_name.get() /* issuer */, cert_params,
-                       is_signing_key, is_encryption_key, is_key_agreement_key, &cert);
+    *error = make_cert(pkey.get(), cert_params.subject_name.get() /* issuer */, cert_params, &cert);
     if (*error != KM_ERROR_OK) return {};
 
     if (fake_signature) {

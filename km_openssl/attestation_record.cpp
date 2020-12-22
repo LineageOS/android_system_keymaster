@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <keymaster/attestation_record.h>
+#include <keymaster/km_openssl/attestation_record.h>
 
 #include <assert.h>
 #include <math.h>

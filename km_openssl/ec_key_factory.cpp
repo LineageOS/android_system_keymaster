@@ -77,6 +77,8 @@ keymaster_error_t EcKeyFactory::GetCurveAndSize(const AuthorizationSet& key_desc
 }
 
 keymaster_error_t EcKeyFactory::GenerateKey(const AuthorizationSet& key_description,
+                                            UniquePtr<Key> attest_key,  //
+                                            const KeymasterBlob& issuer_subject,
                                             KeymasterKeyBlob* key_blob,
                                             AuthorizationSet* hw_enforced,
                                             AuthorizationSet* sw_enforced,
@@ -131,7 +133,8 @@ keymaster_error_t EcKeyFactory::GenerateKey(const AuthorizationSet& key_descript
 
     EcKey key(*hw_enforced, *sw_enforced, this, move(ec_key));
     if (key_description.Contains(TAG_ATTESTATION_CHALLENGE)) {
-        *cert_chain = context_.GenerateAttestation(key, key_description, &error);
+        *cert_chain = context_.GenerateAttestation(key, key_description, move(attest_key),
+                                                   issuer_subject, &error);
     } else {
         *cert_chain = context_.GenerateSelfSignedCertificate(
             key, key_description,
@@ -141,9 +144,11 @@ keymaster_error_t EcKeyFactory::GenerateKey(const AuthorizationSet& key_descript
     return error;
 }
 
-keymaster_error_t EcKeyFactory::ImportKey(const AuthorizationSet& key_description,
+keymaster_error_t EcKeyFactory::ImportKey(const AuthorizationSet& key_description,  //
                                           keymaster_key_format_t input_key_material_format,
                                           const KeymasterKeyBlob& input_key_material,
+                                          UniquePtr<Key> attest_key,  //
+                                          const KeymasterBlob& issuer_subject,
                                           KeymasterKeyBlob* output_key_blob,
                                           AuthorizationSet* hw_enforced,
                                           AuthorizationSet* sw_enforced,
@@ -172,7 +177,8 @@ keymaster_error_t EcKeyFactory::ImportKey(const AuthorizationSet& key_descriptio
 
     EcKey key(*hw_enforced, *sw_enforced, this, move(ec_key));
     if (key_description.Contains(KM_TAG_ATTESTATION_CHALLENGE)) {
-        *cert_chain = context_.GenerateAttestation(key, key_description, &error);
+        *cert_chain = context_.GenerateAttestation(key, key_description, move(attest_key),
+                                                   issuer_subject, &error);
     } else {
         *cert_chain = context_.GenerateSelfSignedCertificate(
             key, key_description,
