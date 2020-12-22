@@ -29,17 +29,17 @@
 
 #include <keymaster/keymaster_enforcement.h>
 
-namespace aidl::android::hardware::security::keymint {
+namespace aidl::android::hardware::security::keymint::km_utils {
 
 using ::ndk::ScopedAStatus;
 using std::vector;
 
 inline keymaster_tag_t legacy_enum_conversion(const Tag value) {
-    return keymaster_tag_t(value);
+    return static_cast<keymaster_tag_t>(value);
 }
 
 inline Tag legacy_enum_conversion(const keymaster_tag_t value) {
-    return Tag(value);
+    return static_cast<Tag>(value);
 }
 
 inline keymaster_purpose_t legacy_enum_conversion(const KeyPurpose value) {
@@ -68,6 +68,7 @@ inline keymaster_tag_type_t typeFromTag(const keymaster_tag_t tag) {
     return keymaster_tag_get_type(tag);
 }
 
+vector<KeyParameter> kmParamSet2Aidl(const keymaster_key_param_set_t& set);
 keymaster_key_param_set_t aidlKeyParams2Km(const vector<KeyParameter>& keyParams);
 
 class KmParamSet : public keymaster_key_param_set_t {
@@ -81,7 +82,7 @@ class KmParamSet : public keymaster_key_param_set_t {
     }
 
     KmParamSet(const KmParamSet&) = delete;
-    ~KmParamSet() { delete[] params; }
+    ~KmParamSet() { keymaster_free_param_set(this); }
 };
 
 inline vector<uint8_t> kmBlob2vector(const keymaster_key_blob_t& blob) {
@@ -119,8 +120,6 @@ inline OutIter copy_bytes_to_iterator(const T& value, OutIter dest) {
 
 vector<uint8_t> authToken2AidlVec(const HardwareAuthToken& token);
 
-vector<KeyParameter> kmParamSet2Aidl(const keymaster_key_param_set_t& set);
-
 inline void addClientAndAppData(const vector<uint8_t>& clientId, const vector<uint8_t>& appData,
                                 ::keymaster::AuthorizationSet* params) {
     params->Clear();
@@ -132,4 +131,4 @@ inline void addClientAndAppData(const vector<uint8_t>& clientId, const vector<ui
     }
 }
 
-}  // namespace aidl::android::hardware::security::keymint
+}  // namespace aidl::android::hardware::security::keymint::km_utils
