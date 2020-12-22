@@ -416,11 +416,10 @@ void AndroidKeymaster::ImportKey(const ImportKeyRequest& request, ImportKeyRespo
         !(factory = context_->GetKeyFactory(algorithm))) {
         response->error = KM_ERROR_UNSUPPORTED_ALGORITHM;
     } else {
-        keymaster_key_blob_t key_material = {request.key_data, request.key_data_length};
         KeymasterKeyBlob key_blob;
-        response->error = factory->ImportKey(
-            request.key_description, request.key_format, KeymasterKeyBlob(key_material), &key_blob,
-            &response->enforced, &response->unenforced, &response->certificate_chain);
+        response->error = factory->ImportKey(request.key_description, request.key_format,
+                                             request.key_data, &key_blob, &response->enforced,
+                                             &response->unenforced, &response->certificate_chain);
         if (response->error == KM_ERROR_OK) response->key_blob = move(key_blob);
     }
 }
