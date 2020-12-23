@@ -144,9 +144,12 @@ class KeymasterContext {
      */
     virtual KeymasterEnforcement* enforcement_policy() = 0;
 
-    virtual keymaster_error_t GenerateAttestation(const Key& key,
-                                                  const AuthorizationSet& attest_params,
-                                                  CertChainPtr* cert_chain) const = 0;
+    /**
+     * Generate an attestation certificate, with chain, using the factory attestation key.
+     */
+    virtual CertificateChain GenerateAttestation(const Key& key,
+                                                 const AuthorizationSet& attest_params,
+                                                 keymaster_error_t* error) const = 0;
 
     virtual keymaster_error_t
     UnwrapKey(const KeymasterKeyBlob& wrapped_key_blob, const KeymasterKeyBlob& wrapping_key_blob,

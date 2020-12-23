@@ -296,22 +296,26 @@ const keymaster_key_blob_t* getAttestationKey(keymaster_algorithm_t algorithm,
     }
 }
 
-const keymaster_cert_chain_t* getAttestationChain(keymaster_algorithm_t algorithm,
-                                                  keymaster_error_t* error) {
-
+CertificateChain getAttestationChain(keymaster_algorithm_t algorithm, keymaster_error_t* error) {
     if (error) *error = KM_ERROR_OK;
+
+    CertificateChain retval;
 
     switch (algorithm) {
     case KM_ALGORITHM_RSA:
-        return &kRsaAttestChain;
+        retval = CertificateChain::clone(kRsaAttestChain);
+        if (!retval.entries) *error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
         break;
     case KM_ALGORITHM_EC:
-        return &kEcAttestChain;
+        retval = CertificateChain::clone(kEcAttestChain);
+        if (!retval.entries) *error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
         break;
     default:
         if (error) *error = KM_ERROR_UNSUPPORTED_ALGORITHM;
+        break;
     }
-    return nullptr;
+
+    return retval;
 }
 
 }  // namespace keymaster
