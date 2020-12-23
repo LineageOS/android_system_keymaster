@@ -108,8 +108,8 @@ class Keymaster1PassthroughContext : public KeymasterContext,
      */
     KeymasterEnforcement* enforcement_policy() override;
 
-    keymaster_error_t GenerateAttestation(const Key& key, const AuthorizationSet& attest_params,
-                                          CertChainPtr* cert_chain) const override;
+    CertificateChain GenerateAttestation(const Key& key, const AuthorizationSet& attest_params,
+                                         keymaster_error_t* error) const override;
 
     keymaster_error_t CreateKeyBlob(const AuthorizationSet& key_description,
                                     const keymaster_key_origin_t origin,

@@ -254,31 +254,32 @@ keymaster_error_t PureSoftKeymasterContext::AddRngEntropy(const uint8_t* buf, si
     return KM_ERROR_OK;
 }
 
-keymaster_error_t PureSoftKeymasterContext::GenerateAttestation(const Key& key,
-                                      const AuthorizationSet& attest_params,
-                                      CertChainPtr* cert_chain) const {
-
-    keymaster_error_t error = KM_ERROR_OK;
+CertificateChain
+PureSoftKeymasterContext::GenerateAttestation(const Key& key, const AuthorizationSet& attest_params,
+                                              keymaster_error_t* error) const {
     keymaster_algorithm_t key_algorithm;
     if (!key.authorizations().GetTagValue(TAG_ALGORITHM, &key_algorithm)) {
-        return KM_ERROR_UNKNOWN_ERROR;
+        *error = KM_ERROR_UNKNOWN_ERROR;
+        return {};
     }
 
-    if ((key_algorithm != KM_ALGORITHM_RSA && key_algorithm != KM_ALGORITHM_EC))
-        return KM_ERROR_INCOMPATIBLE_ALGORITHM;
+    if ((key_algorithm != KM_ALGORITHM_RSA && key_algorithm != KM_ALGORITHM_EC)) {
+        *error = KM_ERROR_INCOMPATIBLE_ALGORITHM;
+        return {};
+    }
 
     // We have established that the given key has the correct algorithm, and because this is the
     // SoftKeymasterContext we can assume that the Key is an AsymmetricKey. So we can downcast.
     const AsymmetricKey& asymmetric_key = static_cast<const AsymmetricKey&>(key);
 
-    auto attestation_chain = getAttestationChain(key_algorithm, &error);
-    if (error != KM_ERROR_OK) return error;
+    CertificateChain attestation_chain = getAttestationChain(key_algorithm, error);
+    if (*error != KM_ERROR_OK) return {};
 
-    auto attestation_key = getAttestationKey(key_algorithm, &error);
-    if (error != KM_ERROR_OK) return error;
+    auto attestation_key = getAttestationKey(key_algorithm, error);
+    if (*error != KM_ERROR_OK) return {};
 
-    return generate_attestation(asymmetric_key, attest_params,
-            *attestation_chain, *attestation_key, *this, cert_chain);
+    return generate_attestation(asymmetric_key, attest_params, move(attestation_chain),
+                                *attestation_key, *this, error);
 }
 
 static keymaster_error_t TranslateAuthorizationSetError(AuthorizationSet::Error err) {

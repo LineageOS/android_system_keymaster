@@ -77,9 +77,8 @@ class SoftKeymasterContext : public KeymasterContext,
     keymaster_error_t DeleteAllKeys() const override;
     keymaster_error_t AddRngEntropy(const uint8_t* buf, size_t length) const override;
 
-    keymaster_error_t GenerateAttestation(const Key& key,
-                                          const AuthorizationSet& attest_params,
-                                          CertChainPtr* cert_chain) const override;
+    CertificateChain GenerateAttestation(const Key& key, const AuthorizationSet& attest_params,
+                                         keymaster_error_t* error) const override;
 
     keymaster_error_t
     UnwrapKey(const KeymasterKeyBlob& wrapped_key_blob, const KeymasterKeyBlob& wrapping_key_blob,
