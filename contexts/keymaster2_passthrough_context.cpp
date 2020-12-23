@@ -126,25 +126,18 @@ KeymasterEnforcement* Keymaster2PassthroughContext::enforcement_policy() {
     return nullptr;
 }
 
-keymaster_error_t Keymaster2PassthroughContext::GenerateAttestation(
-    const Key& key, const AuthorizationSet& attest_params, CertChainPtr* cert_chain) const {
-    if (!cert_chain) return KM_ERROR_UNEXPECTED_NULL_POINTER;
-
+CertificateChain Keymaster2PassthroughContext::GenerateAttestation(
+    const Key& key, const AuthorizationSet& attest_params, keymaster_error_t* error) const {
     keymaster_cert_chain_t cchain{};
-
     auto rc = device_->attest_key(device_, &key.key_material(), &attest_params, &cchain);
-    if (rc == KM_ERROR_OK) {
-        cert_chain->reset(new keymaster_cert_chain_t);
-        **cert_chain = {new keymaster_blob_t[cchain.entry_count], cchain.entry_count};
-        for (size_t i = 0; i < cchain.entry_count; ++i) {
-            (*cert_chain)->entries[i] = {
-                dup_array(cchain.entries[i].data, cchain.entries[i].data_length),
-                cchain.entries[i].data_length};
-            free(const_cast<uint8_t*>(cchain.entries[i].data));
-        }
-        free(cchain.entries);
+    if (rc != KM_ERROR_OK) {
+        *error = rc;
+        return {};
     }
-    return rc;
+
+    CertificateChain retval = CertificateChain::clone(cchain);
+    keymaster_free_cert_chain(&cchain);
+    return retval;
 }
 
 keymaster_error_t Keymaster2PassthroughContext::UnwrapKey(

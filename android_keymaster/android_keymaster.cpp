@@ -381,15 +381,9 @@ void AndroidKeymaster::AttestKey(const AttestKeyRequest& request, AttestKeyRespo
         key->sw_enforced().push_back(TAG_ATTESTATION_APPLICATION_ID, attestation_application_id);
     }
 
-    CertChainPtr certchain;
-    response->error = context_->GenerateAttestation(*key, request.attest_params, &certchain);
-    if (response->error == KM_ERROR_OK) {
-        response->certificate_chain = *certchain;
-        // response->certificate_chain took possession of secondary resources. So we shallowly
-        // delete the keymaster_cert_chain_t object, but nothing else.
-        // TODO Can we switch to managed types eventually?
-        delete certchain.release();
-    }
+    CertificateChain certchain =
+        context_->GenerateAttestation(*key, request.attest_params, &response->error);
+    if (response->error == KM_ERROR_OK) response->certificate_chain = certchain.release();
 }
 
 void AndroidKeymaster::UpgradeKey(const UpgradeKeyRequest& request, UpgradeKeyResponse* response) {

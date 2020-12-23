@@ -102,8 +102,8 @@ class Keymaster2PassthroughContext : public KeymasterContext {
      */
     KeymasterEnforcement* enforcement_policy() override;
 
-    keymaster_error_t GenerateAttestation(const Key& key, const AuthorizationSet& attest_params,
-                                          CertChainPtr* cert_chain) const override;
+    CertificateChain GenerateAttestation(const Key& key, const AuthorizationSet& attest_params,
+                                         keymaster_error_t* cert_chain) const override;
 
     keymaster_error_t
     UnwrapKey(const KeymasterKeyBlob& wrapped_key_blob, const KeymasterKeyBlob& wrapping_key_blob,
