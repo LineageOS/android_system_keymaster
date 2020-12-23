@@ -576,7 +576,8 @@ TEST(RoundTrip, AttestKeyResponse) {
     for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
         AttestKeyResponse msg(ver);
         msg.error = KM_ERROR_OK;
-        EXPECT_TRUE(msg.AllocateChain(3));
+        msg.certificate_chain = CertificateChain(3);
+        EXPECT_TRUE(!!msg.certificate_chain.entries);
         msg.certificate_chain.entries[0] = {dup_buffer("foo", 3), 3};
         msg.certificate_chain.entries[1] = {dup_buffer("bar", 3), 3};
         msg.certificate_chain.entries[2] = {dup_buffer("baz", 3), 3};
