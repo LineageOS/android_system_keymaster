@@ -155,6 +155,8 @@ const char* StringifyTag(keymaster_tag_t tag) {
         return "KM_TAG_BOOT_PATCHLEVEL";
     case KM_TAG_VENDOR_PATCHLEVEL:
         return "KM_TAG_VENDOR_PATCHLEVEL";
+    case KM_TAG_RSA_OAEP_MGF_DIGEST:
+        return "KM_TAG_RSA_OAEP_MGF_DIGEST";
     }
     return "<Unknown>";
 }
@@ -235,5 +237,6 @@ DEFINE_KEYMASTER_ENUM_TAG(KM_ENUM, TAG_ORIGIN, keymaster_key_origin_t);
 DEFINE_KEYMASTER_ENUM_TAG(KM_ENUM, TAG_USER_AUTH_TYPE, hw_authenticator_type_t);
 DEFINE_KEYMASTER_ENUM_TAG(KM_ENUM_REP, TAG_KDF, keymaster_kdf_t);
 DEFINE_KEYMASTER_ENUM_TAG(KM_ENUM, TAG_EC_CURVE, keymaster_ec_curve_t);
+DEFINE_KEYMASTER_ENUM_TAG(KM_ENUM_REP, TAG_RSA_OAEP_MGF_DIGEST, keymaster_digest_t);
 
 }  // namespace keymaster
