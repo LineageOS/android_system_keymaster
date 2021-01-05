@@ -584,6 +584,9 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
         case KM_TAG_BLOCK_MODE:
             integer_set = &record->block_mode;
             break;
+        case KM_TAG_RSA_OAEP_MGF_DIGEST:
+            integer_set = &record->mgf_digest;
+            break;
 
         /* Non-repeating unsigned integers */
         case KM_TAG_KEY_SIZE:
@@ -1155,6 +1158,11 @@ keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet
 
     // Padding
     if (!get_repeated_enums(record->padding, TAG_PADDING, auth_list)) {
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    }
+
+    // Rsa Oaep Mgf Digest
+    if (!get_repeated_enums(record->mgf_digest, TAG_RSA_OAEP_MGF_DIGEST, auth_list)) {
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
