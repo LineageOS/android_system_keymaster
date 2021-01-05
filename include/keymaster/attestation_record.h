@@ -75,6 +75,7 @@ typedef struct km_auth_list {
     ASN1_INTEGER_SET* block_mode;
     ASN1_INTEGER_SET* digest;
     ASN1_INTEGER_SET* padding;
+    ASN1_INTEGER_SET* mgf_digest;
     ASN1_NULL* caller_nonce;
     ASN1_INTEGER* min_mac_length;
     ASN1_INTEGER_SET* kdf;
@@ -124,6 +125,8 @@ ASN1_SEQUENCE(KM_AUTH_LIST) = {
     ASN1_EXP_SET_OF_OPT(KM_AUTH_LIST, block_mode, ASN1_INTEGER, TAG_BLOCK_MODE.masked_tag()),
     ASN1_EXP_SET_OF_OPT(KM_AUTH_LIST, digest, ASN1_INTEGER, TAG_DIGEST.masked_tag()),
     ASN1_EXP_SET_OF_OPT(KM_AUTH_LIST, padding, ASN1_INTEGER, TAG_PADDING.masked_tag()),
+    ASN1_EXP_SET_OF_OPT(KM_AUTH_LIST, mgf_digest, ASN1_INTEGER,
+                        TAG_RSA_OAEP_MGF_DIGEST.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, caller_nonce, ASN1_NULL, TAG_CALLER_NONCE.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, min_mac_length, ASN1_INTEGER, TAG_MIN_MAC_LENGTH.masked_tag()),
     ASN1_EXP_SET_OF_OPT(KM_AUTH_LIST, kdf, ASN1_INTEGER, TAG_KDF.masked_tag()),

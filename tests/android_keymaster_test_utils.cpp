@@ -484,10 +484,37 @@ string Keymaster2Test::EncryptMessage(const string& message, keymaster_digest_t 
     return EncryptMessage(update_params, message, digest, padding, generated_nonce);
 }
 
+string Keymaster2Test::EncryptMessage(const string& message, keymaster_digest_t digest,
+                                      keymaster_digest_t mgf_digest, keymaster_padding_t padding,
+                                      string* generated_nonce) {
+    AuthorizationSet update_params;
+    return EncryptMessage(update_params, message, digest, mgf_digest, padding, generated_nonce);
+}
+
 string Keymaster2Test::EncryptMessage(const string& message, keymaster_block_mode_t block_mode,
                                       keymaster_padding_t padding, string* generated_nonce) {
     AuthorizationSet update_params;
     return EncryptMessage(update_params, message, block_mode, padding, generated_nonce);
+}
+
+string Keymaster2Test::EncryptMessage(const AuthorizationSet& update_params, const string& message,
+                                      keymaster_digest_t digest, keymaster_digest_t mgf_digest,
+                                      keymaster_padding_t padding, string* generated_nonce) {
+    SCOPED_TRACE("EncryptMessage");
+    AuthorizationSet begin_params(client_params()), output_params;
+    begin_params.push_back(TAG_PADDING, padding);
+    begin_params.push_back(TAG_DIGEST, digest);
+    begin_params.push_back(TAG_RSA_OAEP_MGF_DIGEST, mgf_digest);
+    string ciphertext =
+        ProcessMessage(KM_PURPOSE_ENCRYPT, message, begin_params, update_params, &output_params);
+    if (generated_nonce) {
+        keymaster_blob_t nonce_blob;
+        EXPECT_TRUE(output_params.GetTagValue(TAG_NONCE, &nonce_blob));
+        *generated_nonce = make_string(nonce_blob.data, nonce_blob.data_length);
+    } else {
+        EXPECT_EQ(-1, output_params.find(TAG_NONCE));
+    }
+    return ciphertext;
 }
 
 string Keymaster2Test::EncryptMessage(const AuthorizationSet& update_params, const string& message,
@@ -582,6 +609,17 @@ string Keymaster2Test::DecryptMessage(const string& ciphertext, keymaster_block_
     begin_params.push_back(TAG_PADDING, padding);
     begin_params.push_back(TAG_BLOCK_MODE, block_mode);
     begin_params.push_back(TAG_NONCE, nonce.data(), nonce.size());
+    AuthorizationSet update_params;
+    return ProcessMessage(KM_PURPOSE_DECRYPT, ciphertext, begin_params, update_params);
+}
+
+string Keymaster2Test::DecryptMessage(const string& ciphertext, keymaster_digest_t digest,
+                                      keymaster_digest_t mgf_digest, keymaster_padding_t padding) {
+    SCOPED_TRACE("DecryptMessage");
+    AuthorizationSet begin_params(client_params());
+    begin_params.push_back(TAG_PADDING, padding);
+    begin_params.push_back(TAG_DIGEST, digest);
+    begin_params.push_back(TAG_RSA_OAEP_MGF_DIGEST, mgf_digest);
     AuthorizationSet update_params;
     return ProcessMessage(KM_PURPOSE_DECRYPT, ciphertext, begin_params, update_params);
 }

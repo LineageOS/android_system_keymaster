@@ -98,4 +98,23 @@ size_t ec_group_size_bits(EC_KEY* ec_key);
 
 keymaster_error_t GenerateRandom(uint8_t* buf, size_t length);
 
+inline const EVP_MD* KmDigestToEvpDigest(keymaster_digest_t digest) {
+    switch (digest) {
+    case KM_DIGEST_MD5:
+        return EVP_md5();
+    case KM_DIGEST_SHA1:
+        return EVP_sha1();
+    case KM_DIGEST_SHA_2_224:
+        return EVP_sha224();
+    case KM_DIGEST_SHA_2_256:
+        return EVP_sha256();
+    case KM_DIGEST_SHA_2_384:
+        return EVP_sha384();
+    case KM_DIGEST_SHA_2_512:
+        return EVP_sha512();
+    default:
+        return nullptr;
+    }
+}
+
 }  // namespace keymaster
