@@ -57,7 +57,7 @@ ScopedAStatus AndroidKeyMintOperation::update(const optional<KeyParameterArray>&
         return kmError2ScopedAStatus(KM_ERROR_OUTPUT_PARAMETER_NULL);
     }
 
-    UpdateOperationRequest request;
+    UpdateOperationRequest request(impl_->message_version());
     request.op_handle = opHandle_;
     if (input) {
         request.input.Reinitialize(input->data(), input->size());
@@ -67,7 +67,7 @@ ScopedAStatus AndroidKeyMintOperation::update(const optional<KeyParameterArray>&
         request.additional_params.Reinitialize(KmParamSet(params->params));
     }
 
-    UpdateOperationResponse response;
+    UpdateOperationResponse response(impl_->message_version());
     impl_->UpdateOperation(request, &response);
 
     *inputConsumed = 0;
@@ -101,7 +101,7 @@ ScopedAStatus AndroidKeyMintOperation::finish(const optional<KeyParameterArray>&
             static_cast<int32_t>(ErrorCode::OUTPUT_PARAMETER_NULL)));
     }
 
-    FinishOperationRequest request;
+    FinishOperationRequest request(impl_->message_version());
     request.op_handle = opHandle_;
 
     if (input) {
@@ -116,7 +116,7 @@ ScopedAStatus AndroidKeyMintOperation::finish(const optional<KeyParameterArray>&
         request.additional_params.Reinitialize(KmParamSet(params->params));
     }
 
-    FinishOperationResponse response;
+    FinishOperationResponse response(impl_->message_version());
     impl_->FinishOperation(request, &response);
     opHandle_ = 0;
 
@@ -132,10 +132,10 @@ ScopedAStatus AndroidKeyMintOperation::finish(const optional<KeyParameterArray>&
 }
 
 ScopedAStatus AndroidKeyMintOperation::abort() {
-    AbortOperationRequest request;
+    AbortOperationRequest request(impl_->message_version());
     request.op_handle = opHandle_;
 
-    AbortOperationResponse response;
+    AbortOperationResponse response(impl_->message_version());
     impl_->AbortOperation(request, &response);
     opHandle_ = 0;
 
