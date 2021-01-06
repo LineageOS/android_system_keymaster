@@ -62,7 +62,7 @@ ScopedAStatus AndroidKeyMintDevice::verifyAuthorization(int64_t challenge,      
                                                         const HardwareAuthToken& authToken,  //
                                                         VerificationToken* verificationToken) {
 
-    VerifyAuthorizationRequest request;
+    VerifyAuthorizationRequest request(impl_->message_version());
     request.challenge = static_cast<uint64_t>(challenge);
     request.auth_token.challenge = authToken.challenge;
     request.auth_token.user_id = authToken.userId;
@@ -93,10 +93,10 @@ ScopedAStatus AndroidKeyMintDevice::addRngEntropy(const vector<uint8_t>& data) {
         return ScopedAStatus::ok();
     }
 
-    AddEntropyRequest request;
+    AddEntropyRequest request(impl_->message_version());
     request.random_data.Reinitialize(data.data(), data.size());
 
-    AddEntropyResponse response;
+    AddEntropyResponse response(impl_->message_version());
     impl_->AddRngEntropy(request, &response);
 
     return kmError2ScopedAStatus(response.error);
@@ -107,10 +107,10 @@ ScopedAStatus AndroidKeyMintDevice::generateKey(const vector<KeyParameter>& keyP
                                                 KeyCharacteristics* generatedKeyCharacteristics,
                                                 vector<Certificate>* /* certChain */) {
 
-    GenerateKeyRequest request;
+    GenerateKeyRequest request(impl_->message_version());
     request.key_description.Reinitialize(KmParamSet(keyParams));
 
-    GenerateKeyResponse response;
+    GenerateKeyResponse response(impl_->message_version());
     impl_->GenerateKey(request, &response);
 
     if (response.error != KM_ERROR_OK) {
@@ -139,12 +139,12 @@ ScopedAStatus AndroidKeyMintDevice::importKey(const vector<KeyParameter>& keyPar
                                               KeyCharacteristics* importedKeyCharacteristics,
                                               vector<Certificate>* /* certChain */) {
 
-    ImportKeyRequest request;
+    ImportKeyRequest request(impl_->message_version());
     request.key_description.Reinitialize(KmParamSet(keyParams));
     request.key_format = legacy_enum_conversion(keyFormat);
     request.SetKeyMaterial(keyData.data(), keyData.size());
 
-    ImportKeyResponse response;
+    ImportKeyResponse response(impl_->message_version());
     impl_->ImportKey(request, &response);
 
     if (response.error != KM_ERROR_OK) {
@@ -164,7 +164,7 @@ ScopedAStatus AndroidKeyMintDevice::importWrappedKey(
     int64_t passwordSid, int64_t biometricSid, ByteArray* importedKeyBlob,
     KeyCharacteristics* importedKeyCharacteristics) {
 
-    ImportWrappedKeyRequest request;
+    ImportWrappedKeyRequest request(impl_->message_version());
     request.SetWrappedMaterial(wrappedKeyData.data(), wrappedKeyData.size());
     request.SetWrappingMaterial(wrappingKeyBlob.data(), wrappingKeyBlob.size());
     request.SetMaskingKeyMaterial(maskingKey.data(), maskingKey.size());
@@ -172,7 +172,7 @@ ScopedAStatus AndroidKeyMintDevice::importWrappedKey(
     request.password_sid = static_cast<uint64_t>(passwordSid);
     request.biometric_sid = static_cast<uint64_t>(biometricSid);
 
-    ImportWrappedKeyResponse response;
+    ImportWrappedKeyResponse response(impl_->message_version());
     impl_->ImportWrappedKey(request, &response);
 
     if (response.error != KM_ERROR_OK) {
@@ -190,11 +190,11 @@ ScopedAStatus AndroidKeyMintDevice::upgradeKey(const vector<uint8_t>& keyBlobToU
                                                const vector<KeyParameter>& upgradeParams,
                                                vector<uint8_t>* keyBlob) {
 
-    UpgradeKeyRequest request;
+    UpgradeKeyRequest request(impl_->message_version());
     request.SetKeyMaterial(keyBlobToUpgrade.data(), keyBlobToUpgrade.size());
     request.upgrade_params.Reinitialize(KmParamSet(upgradeParams));
 
-    UpgradeKeyResponse response;
+    UpgradeKeyResponse response(impl_->message_version());
     impl_->UpgradeKey(request, &response);
 
     if (response.error != KM_ERROR_OK) {
@@ -206,10 +206,10 @@ ScopedAStatus AndroidKeyMintDevice::upgradeKey(const vector<uint8_t>& keyBlobToU
 }
 
 ScopedAStatus AndroidKeyMintDevice::deleteKey(const vector<uint8_t>& keyBlob) {
-    DeleteKeyRequest request;
+    DeleteKeyRequest request(impl_->message_version());
     request.SetKeyMaterial(keyBlob.data(), keyBlob.size());
 
-    DeleteKeyResponse response;
+    DeleteKeyResponse response(impl_->message_version());
     impl_->DeleteKey(request, &response);
 
     return kmError2ScopedAStatus(response.error);
@@ -217,8 +217,8 @@ ScopedAStatus AndroidKeyMintDevice::deleteKey(const vector<uint8_t>& keyBlob) {
 
 ScopedAStatus AndroidKeyMintDevice::deleteAllKeys() {
     // There's nothing to be done to delete software key blobs.
-    DeleteAllKeysRequest request;
-    DeleteAllKeysResponse response;
+    DeleteAllKeysRequest request(impl_->message_version());
+    DeleteAllKeysResponse response(impl_->message_version());
     impl_->DeleteAllKeys(request, &response);
 
     return kmError2ScopedAStatus(response.error);
@@ -232,7 +232,7 @@ ScopedAStatus AndroidKeyMintDevice::begin(KeyPurpose purpose, const vector<uint8
                                           const vector<KeyParameter>& params,
                                           const HardwareAuthToken& authToken, BeginResult* result) {
 
-    BeginOperationRequest request;
+    BeginOperationRequest request(impl_->message_version());
     request.purpose = legacy_enum_conversion(purpose);
     request.SetKeyMaterial(keyBlob.data(), keyBlob.size());
     request.additional_params.Reinitialize(KmParamSet(params));
@@ -241,7 +241,7 @@ ScopedAStatus AndroidKeyMintDevice::begin(KeyPurpose purpose, const vector<uint8
     request.additional_params.push_back(
         TAG_AUTH_TOKEN, reinterpret_cast<uint8_t*>(vector_token.data()), vector_token.size());
 
-    BeginOperationResponse response;
+    BeginOperationResponse response(impl_->message_version());
     impl_->BeginOperation(request, &response);
 
     if (response.error != KM_ERROR_OK) {
