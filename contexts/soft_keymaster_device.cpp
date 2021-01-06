@@ -379,10 +379,9 @@ keymaster_error_t SoftKeymasterDevice::get_supported_algorithms(const keymaster1
     const keymaster1_device_t* km1_dev = convert_device(dev)->wrapped_km1_device_;
     if (km1_dev) return km1_dev->get_supported_algorithms(km1_dev, algorithms, algorithms_length);
 
-    auto& impl_ = convert_device(dev)->impl_;
-    SupportedAlgorithmsRequest request(impl_->message_version());
-    SupportedAlgorithmsResponse response(impl_->message_version());
-    impl_->SupportedAlgorithms(request, &response);
+    SupportedAlgorithmsRequest request;
+    SupportedAlgorithmsResponse response;
+    convert_device(dev)->impl_->SupportedAlgorithms(request, &response);
     if (response.error != KM_ERROR_OK) {
         LOG_E("get_supported_algorithms failed with %d", response.error);
 
@@ -411,12 +410,11 @@ keymaster_error_t SoftKeymasterDevice::get_supported_block_modes(const keymaster
     if (km1_dev)
         return km1_dev->get_supported_block_modes(km1_dev, algorithm, purpose, modes, modes_length);
 
-    auto& impl_ = convert_device(dev)->impl_;
-    SupportedBlockModesRequest request(impl_->message_version());
+    SupportedBlockModesRequest request;
     request.algorithm = algorithm;
     request.purpose = purpose;
-    SupportedBlockModesResponse response(impl_->message_version());
-    impl_->SupportedBlockModes(request, &response);
+    SupportedBlockModesResponse response;
+    convert_device(dev)->impl_->SupportedBlockModes(request, &response);
 
     if (response.error != KM_ERROR_OK) {
         LOG_E("get_supported_block_modes failed with %d", response.error);
@@ -446,11 +444,10 @@ keymaster_error_t SoftKeymasterDevice::get_supported_padding_modes(const keymast
         return km1_dev->get_supported_padding_modes(km1_dev, algorithm, purpose, modes,
                                                     modes_length);
 
-    auto& impl_ = convert_device(dev)->impl_;
-    SupportedPaddingModesRequest request(impl_->message_version());
+    SupportedPaddingModesRequest request;
     request.algorithm = algorithm;
     request.purpose = purpose;
-    SupportedPaddingModesResponse response(impl_->message_version());
+    SupportedPaddingModesResponse response;
     convert_device(dev)->impl_->SupportedPaddingModes(request, &response);
 
     if (response.error != KM_ERROR_OK) {
@@ -479,12 +476,11 @@ keymaster_error_t SoftKeymasterDevice::get_supported_digests(const keymaster1_de
     if (km1_dev)
         return km1_dev->get_supported_digests(km1_dev, algorithm, purpose, digests, digests_length);
 
-    auto& impl_ = convert_device(dev)->impl_;
-    SupportedDigestsRequest request(impl_->message_version());
+    SupportedDigestsRequest request;
     request.algorithm = algorithm;
     request.purpose = purpose;
-    SupportedDigestsResponse response(impl_->message_version());
-    impl_->SupportedDigests(request, &response);
+    SupportedDigestsResponse response;
+    convert_device(dev)->impl_->SupportedDigests(request, &response);
 
     if (response.error != KM_ERROR_OK) {
         LOG_E("get_supported_digests failed with %d", response.error);
@@ -510,11 +506,10 @@ keymaster_error_t SoftKeymasterDevice::get_supported_import_formats(
     if (km1_dev)
         return km1_dev->get_supported_import_formats(km1_dev, algorithm, formats, formats_length);
 
-    auto& impl_ = convert_device(dev)->impl_;
-    SupportedImportFormatsRequest request(impl_->message_version());
+    SupportedImportFormatsRequest request;
     request.algorithm = algorithm;
-    SupportedImportFormatsResponse response(impl_->message_version());
-    impl_->SupportedImportFormats(request, &response);
+    SupportedImportFormatsResponse response;
+    convert_device(dev)->impl_->SupportedImportFormats(request, &response);
 
     if (response.error != KM_ERROR_OK) {
         LOG_E("get_supported_import_formats failed with %d", response.error);
@@ -541,11 +536,10 @@ keymaster_error_t SoftKeymasterDevice::get_supported_export_formats(
     if (km1_dev)
         return km1_dev->get_supported_export_formats(km1_dev, algorithm, formats, formats_length);
 
-    auto& impl_ = convert_device(dev)->impl_;
-    SupportedExportFormatsRequest request(impl_->message_version());
+    SupportedExportFormatsRequest request;
     request.algorithm = algorithm;
-    SupportedExportFormatsResponse response(impl_->message_version());
-    impl_->SupportedExportFormats(request, &response);
+    SupportedExportFormatsResponse response;
+    convert_device(dev)->impl_->SupportedExportFormats(request, &response);
 
     if (response.error != KM_ERROR_OK) {
         LOG_E("get_supported_export_formats failed with %d", response.error);
@@ -564,15 +558,14 @@ keymaster_error_t SoftKeymasterDevice::get_supported_export_formats(
 keymaster_error_t SoftKeymasterDevice::configure(const keymaster2_device_t* dev,
                                                  const keymaster_key_param_set_t* params) {
     AuthorizationSet params_copy(*params);
-    auto& impl_ = convert_device(dev)->impl_;
-    ConfigureRequest request(impl_->message_version());
+    ConfigureRequest request;
     if (!params_copy.GetTagValue(TAG_OS_VERSION, &request.os_version) ||
         !params_copy.GetTagValue(TAG_OS_PATCHLEVEL, &request.os_patchlevel)) {
         LOG_E("Configuration parameters must contain OS version and patch level", 0);
         return KM_ERROR_INVALID_ARGUMENT;
     }
-    ConfigureResponse response(impl_->message_version());
-    impl_->Configure(request, &response);
+    ConfigureResponse response;
+    convert_device(dev)->impl_->Configure(request, &response);
     if (response.error == KM_ERROR_OK) convert_device(dev)->configured_ = true;
     return response.error;
 }
@@ -585,11 +578,10 @@ keymaster_error_t SoftKeymasterDevice::add_rng_entropy(const keymaster1_device_t
     const keymaster1_device_t* km1_dev = convert_device(dev)->wrapped_km1_device_;
     if (km1_dev) return km1_dev->add_rng_entropy(km1_dev, data, data_length);
 
-    auto& impl_ = convert_device(dev)->impl_;
-    AddEntropyRequest request(impl_->message_version());
+    AddEntropyRequest request;
     request.random_data.Reinitialize(data, data_length);
-    AddEntropyResponse response(impl_->message_version());
-    impl_->AddRngEntropy(request, &response);
+    AddEntropyResponse response;
+    convert_device(dev)->impl_->AddRngEntropy(request, &response);
     if (response.error != KM_ERROR_OK) LOG_E("add_rng_entropy failed with %d", response.error);
     return response.error;
 }
@@ -687,16 +679,15 @@ keymaster_error_t SoftKeymasterDevice::generate_key(
 
     SoftKeymasterDevice* sk_dev = convert_device(dev);
 
-    auto& impl_ = sk_dev->impl_;
-    GenerateKeyRequest request(impl_->message_version());
+    GenerateKeyRequest request;
     request.key_description.Reinitialize(*params);
 
     keymaster1_device_t* km1_dev = sk_dev->wrapped_km1_device_;
     if (km1_dev && !sk_dev->KeyRequiresSoftwareDigesting(request.key_description))
         return km1_dev->generate_key(km1_dev, params, key_blob, characteristics);
 
-    GenerateKeyResponse response(impl_->message_version());
-    impl_->GenerateKey(request, &response);
+    GenerateKeyResponse response;
+    sk_dev->impl_->GenerateKey(request, &response);
     if (response.error != KM_ERROR_OK) return response.error;
 
     key_blob->key_material_size = response.key_blob.key_material_size;
@@ -732,8 +723,7 @@ SoftKeymasterDevice::generate_key(const keymaster2_device_t* dev,  //
 
     SoftKeymasterDevice* sk_dev = convert_device(dev);
 
-    auto& impl_ = sk_dev->impl_;
-    GenerateKeyRequest request(impl_->message_version());
+    GenerateKeyRequest request;
     request.key_description.Reinitialize(*params);
 
     keymaster1_device_t* km1_dev = sk_dev->wrapped_km1_device_;
@@ -771,8 +761,8 @@ SoftKeymasterDevice::generate_key(const keymaster2_device_t* dev,  //
         return KM_ERROR_OK;
     }
 
-    GenerateKeyResponse response(impl_->message_version());
-    impl_->GenerateKey(request, &response);
+    GenerateKeyResponse response;
+    sk_dev->impl_->GenerateKey(request, &response);
     if (response.error != KM_ERROR_OK) return response.error;
 
     key_blob->key_material_size = response.key_blob.key_material_size;
@@ -809,13 +799,12 @@ keymaster_error_t SoftKeymasterDevice::get_key_characteristics(
         // software key blob.
     }
 
-    auto& impl_ = convert_device(dev)->impl_;
-    GetKeyCharacteristicsRequest request(impl_->message_version());
+    GetKeyCharacteristicsRequest request;
     request.SetKeyMaterial(*key_blob);
     AddClientAndAppData(client_id, app_data, &request);
 
-    GetKeyCharacteristicsResponse response(impl_->message_version());
-    impl_->GetKeyCharacteristics(request, &response);
+    GetKeyCharacteristicsResponse response;
+    convert_device(dev)->impl_->GetKeyCharacteristics(request, &response);
     if (response.error != KM_ERROR_OK) return response.error;
 
     // This is a keymaster1 method, and keymaster1 doesn't include version info, so remove it.
@@ -843,13 +832,12 @@ keymaster_error_t SoftKeymasterDevice::get_key_characteristics(
 
     SoftKeymasterDevice* sk_dev = convert_device(dev);
 
-    auto& impl_ = sk_dev->impl_;
-    GetKeyCharacteristicsRequest request(impl_->message_version());
+    GetKeyCharacteristicsRequest request;
     request.SetKeyMaterial(*key_blob);
     AddClientAndAppData(client_id, app_data, &request);
 
-    GetKeyCharacteristicsResponse response(impl_->message_version());
-    impl_->GetKeyCharacteristics(request, &response);
+    GetKeyCharacteristicsResponse response;
+    sk_dev->impl_->GetKeyCharacteristics(request, &response);
     if (response.error != KM_ERROR_OK) return response.error;
 
     response.enforced.CopyToParamSet(&characteristics->hw_enforced);
@@ -869,8 +857,7 @@ keymaster_error_t SoftKeymasterDevice::import_key(
 
     SoftKeymasterDevice* sk_dev = convert_device(dev);
 
-    auto& impl_ = sk_dev->impl_;
-    ImportKeyRequest request(impl_->message_version());
+    ImportKeyRequest request;
     request.key_description.Reinitialize(*params);
 
     keymaster1_device_t* km1_dev = sk_dev->wrapped_km1_device_;
@@ -883,8 +870,8 @@ keymaster_error_t SoftKeymasterDevice::import_key(
     request.key_format = key_format;
     request.SetKeyMaterial(key_data->data, key_data->data_length);
 
-    ImportKeyResponse response(impl_->message_version());
-    impl_->ImportKey(request, &response);
+    ImportKeyResponse response;
+    convert_device(dev)->impl_->ImportKey(request, &response);
     if (response.error != KM_ERROR_OK) return response.error;
 
     key_blob->key_material_size = response.key_blob.key_material_size;
@@ -946,14 +933,13 @@ keymaster_error_t SoftKeymasterDevice::export_key(const keymaster1_device_t* dev
     export_data->data = nullptr;
     export_data->data_length = 0;
 
-    auto& impl_ = convert_device(dev)->impl_;
-    ExportKeyRequest request(impl_->message_version());
+    ExportKeyRequest request;
     request.key_format = export_format;
     request.SetKeyMaterial(*key_to_export);
     AddClientAndAppData(client_id, app_data, &request);
 
-    ExportKeyResponse response(impl_->message_version());
-    impl_->ExportKey(request, &response);
+    ExportKeyResponse response;
+    convert_device(dev)->impl_->ExportKey(request, &response);
     if (response.error != KM_ERROR_OK) return response.error;
 
     export_data->data_length = response.key_data_length;
@@ -992,8 +978,7 @@ keymaster_error_t SoftKeymasterDevice::attest_key(const keymaster2_device_t* dev
 
     *cert_chain = {};
 
-    auto& impl_ = convert_device(dev)->impl_;
-    AttestKeyRequest request(impl_->message_version());
+    AttestKeyRequest request;
     request.SetKeyMaterial(*key_to_attest);
     request.attest_params.Reinitialize(*attest_params);
 
@@ -1005,8 +990,8 @@ keymaster_error_t SoftKeymasterDevice::attest_key(const keymaster2_device_t* dev
         return KM_ERROR_INVALID_INPUT_LENGTH;
     }
 
-    AttestKeyResponse response(impl_->message_version());
-    impl_->AttestKey(request, &response);
+    AttestKeyResponse response;
+    convert_device(dev)->impl_->AttestKey(request, &response);
     if (response.error != KM_ERROR_OK) return response.error;
 
     // Allocate and clear storage for cert_chain.
@@ -1045,13 +1030,12 @@ keymaster_error_t SoftKeymasterDevice::upgrade_key(const keymaster2_device_t* de
 
     if (!convert_device(dev)->configured()) return KM_ERROR_KEYMASTER_NOT_CONFIGURED;
 
-    auto& impl_ = convert_device(dev)->impl_;
-    UpgradeKeyRequest request(impl_->message_version());
+    UpgradeKeyRequest request;
     request.SetKeyMaterial(*key_to_upgrade);
     request.upgrade_params.Reinitialize(*upgrade_params);
 
-    UpgradeKeyResponse response(impl_->message_version());
-    impl_->UpgradeKey(request, &response);
+    UpgradeKeyResponse response;
+    convert_device(dev)->impl_->UpgradeKey(request, &response);
     if (response.error != KM_ERROR_OK) return response.error;
 
     upgraded_key->key_material_size = response.upgraded_key.key_material_size;
@@ -1149,14 +1133,13 @@ keymaster_error_t SoftKeymasterDevice::begin(const keymaster1_device_t* dev,
         out_params->length = 0;
     }
 
-    auto& impl_ = skdev->impl_;
-    BeginOperationRequest request(impl_->message_version());
+    BeginOperationRequest request;
     request.purpose = purpose;
     request.SetKeyMaterial(*key);
     request.additional_params.Reinitialize(*in_params);
 
-    BeginOperationResponse response(impl_->message_version());
-    impl_->BeginOperation(request, &response);
+    BeginOperationResponse response;
+    skdev->impl_->BeginOperation(request, &response);
     if (response.error != KM_ERROR_OK) return response.error;
 
     if (response.output_params.size() > 0) {
@@ -1214,14 +1197,13 @@ keymaster_error_t SoftKeymasterDevice::update(const keymaster1_device_t* dev,
         output->data_length = 0;
     }
 
-    auto& impl_ = convert_device(dev)->impl_;
-    UpdateOperationRequest request(impl_->message_version());
+    UpdateOperationRequest request;
     request.op_handle = operation_handle;
     if (input) request.input.Reinitialize(input->data, input->data_length);
     if (in_params) request.additional_params.Reinitialize(*in_params);
 
-    UpdateOperationResponse response(impl_->message_version());
-    impl_->UpdateOperation(request, &response);
+    UpdateOperationResponse response;
+    convert_device(dev)->impl_->UpdateOperation(request, &response);
     if (response.error != KM_ERROR_OK) return response.error;
 
     if (response.output_params.size() > 0) {
@@ -1287,15 +1269,14 @@ keymaster_error_t SoftKeymasterDevice::finish(const keymaster1_device_t* dev,
         output->data_length = 0;
     }
 
-    auto& impl_ = convert_device(dev)->impl_;
-    FinishOperationRequest request(impl_->message_version());
+    FinishOperationRequest request;
     request.op_handle = operation_handle;
     if (signature && signature->data_length > 0)
         request.signature.Reinitialize(signature->data, signature->data_length);
     request.additional_params.Reinitialize(*params);
 
-    FinishOperationResponse response(impl_->message_version());
-    impl_->FinishOperation(request, &response);
+    FinishOperationResponse response;
+    convert_device(dev)->impl_->FinishOperation(request, &response);
     if (response.error != KM_ERROR_OK) return response.error;
 
     if (response.output_params.size() > 0) {
@@ -1438,8 +1419,7 @@ keymaster_error_t SoftKeymasterDevice::finish(const keymaster2_device_t* dev,
         return KM_ERROR_OK;
     }
 
-    auto& impl_ = convert_device(dev)->impl_;
-    FinishOperationRequest request(impl_->message_version());
+    FinishOperationRequest request;
     request.op_handle = operation_handle;
     if (signature && signature->data_length > 0)
         request.signature.Reinitialize(signature->data, signature->data_length);
@@ -1447,8 +1427,8 @@ keymaster_error_t SoftKeymasterDevice::finish(const keymaster2_device_t* dev,
         request.input.Reinitialize(input->data, input->data_length);
     request.additional_params.Reinitialize(*params);
 
-    FinishOperationResponse response(impl_->message_version());
-    impl_->FinishOperation(request, &response);
+    FinishOperationResponse response;
+    convert_device(dev)->impl_->FinishOperation(request, &response);
     if (response.error != KM_ERROR_OK) return response.error;
 
     if (response.output_params.size() > 0) {
@@ -1481,11 +1461,10 @@ keymaster_error_t SoftKeymasterDevice::abort(const keymaster1_device_t* dev,
         return km1_dev->abort(km1_dev, operation_handle);
     }
 
-    auto& impl_ = convert_device(dev)->impl_;
-    AbortOperationRequest request(impl_->message_version());
+    AbortOperationRequest request;
     request.op_handle = operation_handle;
-    AbortOperationResponse response(impl_->message_version());
-    impl_->AbortOperation(request, &response);
+    AbortOperationResponse response;
+    convert_device(dev)->impl_->AbortOperation(request, &response);
     return response.error;
 }
 
