@@ -79,6 +79,41 @@ TEST(RoundTrip, EmptyKeymasterResponseError) {
     }
 }
 
+TEST(RoundTrip, SupportedByAlgorithmRequest) {
+    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        SupportedByAlgorithmRequest req(ver);
+        req.algorithm = KM_ALGORITHM_EC;
+
+        UniquePtr<SupportedByAlgorithmRequest> deserialized(round_trip(ver, req, 4));
+        EXPECT_EQ(KM_ALGORITHM_EC, deserialized->algorithm);
+    }
+}
+
+TEST(RoundTrip, SupportedByAlgorithmAndPurposeRequest) {
+    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        SupportedByAlgorithmAndPurposeRequest req(ver);
+        req.algorithm = KM_ALGORITHM_EC;
+        req.purpose = KM_PURPOSE_DECRYPT;
+
+        UniquePtr<SupportedByAlgorithmAndPurposeRequest> deserialized(round_trip(ver, req, 8));
+        EXPECT_EQ(KM_ALGORITHM_EC, deserialized->algorithm);
+        EXPECT_EQ(KM_PURPOSE_DECRYPT, deserialized->purpose);
+    }
+}
+
+TEST(RoundTrip, SupportedResponse) {
+    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        SupportedResponse<keymaster_digest_t> rsp(ver);
+        keymaster_digest_t digests[] = {KM_DIGEST_NONE, KM_DIGEST_MD5, KM_DIGEST_SHA1};
+        rsp.error = KM_ERROR_OK;
+        rsp.SetResults(digests);
+
+        UniquePtr<SupportedResponse<keymaster_digest_t>> deserialized(round_trip(ver, rsp, 20));
+        EXPECT_EQ(array_length(digests), deserialized->results_length);
+        EXPECT_EQ(0, memcmp(deserialized->results, digests, array_size(digests)));
+    }
+}
+
 static keymaster_key_param_t params[] = {
     Authorization(TAG_PURPOSE, KM_PURPOSE_SIGN),
     Authorization(TAG_PURPOSE, KM_PURPOSE_VERIFY),
@@ -437,7 +472,7 @@ TEST(RoundTrip, DeleteAllKeysResponse) {
 }
 
 TEST(RoundTrip, GetVersionRequest) {
-    GetVersionRequest msg(0);
+    GetVersionRequest msg;
 
     size_t size = msg.SerializedSize();
     ASSERT_EQ(0U, size);
@@ -452,7 +487,7 @@ TEST(RoundTrip, GetVersionRequest) {
 }
 
 TEST(RoundTrip, GetVersionResponse) {
-    GetVersionResponse msg(0);
+    GetVersionResponse msg;
     msg.error = KM_ERROR_OK;
     msg.major_ver = 9;
     msg.minor_ver = 98;
@@ -471,43 +506,6 @@ TEST(RoundTrip, GetVersionResponse) {
     EXPECT_EQ(9U, msg.major_ver);
     EXPECT_EQ(98U, msg.minor_ver);
     EXPECT_EQ(38U, msg.subminor_ver);
-}
-
-TEST(RoundTrip, GetVersion2Request) {
-    GetVersion2Request msg;
-
-    msg.max_message_version = 0xDEADBEEF;
-    size_t size = msg.SerializedSize();
-    ASSERT_EQ(4U, size);
-
-    UniquePtr<uint8_t[]> buf(new uint8_t[size]);
-    EXPECT_EQ(buf.get() + size, msg.Serialize(buf.get(), buf.get() + size));
-
-    GetVersion2Request deserialized;
-    const uint8_t* p = buf.get();
-    EXPECT_TRUE(deserialized.Deserialize(&p, p + size));
-    EXPECT_EQ((ptrdiff_t)size, p - buf.get());
-    EXPECT_EQ(0xDEADBEEF, msg.max_message_version);
-}
-
-TEST(RoundTrip, GetVersion2Response) {
-    GetVersion2Response msg;
-    msg.error = KM_ERROR_OK;
-    msg.km_version = KmVersion::KEYMINT_1;
-    msg.km_date = 20121900;
-
-    size_t size = msg.SerializedSize();
-    ASSERT_EQ(16U, size);
-
-    UniquePtr<uint8_t[]> buf(new uint8_t[size]);
-    EXPECT_EQ(buf.get() + size, msg.Serialize(buf.get(), buf.get() + size));
-
-    GetVersion2Response deserialized;
-    const uint8_t* p = buf.get();
-    EXPECT_TRUE(deserialized.Deserialize(&p, p + size));
-    EXPECT_EQ((ptrdiff_t)size, p - buf.get());
-    EXPECT_EQ(KmVersion::KEYMINT_1, msg.km_version);
-    EXPECT_EQ(20121900U, msg.km_date);
 }
 
 TEST(RoundTrip, ConfigureRequest) {
@@ -714,12 +712,19 @@ GARBAGE_TEST(GetKeyCharacteristicsRequest);
 GARBAGE_TEST(GetKeyCharacteristicsResponse);
 GARBAGE_TEST(ImportKeyRequest);
 GARBAGE_TEST(ImportKeyResponse);
+GARBAGE_TEST(SupportedByAlgorithmAndPurposeRequest)
+GARBAGE_TEST(SupportedByAlgorithmRequest)
 GARBAGE_TEST(UpdateOperationRequest);
 GARBAGE_TEST(UpdateOperationResponse);
 GARBAGE_TEST(AttestKeyRequest);
 GARBAGE_TEST(AttestKeyResponse);
 GARBAGE_TEST(UpgradeKeyRequest);
 GARBAGE_TEST(UpgradeKeyResponse);
+
+// The macro doesn't work on this one.
+TEST(GarbageTest, SupportedResponse) {
+    parse_garbage<SupportedResponse<keymaster_digest_t>>();
+}
 
 }  // namespace test
 

@@ -51,10 +51,7 @@ AndroidKeymaster41Device::deviceLocked(bool passwordOnly,
     serializableToken.mac =
         KeymasterBlob(verificationToken.mac.data(), verificationToken.mac.size());
     return legacy_enum_conversion(
-        impl_
-            ->DeviceLocked(DeviceLockedRequest(impl_->message_version(), passwordOnly,
-                                               std::move(serializableToken)))
-            .error);
+        impl_->DeviceLocked(DeviceLockedRequest(passwordOnly, std::move(serializableToken))).error);
 }
 
 Return<V41ErrorCode> AndroidKeymaster41Device::earlyBootEnded() {
