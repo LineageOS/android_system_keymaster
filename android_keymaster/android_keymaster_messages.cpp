@@ -116,41 +116,6 @@ CertificateChain deserialize_chain(const uint8_t** buf_ptr, const uint8_t* end) 
 
 }  // namespace
 
-int32_t NegotiateMessageVersion(const GetVersionResponse& response, keymaster_error_t* error) {
-    switch (response.major_ver) {
-    case 1:  // KM1
-        switch (response.minor_ver) {
-        case 0:
-            return MessageVersion(KmVersion::KEYMASTER_1, 0 /* km_date */);
-        case 1:
-            return MessageVersion(KmVersion::KEYMASTER_1_1, 0 /* km_date */);
-        }
-        break;
-    case 2:
-        return MessageVersion(KmVersion::KEYMASTER_2, 0 /* km_date */);
-    case 3:
-        return MessageVersion(KmVersion::KEYMASTER_3, 0 /* km_date */);
-    case 4:
-        switch (response.minor_ver) {
-        case 0:
-            return MessageVersion(KmVersion::KEYMASTER_4, 0 /* km_date */);
-        case 1:
-            return MessageVersion(KmVersion::KEYMASTER_4_1, 0 /* km_date */);
-        }
-        break;
-    }
-
-    *error = KM_ERROR_UNKNOWN_ERROR;
-    return -1;
-}
-
-int32_t NegotiateMessageVersion(const GetVersion2Request& request,
-                                const GetVersion2Response& response) {
-    return request.max_message_version < response.max_message_version
-               ? request.max_message_version
-               : response.max_message_version;
-}
-
 size_t KeymasterResponse::SerializedSize() const {
     if (error != KM_ERROR_OK)
         return sizeof(int32_t);
@@ -745,24 +710,6 @@ bool VerificationToken::Deserialize(const uint8_t** buf_ptr, const uint8_t* end)
            parameters_verified.Deserialize(buf_ptr, end) &&
            copy_uint32_from_buf(buf_ptr, end, &security_level) &&
            deserialize_blob(&mac, buf_ptr, end);
-}
-
-size_t GetVersion2Response::NonErrorSerializedSize() const {
-    return sizeof(max_message_version) +  //
-           sizeof(km_version) +           //
-           sizeof(km_date);
-}
-
-uint8_t* GetVersion2Response::NonErrorSerialize(uint8_t* buf, const uint8_t* end) const {
-    buf = append_uint32_to_buf(buf, end, max_message_version);
-    buf = append_uint32_to_buf(buf, end, km_version);
-    return append_uint32_to_buf(buf, end, km_date);
-}
-
-bool GetVersion2Response::NonErrorDeserialize(const uint8_t** buf_ptr, const uint8_t* end) {
-    return copy_uint32_from_buf(buf_ptr, end, &max_message_version) &&
-           copy_uint32_from_buf(buf_ptr, end, &km_version) &&
-           copy_uint32_from_buf(buf_ptr, end, &km_date);
 }
 
 }  // namespace keymaster
