@@ -79,41 +79,6 @@ TEST(RoundTrip, EmptyKeymasterResponseError) {
     }
 }
 
-TEST(RoundTrip, SupportedByAlgorithmRequest) {
-    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
-        SupportedByAlgorithmRequest req(ver);
-        req.algorithm = KM_ALGORITHM_EC;
-
-        UniquePtr<SupportedByAlgorithmRequest> deserialized(round_trip(ver, req, 4));
-        EXPECT_EQ(KM_ALGORITHM_EC, deserialized->algorithm);
-    }
-}
-
-TEST(RoundTrip, SupportedByAlgorithmAndPurposeRequest) {
-    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
-        SupportedByAlgorithmAndPurposeRequest req(ver);
-        req.algorithm = KM_ALGORITHM_EC;
-        req.purpose = KM_PURPOSE_DECRYPT;
-
-        UniquePtr<SupportedByAlgorithmAndPurposeRequest> deserialized(round_trip(ver, req, 8));
-        EXPECT_EQ(KM_ALGORITHM_EC, deserialized->algorithm);
-        EXPECT_EQ(KM_PURPOSE_DECRYPT, deserialized->purpose);
-    }
-}
-
-TEST(RoundTrip, SupportedResponse) {
-    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
-        SupportedResponse<keymaster_digest_t> rsp(ver);
-        keymaster_digest_t digests[] = {KM_DIGEST_NONE, KM_DIGEST_MD5, KM_DIGEST_SHA1};
-        rsp.error = KM_ERROR_OK;
-        rsp.SetResults(digests);
-
-        UniquePtr<SupportedResponse<keymaster_digest_t>> deserialized(round_trip(ver, rsp, 20));
-        EXPECT_EQ(array_length(digests), deserialized->results_length);
-        EXPECT_EQ(0, memcmp(deserialized->results, digests, array_size(digests)));
-    }
-}
-
 static keymaster_key_param_t params[] = {
     Authorization(TAG_PURPOSE, KM_PURPOSE_SIGN),
     Authorization(TAG_PURPOSE, KM_PURPOSE_VERIFY),
@@ -142,10 +107,35 @@ TEST(RoundTrip, GenerateKeyResponse) {
         rsp.key_blob.key_material_size = array_length(TEST_DATA);
         rsp.enforced.Reinitialize(params, array_length(params));
 
-        UniquePtr<GenerateKeyResponse> deserialized(round_trip(ver, rsp, 109));
+        rsp.certificate_chain = CertificateChain(3);
+        rsp.certificate_chain.entries[0] = {dup_buffer("foo", 3), 3};
+        rsp.certificate_chain.entries[1] = {dup_buffer("bar", 3), 3};
+        rsp.certificate_chain.entries[2] = {dup_buffer("baz", 3), 3};
+
+        UniquePtr<GenerateKeyResponse> deserialized;
+        if (ver < 4) {
+            deserialized.reset(round_trip(ver, rsp, 109));
+        } else {
+            deserialized.reset(round_trip(ver, rsp, 134));
+        }
+
         EXPECT_EQ(KM_ERROR_OK, deserialized->error);
         EXPECT_EQ(deserialized->enforced, rsp.enforced);
         EXPECT_EQ(deserialized->unenforced, rsp.unenforced);
+
+        keymaster_cert_chain_t* chain = &deserialized->certificate_chain;
+        if (ver < 4) {
+            EXPECT_EQ(nullptr, chain->entries);
+        } else {
+            EXPECT_NE(nullptr, chain->entries);
+            EXPECT_EQ(3U, chain->entry_count);
+            EXPECT_EQ(3U, chain->entries[0].data_length);
+            EXPECT_EQ(0, memcmp("foo", chain->entries[0].data, 3));
+            EXPECT_EQ(3U, chain->entries[1].data_length);
+            EXPECT_EQ(0, memcmp("bar", chain->entries[1].data, 3));
+            EXPECT_EQ(3U, chain->entries[2].data_length);
+            EXPECT_EQ(0, memcmp("baz", chain->entries[2].data, 3));
+        }
     }
 }
 
@@ -221,6 +211,7 @@ TEST(RoundTrip, BeginOperationResponse) {
         case 1:
         case 2:
         case 3:
+        case 4:
             deserialized.reset(round_trip(ver, msg, 39));
             break;
         default:
@@ -237,6 +228,7 @@ TEST(RoundTrip, BeginOperationResponse) {
         case 1:
         case 2:
         case 3:
+        case 4:
             EXPECT_EQ(msg.output_params, deserialized->output_params);
             break;
         default:
@@ -270,6 +262,7 @@ TEST(RoundTrip, UpdateOperationRequest) {
         case 1:
         case 2:
         case 3:
+        case 4:
             deserialized.reset(round_trip(ver, msg, 27));
             break;
         default:
@@ -298,6 +291,7 @@ TEST(RoundTrip, UpdateOperationResponse) {
             break;
         case 2:
         case 3:
+        case 4:
             deserialized.reset(round_trip(ver, msg, 42));
             break;
         default:
@@ -316,6 +310,7 @@ TEST(RoundTrip, UpdateOperationResponse) {
             break;
         case 2:
         case 3:
+        case 4:
             EXPECT_EQ(99U, deserialized->input_consumed);
             EXPECT_EQ(1U, deserialized->output_params.size());
             break;
@@ -342,6 +337,7 @@ TEST(RoundTrip, FinishOperationRequest) {
             deserialized.reset(round_trip(ver, msg, 27));
             break;
         case 3:
+        case 4:
             deserialized.reset(round_trip(ver, msg, 34));
             break;
         default:
@@ -367,6 +363,7 @@ TEST(Round_Trip, FinishOperationResponse) {
             break;
         case 2:
         case 3:
+        case 4:
             deserialized.reset(round_trip(ver, msg, 23));
             break;
         default:
@@ -402,13 +399,38 @@ TEST(RoundTrip, ImportKeyResponse) {
         msg.enforced.Reinitialize(params, array_length(params));
         msg.unenforced.Reinitialize(params, array_length(params));
 
-        UniquePtr<ImportKeyResponse> deserialized(round_trip(ver, msg, 167));
+        msg.certificate_chain = CertificateChain(3);
+        msg.certificate_chain.entries[0] = {dup_buffer("foo", 3), 3};
+        msg.certificate_chain.entries[1] = {dup_buffer("bar", 3), 3};
+        msg.certificate_chain.entries[2] = {dup_buffer("baz", 3), 3};
+
+        UniquePtr<ImportKeyResponse> deserialized;
+        if (ver < 4) {
+            deserialized.reset(round_trip(ver, msg, 167));
+        } else {
+            deserialized.reset(round_trip(ver, msg, 192));
+        }
+
         EXPECT_EQ(msg.error, deserialized->error);
         EXPECT_EQ(msg.key_blob.key_material_size, deserialized->key_blob.key_material_size);
         EXPECT_EQ(0, memcmp(msg.key_blob.key_material, deserialized->key_blob.key_material,
                             msg.key_blob.key_material_size));
         EXPECT_EQ(msg.enforced, deserialized->enforced);
         EXPECT_EQ(msg.unenforced, deserialized->unenforced);
+
+        keymaster_cert_chain_t* chain = &deserialized->certificate_chain;
+        if (ver < 4) {
+            EXPECT_EQ(nullptr, chain->entries);
+        } else {
+            EXPECT_NE(nullptr, chain->entries);
+            EXPECT_EQ(3U, chain->entry_count);
+            EXPECT_EQ(3U, chain->entries[0].data_length);
+            EXPECT_EQ(0, memcmp("foo", chain->entries[0].data, 3));
+            EXPECT_EQ(3U, chain->entries[1].data_length);
+            EXPECT_EQ(0, memcmp("bar", chain->entries[1].data, 3));
+            EXPECT_EQ(3U, chain->entries[2].data_length);
+            EXPECT_EQ(0, memcmp("baz", chain->entries[2].data, 3));
+        }
     }
 }
 
@@ -472,7 +494,7 @@ TEST(RoundTrip, DeleteAllKeysResponse) {
 }
 
 TEST(RoundTrip, GetVersionRequest) {
-    GetVersionRequest msg;
+    GetVersionRequest msg(0);
 
     size_t size = msg.SerializedSize();
     ASSERT_EQ(0U, size);
@@ -487,7 +509,7 @@ TEST(RoundTrip, GetVersionRequest) {
 }
 
 TEST(RoundTrip, GetVersionResponse) {
-    GetVersionResponse msg;
+    GetVersionResponse msg(0);
     msg.error = KM_ERROR_OK;
     msg.major_ver = 9;
     msg.minor_ver = 98;
@@ -506,6 +528,43 @@ TEST(RoundTrip, GetVersionResponse) {
     EXPECT_EQ(9U, msg.major_ver);
     EXPECT_EQ(98U, msg.minor_ver);
     EXPECT_EQ(38U, msg.subminor_ver);
+}
+
+TEST(RoundTrip, GetVersion2Request) {
+    GetVersion2Request msg;
+
+    msg.max_message_version = 0xDEADBEEF;
+    size_t size = msg.SerializedSize();
+    ASSERT_EQ(4U, size);
+
+    UniquePtr<uint8_t[]> buf(new uint8_t[size]);
+    EXPECT_EQ(buf.get() + size, msg.Serialize(buf.get(), buf.get() + size));
+
+    GetVersion2Request deserialized;
+    const uint8_t* p = buf.get();
+    EXPECT_TRUE(deserialized.Deserialize(&p, p + size));
+    EXPECT_EQ((ptrdiff_t)size, p - buf.get());
+    EXPECT_EQ(0xDEADBEEF, msg.max_message_version);
+}
+
+TEST(RoundTrip, GetVersion2Response) {
+    GetVersion2Response msg;
+    msg.error = KM_ERROR_OK;
+    msg.km_version = KmVersion::KEYMINT_1;
+    msg.km_date = 20121900;
+
+    size_t size = msg.SerializedSize();
+    ASSERT_EQ(16U, size);
+
+    UniquePtr<uint8_t[]> buf(new uint8_t[size]);
+    EXPECT_EQ(buf.get() + size, msg.Serialize(buf.get(), buf.get() + size));
+
+    GetVersion2Response deserialized;
+    const uint8_t* p = buf.get();
+    EXPECT_TRUE(deserialized.Deserialize(&p, p + size));
+    EXPECT_EQ((ptrdiff_t)size, p - buf.get());
+    EXPECT_EQ(KmVersion::KEYMINT_1, msg.km_version);
+    EXPECT_EQ(20121900U, msg.km_date);
 }
 
 TEST(RoundTrip, ConfigureRequest) {
@@ -712,19 +771,12 @@ GARBAGE_TEST(GetKeyCharacteristicsRequest);
 GARBAGE_TEST(GetKeyCharacteristicsResponse);
 GARBAGE_TEST(ImportKeyRequest);
 GARBAGE_TEST(ImportKeyResponse);
-GARBAGE_TEST(SupportedByAlgorithmAndPurposeRequest)
-GARBAGE_TEST(SupportedByAlgorithmRequest)
 GARBAGE_TEST(UpdateOperationRequest);
 GARBAGE_TEST(UpdateOperationResponse);
 GARBAGE_TEST(AttestKeyRequest);
 GARBAGE_TEST(AttestKeyResponse);
 GARBAGE_TEST(UpgradeKeyRequest);
 GARBAGE_TEST(UpgradeKeyResponse);
-
-// The macro doesn't work on this one.
-TEST(GarbageTest, SupportedResponse) {
-    parse_garbage<SupportedResponse<keymaster_digest_t>>();
-}
 
 }  // namespace test
 

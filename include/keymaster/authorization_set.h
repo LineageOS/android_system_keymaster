@@ -536,6 +536,10 @@ class AuthorizationSetBuilder {
         return Authorization(TAG_DIGEST, digest);
     }
 
+    AuthorizationSetBuilder& OaepMgfDigest(keymaster_digest_t digest) {
+        return Authorization(TAG_RSA_OAEP_MGF_DIGEST, digest);
+    }
+
     AuthorizationSetBuilder& BlockMode(keymaster_block_mode_t mode) {
         return Authorization(TAG_BLOCK_MODE, mode);
     }
@@ -700,6 +704,11 @@ class AuthProxy {
     template <typename... ARGS> bool GetTagValue(ARGS&&... args) const {
         return hw_enforced_.GetTagValue(forward<ARGS>(args)...) ||
                sw_enforced_.GetTagValue(forward<ARGS>(args)...);
+    }
+
+    template <typename... ARGS> bool GetTagCount(ARGS&&... args) const {
+        return hw_enforced_.GetTagCount(forward<ARGS>(args)...) ||
+               sw_enforced_.GetTagCount(forward<ARGS>(args)...);
     }
 
     AuthProxyIterator begin() const { return AuthProxyIterator(hw_enforced_, sw_enforced_); }

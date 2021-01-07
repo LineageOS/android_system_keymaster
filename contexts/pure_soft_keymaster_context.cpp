@@ -144,6 +144,7 @@ keymaster_error_t PureSoftKeymasterContext::CreateKeyBlob(const AuthorizationSet
             case KM_TAG_OS_PATCHLEVEL:
             case KM_TAG_EARLY_BOOT_ONLY:
             case KM_TAG_UNLOCKED_DEVICE_REQUIRED:
+            case KM_TAG_RSA_OAEP_MGF_DIGEST:
                 hw_enforced->push_back(entry);
                 break;
             default:

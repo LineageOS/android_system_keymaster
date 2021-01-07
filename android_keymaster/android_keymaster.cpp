@@ -27,6 +27,7 @@
 #include <keymaster/key_blob_utils/ae.h>
 #include <keymaster/key_factory.h>
 #include <keymaster/keymaster_context.h>
+#include <keymaster/km_date.h>
 #include <keymaster/km_openssl/openssl_err.h>
 #include <keymaster/operation.h>
 #include <keymaster/operation_table.h>
@@ -88,6 +89,17 @@ void AndroidKeymaster::GetVersion(const GetVersionRequest&, GetVersionResponse* 
     rsp->minor_ver = 0;
     rsp->subminor_ver = 0;
     rsp->error = KM_ERROR_OK;
+}
+
+GetVersion2Response AndroidKeymaster::GetVersion2(const GetVersion2Request& req) {
+    GetVersion2Response rsp;
+    rsp.km_version = context_->GetKmVersion();
+    rsp.km_date = kKmDate;
+    rsp.max_message_version = MessageVersion(rsp.km_version, rsp.km_date);
+
+    // Determine what message version we should use.
+    message_version_ = NegotiateMessageVersion(req, rsp);
+    return rsp;
 }
 
 void AndroidKeymaster::SupportedAlgorithms(const SupportedAlgorithmsRequest& /* request */,
@@ -161,7 +173,7 @@ void AndroidKeymaster::SupportedExportFormats(const SupportedExportFormatsReques
 }
 
 GetHmacSharingParametersResponse AndroidKeymaster::GetHmacSharingParameters() {
-    GetHmacSharingParametersResponse response;
+    GetHmacSharingParametersResponse response(message_version());
     KeymasterEnforcement* policy = context_->enforcement_policy();
     if (!policy) {
         response.error = KM_ERROR_UNIMPLEMENTED;
@@ -174,7 +186,7 @@ GetHmacSharingParametersResponse AndroidKeymaster::GetHmacSharingParameters() {
 
 ComputeSharedHmacResponse
 AndroidKeymaster::ComputeSharedHmac(const ComputeSharedHmacRequest& request) {
-    ComputeSharedHmacResponse response;
+    ComputeSharedHmacResponse response(message_version());
     KeymasterEnforcement* policy = context_->enforcement_policy();
     if (!policy) {
         response.error = KM_ERROR_UNIMPLEMENTED;
@@ -189,7 +201,7 @@ VerifyAuthorizationResponse
 AndroidKeymaster::VerifyAuthorization(const VerifyAuthorizationRequest& request) {
     KeymasterEnforcement* policy = context_->enforcement_policy();
     if (!policy) {
-        VerifyAuthorizationResponse response;
+        VerifyAuthorizationResponse response(message_version());
         response.error = KM_ERROR_UNIMPLEMENTED;
         return response;
     }
@@ -211,19 +223,20 @@ void AndroidKeymaster::GenerateKey(const GenerateKeyRequest& request,
     const KeyFactory* factory = nullptr;
     UniquePtr<Key> key;
     if (!request.key_description.GetTagValue(TAG_ALGORITHM, &algorithm) ||
-        !(factory = context_->GetKeyFactory(algorithm)))
+        !(factory = context_->GetKeyFactory(algorithm))) {
         response->error = KM_ERROR_UNSUPPORTED_ALGORITHM;
-    else if (context_->enforcement_policy() &&
-             request.key_description.GetTagValue(TAG_EARLY_BOOT_ONLY) &&
-             !context_->enforcement_policy()->in_early_boot()) {
+    } else if (context_->enforcement_policy() &&
+               request.key_description.GetTagValue(TAG_EARLY_BOOT_ONLY) &&
+               !context_->enforcement_policy()->in_early_boot()) {
         response->error = KM_ERROR_EARLY_BOOT_ENDED;
     } else {
         KeymasterKeyBlob key_blob;
         response->enforced.Clear();
         response->unenforced.Clear();
-        response->error = factory->GenerateKey(request.key_description, &key_blob,
-                                               &response->enforced, &response->unenforced);
-        if (response->error == KM_ERROR_OK) response->key_blob = key_blob.release();
+        response->error =
+            factory->GenerateKey(request.key_description, &key_blob, &response->enforced,
+                                 &response->unenforced, &response->certificate_chain);
+        if (response->error == KM_ERROR_OK) response->key_blob = move(key_blob);
     }
 }
 
@@ -400,15 +413,15 @@ void AndroidKeymaster::ImportKey(const ImportKeyRequest& request, ImportKeyRespo
     const KeyFactory* factory = nullptr;
     UniquePtr<Key> key;
     if (!request.key_description.GetTagValue(TAG_ALGORITHM, &algorithm) ||
-        !(factory = context_->GetKeyFactory(algorithm)))
+        !(factory = context_->GetKeyFactory(algorithm))) {
         response->error = KM_ERROR_UNSUPPORTED_ALGORITHM;
-    else {
+    } else {
         keymaster_key_blob_t key_material = {request.key_data, request.key_data_length};
         KeymasterKeyBlob key_blob;
-        response->error = factory->ImportKey(request.key_description, request.key_format,
-                                             KeymasterKeyBlob(key_material), &key_blob,
-                                             &response->enforced, &response->unenforced);
-        if (response->error == KM_ERROR_OK) response->key_blob = key_blob.release();
+        response->error = factory->ImportKey(
+            request.key_description, request.key_format, KeymasterKeyBlob(key_material), &key_blob,
+            &response->enforced, &response->unenforced, &response->certificate_chain);
+        if (response->error == KM_ERROR_OK) response->key_blob = move(key_blob);
     }
 }
 
@@ -480,11 +493,13 @@ void AndroidKeymaster::ImportWrappedKey(const ImportWrappedKeyRequest& request,
         response->error = KM_ERROR_UNSUPPORTED_ALGORITHM;
     } else {
         KeymasterKeyBlob key_blob;
+        CertificateChain cert_chain;
         response->error =
             factory->ImportKey(key_description, key_format, KeymasterKeyBlob(secret_key), &key_blob,
-                               &response->enforced, &response->unenforced);
+                               &response->enforced, &response->unenforced, &cert_chain);
         if (response->error == KM_ERROR_OK) {
-            response->key_blob = key_blob;
+            response->key_blob = move(key_blob);
+            response->certificate_chain = move(cert_chain);
         }
     }
 }
@@ -493,14 +508,14 @@ EarlyBootEndedResponse AndroidKeymaster::EarlyBootEnded() {
     if (context_->enforcement_policy()) {
         context_->enforcement_policy()->early_boot_ended();
     }
-    return EarlyBootEndedResponse(KM_ERROR_OK);
+    return EarlyBootEndedResponse(message_version());
 }
 
 DeviceLockedResponse AndroidKeymaster::DeviceLocked(const DeviceLockedRequest& request) {
     if (context_->enforcement_policy()) {
         context_->enforcement_policy()->device_locked(request.passwordOnly);
     }
-    return DeviceLockedResponse(KM_ERROR_OK);
+    return DeviceLockedResponse(message_version());
 }
 
 }  // namespace keymaster

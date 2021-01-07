@@ -1646,22 +1646,22 @@ class ImportWrappedKeyTest : public testing::Test {
 
   protected:
     void SetUp() override {
-        ConfigureRequest configReq;
+        ConfigureRequest configReq(kMaxMessageVersion);
         configReq.os_version = kOsVersion;
         configReq.os_patchlevel = kOsPatchLevel;
-        ConfigureResponse configRsp;
+        ConfigureResponse configRsp(kMaxMessageVersion);
         keymaster_.Configure(configReq, &configRsp);
         EXPECT_EQ(KM_ERROR_OK, configRsp.error);
     }
 
     keymaster_error_t BeginOperation(keymaster_purpose_t purpose,
                                      const AuthorizationSet& input_set) {
-        BeginOperationRequest req;
+        BeginOperationRequest req(kMaxMessageVersion);
         req.purpose = purpose;
         req.SetKeyMaterial(blob_);
         req.additional_params = input_set;
 
-        BeginOperationResponse rsp;
+        BeginOperationResponse rsp(kMaxMessageVersion);
         keymaster_.BeginOperation(req, &rsp);
         op_handle_ = rsp.op_handle;
 
@@ -1669,11 +1669,11 @@ class ImportWrappedKeyTest : public testing::Test {
     }
 
     keymaster_error_t FinishOperation(const string& input, string* output) {
-        FinishOperationRequest req;
+        FinishOperationRequest req(kMaxMessageVersion);
         req.op_handle = op_handle_;
         req.input.Reinitialize(input.data(), input.size());
 
-        FinishOperationResponse rsp;
+        FinishOperationResponse rsp(kMaxMessageVersion);
         keymaster_.FinishOperation(req, &rsp);
 
         if (output) {
@@ -1699,7 +1699,7 @@ class ImportWrappedKeyTest : public testing::Test {
 };
 
 TEST_F(ImportWrappedKeyTest, GoldenKeySuccess) {
-    ImportKeyRequest import_request;
+    ImportKeyRequest import_request(kMaxMessageVersion);
 
     auto import_params = AuthorizationSetBuilder()
                              .RsaEncryptionKey(2048, 65537)
@@ -1711,17 +1711,17 @@ TEST_F(ImportWrappedKeyTest, GoldenKeySuccess) {
     import_request.SetKeyMaterial(reinterpret_cast<const uint8_t*>(wrapping_key.c_str()),
                                   wrapping_key.size());
     import_request.key_format = KM_KEY_FORMAT_PKCS8;
-    ImportKeyResponse import_response;
+    ImportKeyResponse import_response(kMaxMessageVersion);
     keymaster_.ImportKey(import_request, &import_response);
     ASSERT_EQ(import_response.error, KM_ERROR_OK);
 
-    ImportWrappedKeyRequest request;
+    ImportWrappedKeyRequest request(kMaxMessageVersion);
     KeymasterKeyBlob wrapped_key_blob(reinterpret_cast<const uint8_t*>(wrapped_key.c_str()),
                                       wrapped_key.size());
     request.SetKeyMaterial(wrapped_key_blob, import_response.key_blob);
     request.SetMaskingKeyMaterial(reinterpret_cast<const uint8_t*>(zero_masking_key.c_str()),
                                   zero_masking_key.size());
-    ImportWrappedKeyResponse response;
+    ImportWrappedKeyResponse response(kMaxMessageVersion);
 
     keymaster_.ImportWrappedKey(request, &response);
 
@@ -1744,7 +1744,7 @@ TEST_F(ImportWrappedKeyTest, GoldenKeySuccess) {
 }
 
 TEST_F(ImportWrappedKeyTest, SuccessMaskingKey) {
-    ImportKeyRequest import_request;
+    ImportKeyRequest import_request(kMaxMessageVersion);
 
     auto import_params = AuthorizationSetBuilder()
                              .RsaEncryptionKey(2048, 65537)
@@ -1757,26 +1757,26 @@ TEST_F(ImportWrappedKeyTest, SuccessMaskingKey) {
                                   wrapping_key.size());
 
     import_request.key_format = KM_KEY_FORMAT_PKCS8;
-    ImportKeyResponse import_response;
+    ImportKeyResponse import_response(kMaxMessageVersion);
     keymaster_.ImportKey(import_request, &import_response);
     EXPECT_EQ(import_response.error, KM_ERROR_OK);
 
     if (import_response.error != KM_ERROR_OK) return;
 
-    ImportWrappedKeyRequest request;
+    ImportWrappedKeyRequest request(kMaxMessageVersion);
     KeymasterKeyBlob wrapped_key_blob(reinterpret_cast<const uint8_t*>(wrapped_key_masked.c_str()),
                                       wrapped_key_masked.size());
     request.SetKeyMaterial(wrapped_key_blob, import_response.key_blob);
     request.SetMaskingKeyMaterial(reinterpret_cast<const uint8_t*>(masking_key.c_str()),
                                   masking_key.size());
-    ImportWrappedKeyResponse response;
+    ImportWrappedKeyResponse response(kMaxMessageVersion);
 
     keymaster_.ImportWrappedKey(request, &response);
     EXPECT_EQ(response.error, KM_ERROR_OK);
 }
 
 TEST_F(ImportWrappedKeyTest, WrongMaskingKey) {
-    ImportKeyRequest import_request;
+    ImportKeyRequest import_request(kMaxMessageVersion);
 
     auto import_params = AuthorizationSetBuilder()
                              .RsaEncryptionKey(2048, 65537)
@@ -1789,26 +1789,26 @@ TEST_F(ImportWrappedKeyTest, WrongMaskingKey) {
                                   wrapping_key.size());
 
     import_request.key_format = KM_KEY_FORMAT_PKCS8;
-    ImportKeyResponse import_response;
+    ImportKeyResponse import_response(kMaxMessageVersion);
     keymaster_.ImportKey(import_request, &import_response);
     EXPECT_EQ(import_response.error, KM_ERROR_OK);
 
     if (import_response.error != KM_ERROR_OK) return;
 
-    ImportWrappedKeyRequest request;
+    ImportWrappedKeyRequest request(kMaxMessageVersion);
     KeymasterKeyBlob wrapped_key_blob(reinterpret_cast<const uint8_t*>(wrapped_key_masked.c_str()),
                                       wrapped_key_masked.size());
     request.SetKeyMaterial(wrapped_key_blob, import_response.key_blob);
     request.SetMaskingKeyMaterial(reinterpret_cast<const uint8_t*>(zero_masking_key.c_str()),
                                   zero_masking_key.size());
-    ImportWrappedKeyResponse response;
+    ImportWrappedKeyResponse response(kMaxMessageVersion);
 
     keymaster_.ImportWrappedKey(request, &response);
     EXPECT_EQ(response.error, KM_ERROR_VERIFICATION_FAILED);
 }
 
 TEST_F(ImportWrappedKeyTest, WrongPurpose) {
-    ImportKeyRequest import_request;
+    ImportKeyRequest import_request(kMaxMessageVersion);
 
     auto import_params = AuthorizationSetBuilder()
                              .RsaEncryptionKey(2048, 65537)
@@ -1819,17 +1819,17 @@ TEST_F(ImportWrappedKeyTest, WrongPurpose) {
     import_request.SetKeyMaterial(reinterpret_cast<const uint8_t*>(wrapping_key.c_str()),
                                   wrapping_key.size());
     import_request.key_format = KM_KEY_FORMAT_PKCS8;
-    ImportKeyResponse import_response;
+    ImportKeyResponse import_response(kMaxMessageVersion);
     keymaster_.ImportKey(import_request, &import_response);
     EXPECT_EQ(import_response.error, KM_ERROR_OK);
 
     if (import_response.error != KM_ERROR_OK) return;
 
-    ImportWrappedKeyRequest request;
+    ImportWrappedKeyRequest request(kMaxMessageVersion);
     KeymasterKeyBlob wrapped_key_blob(reinterpret_cast<const uint8_t*>(wrapped_key.c_str()),
                                       wrapped_key.size());
     request.SetKeyMaterial(wrapped_key_blob, import_response.key_blob);
-    ImportWrappedKeyResponse response;
+    ImportWrappedKeyResponse response(kMaxMessageVersion);
 
     keymaster_.ImportWrappedKey(request, &response);
     EXPECT_EQ(response.error, KM_ERROR_INCOMPATIBLE_PURPOSE);
@@ -1940,6 +1940,48 @@ TEST_P(EncryptionOperationsTest, RsaOaepSuccess) {
     EXPECT_NE(ciphertext1, ciphertext2);
 }
 
+TEST_P(EncryptionOperationsTest, RsaOaepWithMgf224Success) {
+    size_t key_size = 768;
+    ASSERT_EQ(KM_ERROR_OK, GenerateKey(AuthorizationSetBuilder()
+                                           .RsaEncryptionKey(key_size, 3)
+                                           .Padding(KM_PAD_RSA_OAEP)
+                                           .Digest(KM_DIGEST_SHA_2_256)
+                                           .OaepMgfDigest(KM_DIGEST_SHA_2_224)));
+
+    string message = "Hello";
+    string ciphertext1 =
+        EncryptMessage(string(message), KM_DIGEST_SHA_2_256, KM_DIGEST_SHA_2_224, KM_PAD_RSA_OAEP);
+    EXPECT_EQ(key_size / 8, ciphertext1.size());
+
+    string ciphertext2 =
+        EncryptMessage(string(message), KM_DIGEST_SHA_2_256, KM_DIGEST_SHA_2_224, KM_PAD_RSA_OAEP);
+    EXPECT_EQ(key_size / 8, ciphertext2.size());
+
+    // OAEP randomizes padding so every result should be different.
+    EXPECT_NE(ciphertext1, ciphertext2);
+}
+
+TEST_P(EncryptionOperationsTest, RsaOaepWithMgfMD5Success) {
+    size_t key_size = 768;
+    ASSERT_EQ(KM_ERROR_OK, GenerateKey(AuthorizationSetBuilder()
+                                           .RsaEncryptionKey(key_size, 3)
+                                           .Padding(KM_PAD_RSA_OAEP)
+                                           .Digest(KM_DIGEST_SHA_2_256)
+                                           .OaepMgfDigest(KM_DIGEST_MD5)));
+
+    string message = "Hello";
+    string ciphertext1 =
+        EncryptMessage(string(message), KM_DIGEST_SHA_2_256, KM_DIGEST_MD5, KM_PAD_RSA_OAEP);
+    EXPECT_EQ(key_size / 8, ciphertext1.size());
+
+    string ciphertext2 =
+        EncryptMessage(string(message), KM_DIGEST_SHA_2_256, KM_DIGEST_MD5, KM_PAD_RSA_OAEP);
+    EXPECT_EQ(key_size / 8, ciphertext2.size());
+
+    // OAEP randomizes padding so every result should be different.
+    EXPECT_NE(ciphertext1, ciphertext2);
+}
+
 TEST_P(EncryptionOperationsTest, RsaOaepSha224Success) {
     size_t key_size = 768;
     ASSERT_EQ(KM_ERROR_OK, GenerateKey(AuthorizationSetBuilder()
@@ -1972,6 +2014,23 @@ TEST_P(EncryptionOperationsTest, RsaOaepRoundTrip) {
     EXPECT_EQ(message, plaintext);
 }
 
+TEST_P(EncryptionOperationsTest, RsaOaepWithMgfSha256RoundTrip) {
+    size_t key_size = 768;
+    ASSERT_EQ(KM_ERROR_OK, GenerateKey(AuthorizationSetBuilder()
+                                           .RsaEncryptionKey(key_size, 3)
+                                           .Padding(KM_PAD_RSA_OAEP)
+                                           .Digest(KM_DIGEST_SHA_2_256)
+                                           .OaepMgfDigest(KM_DIGEST_SHA_2_256)));
+    string message = "Hello World!";
+    string ciphertext =
+        EncryptMessage(string(message), KM_DIGEST_SHA_2_256, KM_DIGEST_SHA_2_256, KM_PAD_RSA_OAEP);
+    EXPECT_EQ(key_size / 8, ciphertext.size());
+
+    string plaintext =
+        DecryptMessage(ciphertext, KM_DIGEST_SHA_2_256, KM_DIGEST_SHA_2_256, KM_PAD_RSA_OAEP);
+    EXPECT_EQ(message, plaintext);
+}
+
 TEST_P(EncryptionOperationsTest, RsaOaepSha224RoundTrip) {
     size_t key_size = 768;
     ASSERT_EQ(KM_ERROR_OK, GenerateKey(AuthorizationSetBuilder()
@@ -1997,6 +2056,21 @@ TEST_P(EncryptionOperationsTest, RsaOaepInvalidDigest) {
     begin_params.push_back(TAG_PADDING, KM_PAD_RSA_OAEP);
     begin_params.push_back(TAG_DIGEST, KM_DIGEST_NONE);
     EXPECT_EQ(KM_ERROR_INCOMPATIBLE_DIGEST, BeginOperation(KM_PURPOSE_ENCRYPT, begin_params));
+}
+
+TEST_P(EncryptionOperationsTest, RsaOaepWithMgfInvalidDigest) {
+    ASSERT_EQ(KM_ERROR_OK, GenerateKey(AuthorizationSetBuilder()
+                                           .RsaEncryptionKey(512, 3)
+                                           .Padding(KM_PAD_RSA_OAEP)
+                                           .Digest(KM_DIGEST_SHA_2_256)
+                                           .OaepMgfDigest(KM_DIGEST_SHA_2_256)));
+    string message = "Hello World!";
+
+    AuthorizationSet begin_params(client_params());
+    begin_params.push_back(TAG_PADDING, KM_PAD_RSA_OAEP);
+    begin_params.push_back(TAG_DIGEST, KM_DIGEST_SHA_2_256);
+    begin_params.push_back(TAG_RSA_OAEP_MGF_DIGEST, KM_DIGEST_SHA_2_224);
+    EXPECT_EQ(KM_ERROR_INCOMPATIBLE_MGF_DIGEST, BeginOperation(KM_PURPOSE_ENCRYPT, begin_params));
 }
 
 TEST_P(EncryptionOperationsTest, RsaOaepUnauthorizedDigest) {
@@ -3974,7 +4048,7 @@ class HmacKeySharingTest : public ::testing::Test {
     }
 
     ResponseVec ComputeSharedHmac(const KeymasterVec& keymasters, const ParamsVec& paramsVec) {
-        ComputeSharedHmacRequest req;
+        ComputeSharedHmacRequest req(kMaxMessageVersion);
         req.params_array.params_array = const_cast<HmacSharingParameters*>(paramsVec.data());
         auto prevent_deletion_of_paramsVec_data =
             finally([&]() { req.params_array.params_array = nullptr; });

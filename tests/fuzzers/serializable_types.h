@@ -21,11 +21,8 @@
 
 namespace keymaster {
 enum class SerializableType : uint32_t {
-    SUPPORTED_ALGORITHMS_REQUEST,
-    SUPPORTED_BY_ALGORITHM_REQUEST,
     SUPPORTED_IMPORT_FORMATS_REQUEST,
     SUPPORTED_EXPORT_FORMATS_REQUEST,
-    SUPPORTED_BY_ALGORITHM_AND_PURPOSE_REQUEST,
     SUPPORTED_BLOCK_MODES_REQUEST,
     SUPPORTED_PADDING_MODES_REQUEST,
     SUPPORTED_DIGESTS_REQUEST,
@@ -59,6 +56,8 @@ enum class SerializableType : uint32_t {
     DELETE_ALL_KEYS_RESPONSE,
     GET_VERSION_REQUEST,
     GET_VERSION_RESPONSE,
+    GET_VERSION2_REQUEST,
+    GET_VERSION2_RESPONSE,
     ATTEST_KEY_REQUEST,
     ATTEST_KEY_RESPONSE,
     UPGRADE_KEY_REQUEST,
@@ -84,16 +83,10 @@ enum class SerializableType : uint32_t {
 
 std::unique_ptr<Serializable> getSerializable(SerializableType serType) {
     switch (serType) {
-    case SerializableType::SUPPORTED_ALGORITHMS_REQUEST:
-        return std::make_unique<SupportedAlgorithmsRequest>(kMaxMessageVersion);
-    case SerializableType::SUPPORTED_BY_ALGORITHM_REQUEST:
-        return std::make_unique<SupportedByAlgorithmRequest>(kMaxMessageVersion);
     case SerializableType::SUPPORTED_IMPORT_FORMATS_REQUEST:
         return std::make_unique<SupportedImportFormatsRequest>(kMaxMessageVersion);
     case SerializableType::SUPPORTED_EXPORT_FORMATS_REQUEST:
         return std::make_unique<SupportedExportFormatsRequest>(kMaxMessageVersion);
-    case SerializableType::SUPPORTED_BY_ALGORITHM_AND_PURPOSE_REQUEST:
-        return std::make_unique<SupportedByAlgorithmAndPurposeRequest>(kMaxMessageVersion);
     case SerializableType::SUPPORTED_BLOCK_MODES_REQUEST:
         return std::make_unique<SupportedBlockModesRequest>(kMaxMessageVersion);
     case SerializableType::SUPPORTED_PADDING_MODES_REQUEST:
@@ -162,6 +155,12 @@ std::unique_ptr<Serializable> getSerializable(SerializableType serType) {
     case SerializableType::GET_VERSION_RESPONSE:
         // Not versionable
         return std::make_unique<GetVersionResponse>();
+    case SerializableType::GET_VERSION2_REQUEST:
+        // Not versionable
+        return std::make_unique<GetVersion2Request>();
+    case SerializableType::GET_VERSION2_RESPONSE:
+        // Not versionable
+        return std::make_unique<GetVersion2Response>();
     case SerializableType::ATTEST_KEY_REQUEST:
         return std::make_unique<AttestKeyRequest>(kMaxMessageVersion);
     case SerializableType::ATTEST_KEY_RESPONSE:
@@ -201,7 +200,6 @@ std::unique_ptr<Serializable> getSerializable(SerializableType serType) {
     case SerializableType::VERIFICATION_TOKEN:
         return std::make_unique<VerificationToken>();
     case SerializableType::BUFFER:
-    default:
         return std::make_unique<Buffer>();
     }
 }
