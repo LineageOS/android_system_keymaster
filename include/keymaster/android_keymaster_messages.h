@@ -98,8 +98,8 @@ enum AndroidKeymasterCommand : uint32_t {
  * GetVersion.  If it received GetVersion, it must assume that the client does not support
  * GetVersion2 and reply that it is version 2.0.0 and use the corresponding message version (3).
  */
-constexpr int32_t kMaxMessageVersion = 3;
-constexpr int32_t kDefaultMessageVersion = kMaxMessageVersion;
+constexpr int32_t kMaxMessageVersion = 4;
+constexpr int32_t kDefaultMessageVersion = 3;
 
 /**
  * MessageVersion returns the message version for a specified KM version and, possibly KM release
@@ -344,19 +344,17 @@ struct GenerateKeyRequest : public KeymasterMessage {
 };
 
 struct GenerateKeyResponse : public KeymasterResponse {
-    explicit GenerateKeyResponse(int32_t ver) : KeymasterResponse(ver) {
-        key_blob.key_material = nullptr;
-        key_blob.key_material_size = 0;
-    }
-    ~GenerateKeyResponse();
+    explicit GenerateKeyResponse(int32_t ver)
+        : KeymasterResponse(ver), key_blob{}, certificate_chain{} {}
 
     size_t NonErrorSerializedSize() const override;
     uint8_t* NonErrorSerialize(uint8_t* buf, const uint8_t* end) const override;
     bool NonErrorDeserialize(const uint8_t** buf_ptr, const uint8_t* end) override;
 
-    keymaster_key_blob_t key_blob;
+    KeymasterKeyBlob key_blob;
     AuthorizationSet enforced;
     AuthorizationSet unenforced;
+    CertificateChain certificate_chain;
 };
 
 struct GetKeyCharacteristicsRequest : public KeymasterMessage {
@@ -518,12 +516,8 @@ struct ImportKeyRequest : public KeymasterMessage {
 };
 
 struct ImportKeyResponse : public KeymasterResponse {
-    explicit ImportKeyResponse(int32_t ver) : KeymasterResponse(ver) {
-        key_blob.key_material = nullptr;
-        key_blob.key_material_size = 0;
-    }
-    ~ImportKeyResponse() { delete[] key_blob.key_material; }
-
+    explicit ImportKeyResponse(int32_t ver)
+        : KeymasterResponse(ver), key_blob{}, certificate_chain{} {}
     void SetKeyMaterial(const void* key_material, size_t length);
     void SetKeyMaterial(const keymaster_key_blob_t& blob) {
         SetKeyMaterial(blob.key_material, blob.key_material_size);
@@ -533,9 +527,10 @@ struct ImportKeyResponse : public KeymasterResponse {
     uint8_t* NonErrorSerialize(uint8_t* buf, const uint8_t* end) const override;
     bool NonErrorDeserialize(const uint8_t** buf_ptr, const uint8_t* end) override;
 
-    keymaster_key_blob_t key_blob;
+    KeymasterKeyBlob key_blob;
     AuthorizationSet enforced;
     AuthorizationSet unenforced;
+    CertificateChain certificate_chain;
 };
 
 struct ExportKeyRequest : public KeymasterMessage {
@@ -813,8 +808,8 @@ struct ImportWrappedKeyRequest : public KeymasterMessage {
 };
 
 struct ImportWrappedKeyResponse : public KeymasterResponse {
-    explicit ImportWrappedKeyResponse(int32_t ver) : KeymasterResponse(ver) {}
-
+    explicit ImportWrappedKeyResponse(int32_t ver = kDefaultMessageVersion)
+        : KeymasterResponse(ver), key_blob{}, certificate_chain{} {}
     void SetKeyMaterial(const void* key_material, size_t length);
     void SetKeyMaterial(const keymaster_key_blob_t& blob) {
         SetKeyMaterial(blob.key_material, blob.key_material_size);
@@ -827,6 +822,7 @@ struct ImportWrappedKeyResponse : public KeymasterResponse {
     KeymasterKeyBlob key_blob;
     AuthorizationSet enforced;
     AuthorizationSet unenforced;
+    CertificateChain certificate_chain;
 };
 
 struct HardwareAuthToken : public Serializable {

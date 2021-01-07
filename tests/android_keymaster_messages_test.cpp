@@ -107,10 +107,35 @@ TEST(RoundTrip, GenerateKeyResponse) {
         rsp.key_blob.key_material_size = array_length(TEST_DATA);
         rsp.enforced.Reinitialize(params, array_length(params));
 
-        UniquePtr<GenerateKeyResponse> deserialized(round_trip(ver, rsp, 109));
+        rsp.certificate_chain = CertificateChain(3);
+        rsp.certificate_chain.entries[0] = {dup_buffer("foo", 3), 3};
+        rsp.certificate_chain.entries[1] = {dup_buffer("bar", 3), 3};
+        rsp.certificate_chain.entries[2] = {dup_buffer("baz", 3), 3};
+
+        UniquePtr<GenerateKeyResponse> deserialized;
+        if (ver < 4) {
+            deserialized.reset(round_trip(ver, rsp, 109));
+        } else {
+            deserialized.reset(round_trip(ver, rsp, 134));
+        }
+
         EXPECT_EQ(KM_ERROR_OK, deserialized->error);
         EXPECT_EQ(deserialized->enforced, rsp.enforced);
         EXPECT_EQ(deserialized->unenforced, rsp.unenforced);
+
+        keymaster_cert_chain_t* chain = &deserialized->certificate_chain;
+        if (ver < 4) {
+            EXPECT_EQ(nullptr, chain->entries);
+        } else {
+            EXPECT_NE(nullptr, chain->entries);
+            EXPECT_EQ(3U, chain->entry_count);
+            EXPECT_EQ(3U, chain->entries[0].data_length);
+            EXPECT_EQ(0, memcmp("foo", chain->entries[0].data, 3));
+            EXPECT_EQ(3U, chain->entries[1].data_length);
+            EXPECT_EQ(0, memcmp("bar", chain->entries[1].data, 3));
+            EXPECT_EQ(3U, chain->entries[2].data_length);
+            EXPECT_EQ(0, memcmp("baz", chain->entries[2].data, 3));
+        }
     }
 }
 
@@ -186,6 +211,7 @@ TEST(RoundTrip, BeginOperationResponse) {
         case 1:
         case 2:
         case 3:
+        case 4:
             deserialized.reset(round_trip(ver, msg, 39));
             break;
         default:
@@ -202,6 +228,7 @@ TEST(RoundTrip, BeginOperationResponse) {
         case 1:
         case 2:
         case 3:
+        case 4:
             EXPECT_EQ(msg.output_params, deserialized->output_params);
             break;
         default:
@@ -235,6 +262,7 @@ TEST(RoundTrip, UpdateOperationRequest) {
         case 1:
         case 2:
         case 3:
+        case 4:
             deserialized.reset(round_trip(ver, msg, 27));
             break;
         default:
@@ -263,6 +291,7 @@ TEST(RoundTrip, UpdateOperationResponse) {
             break;
         case 2:
         case 3:
+        case 4:
             deserialized.reset(round_trip(ver, msg, 42));
             break;
         default:
@@ -281,6 +310,7 @@ TEST(RoundTrip, UpdateOperationResponse) {
             break;
         case 2:
         case 3:
+        case 4:
             EXPECT_EQ(99U, deserialized->input_consumed);
             EXPECT_EQ(1U, deserialized->output_params.size());
             break;
@@ -307,6 +337,7 @@ TEST(RoundTrip, FinishOperationRequest) {
             deserialized.reset(round_trip(ver, msg, 27));
             break;
         case 3:
+        case 4:
             deserialized.reset(round_trip(ver, msg, 34));
             break;
         default:
@@ -332,6 +363,7 @@ TEST(Round_Trip, FinishOperationResponse) {
             break;
         case 2:
         case 3:
+        case 4:
             deserialized.reset(round_trip(ver, msg, 23));
             break;
         default:
@@ -367,13 +399,38 @@ TEST(RoundTrip, ImportKeyResponse) {
         msg.enforced.Reinitialize(params, array_length(params));
         msg.unenforced.Reinitialize(params, array_length(params));
 
-        UniquePtr<ImportKeyResponse> deserialized(round_trip(ver, msg, 167));
+        msg.certificate_chain = CertificateChain(3);
+        msg.certificate_chain.entries[0] = {dup_buffer("foo", 3), 3};
+        msg.certificate_chain.entries[1] = {dup_buffer("bar", 3), 3};
+        msg.certificate_chain.entries[2] = {dup_buffer("baz", 3), 3};
+
+        UniquePtr<ImportKeyResponse> deserialized;
+        if (ver < 4) {
+            deserialized.reset(round_trip(ver, msg, 167));
+        } else {
+            deserialized.reset(round_trip(ver, msg, 192));
+        }
+
         EXPECT_EQ(msg.error, deserialized->error);
         EXPECT_EQ(msg.key_blob.key_material_size, deserialized->key_blob.key_material_size);
         EXPECT_EQ(0, memcmp(msg.key_blob.key_material, deserialized->key_blob.key_material,
                             msg.key_blob.key_material_size));
         EXPECT_EQ(msg.enforced, deserialized->enforced);
         EXPECT_EQ(msg.unenforced, deserialized->unenforced);
+
+        keymaster_cert_chain_t* chain = &deserialized->certificate_chain;
+        if (ver < 4) {
+            EXPECT_EQ(nullptr, chain->entries);
+        } else {
+            EXPECT_NE(nullptr, chain->entries);
+            EXPECT_EQ(3U, chain->entry_count);
+            EXPECT_EQ(3U, chain->entries[0].data_length);
+            EXPECT_EQ(0, memcmp("foo", chain->entries[0].data, 3));
+            EXPECT_EQ(3U, chain->entries[1].data_length);
+            EXPECT_EQ(0, memcmp("bar", chain->entries[1].data, 3));
+            EXPECT_EQ(3U, chain->entries[2].data_length);
+            EXPECT_EQ(0, memcmp("baz", chain->entries[2].data, 3));
+        }
     }
 }
 
