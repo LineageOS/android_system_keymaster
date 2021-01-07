@@ -33,7 +33,8 @@ namespace keymaster {
 keymaster_error_t SymmetricKeyFactory::GenerateKey(const AuthorizationSet& key_description,
                                                    KeymasterKeyBlob* key_blob,
                                                    AuthorizationSet* hw_enforced,
-                                                   AuthorizationSet* sw_enforced) const {
+                                                   AuthorizationSet* sw_enforced,
+                                                   CertificateChain* /* cert_chain */) const {
     if (!key_blob || !hw_enforced || !sw_enforced) return KM_ERROR_OUTPUT_PARAMETER_NULL;
 
     uint32_t key_size_bits;
@@ -63,7 +64,8 @@ keymaster_error_t SymmetricKeyFactory::ImportKey(const AuthorizationSet& key_des
                                                  const KeymasterKeyBlob& input_key_material,
                                                  KeymasterKeyBlob* output_key_blob,
                                                  AuthorizationSet* hw_enforced,
-                                                 AuthorizationSet* sw_enforced) const {
+                                                 AuthorizationSet* sw_enforced,
+                                                 CertificateChain* /* cert_chain */) const {
     if (!output_key_blob || !hw_enforced || !sw_enforced) return KM_ERROR_OUTPUT_PARAMETER_NULL;
 
     AuthorizationSet authorizations(key_description);
