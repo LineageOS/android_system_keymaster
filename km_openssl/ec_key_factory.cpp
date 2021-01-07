@@ -74,7 +74,8 @@ keymaster_error_t EcKeyFactory::GetCurveAndSize(const AuthorizationSet& key_desc
 keymaster_error_t EcKeyFactory::GenerateKey(const AuthorizationSet& key_description,
                                             KeymasterKeyBlob* key_blob,
                                             AuthorizationSet* hw_enforced,
-                                            AuthorizationSet* sw_enforced) const {
+                                            AuthorizationSet* sw_enforced,
+                                            CertificateChain* /* cert_chain */) const {
     if (!key_blob || !hw_enforced || !sw_enforced) return KM_ERROR_OUTPUT_PARAMETER_NULL;
 
     AuthorizationSet authorizations(key_description);
@@ -125,7 +126,8 @@ keymaster_error_t EcKeyFactory::ImportKey(const AuthorizationSet& key_descriptio
                                           const KeymasterKeyBlob& input_key_material,
                                           KeymasterKeyBlob* output_key_blob,
                                           AuthorizationSet* hw_enforced,
-                                          AuthorizationSet* sw_enforced) const {
+                                          AuthorizationSet* sw_enforced,
+                                          CertificateChain* /* cert_chain */) const {
     if (!output_key_blob || !hw_enforced || !sw_enforced) return KM_ERROR_OUTPUT_PARAMETER_NULL;
 
     AuthorizationSet authorizations;
