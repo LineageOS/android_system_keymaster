@@ -223,11 +223,11 @@ void AndroidKeymaster::GenerateKey(const GenerateKeyRequest& request,
     const KeyFactory* factory = nullptr;
     UniquePtr<Key> key;
     if (!request.key_description.GetTagValue(TAG_ALGORITHM, &algorithm) ||
-        !(factory = context_->GetKeyFactory(algorithm)))
+        !(factory = context_->GetKeyFactory(algorithm))) {
         response->error = KM_ERROR_UNSUPPORTED_ALGORITHM;
-    else if (context_->enforcement_policy() &&
-             request.key_description.GetTagValue(TAG_EARLY_BOOT_ONLY) &&
-             !context_->enforcement_policy()->in_early_boot()) {
+    } else if (context_->enforcement_policy() &&
+               request.key_description.GetTagValue(TAG_EARLY_BOOT_ONLY) &&
+               !context_->enforcement_policy()->in_early_boot()) {
         response->error = KM_ERROR_EARLY_BOOT_ENDED;
     } else {
         KeymasterKeyBlob key_blob;
@@ -235,7 +235,7 @@ void AndroidKeymaster::GenerateKey(const GenerateKeyRequest& request,
         response->unenforced.Clear();
         response->error = factory->GenerateKey(request.key_description, &key_blob,
                                                &response->enforced, &response->unenforced);
-        if (response->error == KM_ERROR_OK) response->key_blob = key_blob.release();
+        if (response->error == KM_ERROR_OK) response->key_blob = move(key_blob);
     }
 }
 
@@ -412,15 +412,15 @@ void AndroidKeymaster::ImportKey(const ImportKeyRequest& request, ImportKeyRespo
     const KeyFactory* factory = nullptr;
     UniquePtr<Key> key;
     if (!request.key_description.GetTagValue(TAG_ALGORITHM, &algorithm) ||
-        !(factory = context_->GetKeyFactory(algorithm)))
+        !(factory = context_->GetKeyFactory(algorithm))) {
         response->error = KM_ERROR_UNSUPPORTED_ALGORITHM;
-    else {
+    } else {
         keymaster_key_blob_t key_material = {request.key_data, request.key_data_length};
         KeymasterKeyBlob key_blob;
         response->error = factory->ImportKey(request.key_description, request.key_format,
                                              KeymasterKeyBlob(key_material), &key_blob,
                                              &response->enforced, &response->unenforced);
-        if (response->error == KM_ERROR_OK) response->key_blob = key_blob.release();
+        if (response->error == KM_ERROR_OK) response->key_blob = move(key_blob);
     }
 }
 
