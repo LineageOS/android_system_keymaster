@@ -34,12 +34,14 @@ class SymmetricKeyFactory : public KeyFactory, public SoftKeyFactoryMixin {
 
     keymaster_error_t GenerateKey(const AuthorizationSet& key_description,
                                   KeymasterKeyBlob* key_blob, AuthorizationSet* hw_enforced,
-                                  AuthorizationSet* sw_enforced) const override;
+                                  AuthorizationSet* sw_enforced,
+                                  CertificateChain* cert_chain) const override;
     keymaster_error_t ImportKey(const AuthorizationSet& key_description,
                                 keymaster_key_format_t input_key_material_format,
                                 const KeymasterKeyBlob& input_key_material,
                                 KeymasterKeyBlob* output_key_blob, AuthorizationSet* hw_enforced,
-                                AuthorizationSet* sw_enforced) const override;
+                                AuthorizationSet* sw_enforced,
+                                CertificateChain* cert_chain) const override;
 
     virtual const keymaster_key_format_t* SupportedImportFormats(size_t* count) const override;
     virtual const keymaster_key_format_t* SupportedExportFormats(size_t* count) const override {

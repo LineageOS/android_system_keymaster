@@ -233,8 +233,9 @@ void AndroidKeymaster::GenerateKey(const GenerateKeyRequest& request,
         KeymasterKeyBlob key_blob;
         response->enforced.Clear();
         response->unenforced.Clear();
-        response->error = factory->GenerateKey(request.key_description, &key_blob,
-                                               &response->enforced, &response->unenforced);
+        response->error =
+            factory->GenerateKey(request.key_description, &key_blob, &response->enforced,
+                                 &response->unenforced, &response->certificate_chain);
         if (response->error == KM_ERROR_OK) response->key_blob = move(key_blob);
     }
 }
@@ -417,9 +418,9 @@ void AndroidKeymaster::ImportKey(const ImportKeyRequest& request, ImportKeyRespo
     } else {
         keymaster_key_blob_t key_material = {request.key_data, request.key_data_length};
         KeymasterKeyBlob key_blob;
-        response->error = factory->ImportKey(request.key_description, request.key_format,
-                                             KeymasterKeyBlob(key_material), &key_blob,
-                                             &response->enforced, &response->unenforced);
+        response->error = factory->ImportKey(
+            request.key_description, request.key_format, KeymasterKeyBlob(key_material), &key_blob,
+            &response->enforced, &response->unenforced, &response->certificate_chain);
         if (response->error == KM_ERROR_OK) response->key_blob = move(key_blob);
     }
 }
@@ -492,11 +493,13 @@ void AndroidKeymaster::ImportWrappedKey(const ImportWrappedKeyRequest& request,
         response->error = KM_ERROR_UNSUPPORTED_ALGORITHM;
     } else {
         KeymasterKeyBlob key_blob;
+        CertificateChain cert_chain;
         response->error =
             factory->ImportKey(key_description, key_format, KeymasterKeyBlob(secret_key), &key_blob,
-                               &response->enforced, &response->unenforced);
+                               &response->enforced, &response->unenforced, &cert_chain);
         if (response->error == KM_ERROR_OK) {
-            response->key_blob = key_blob;
+            response->key_blob = move(key_blob);
+            response->certificate_chain = move(cert_chain);
         }
     }
 }
