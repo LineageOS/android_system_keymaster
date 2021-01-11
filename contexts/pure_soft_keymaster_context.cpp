@@ -52,11 +52,14 @@ namespace keymaster {
 
 PureSoftKeymasterContext::PureSoftKeymasterContext(KmVersion version,
                                                    keymaster_security_level_t security_level)
-    : AttestationRecordContext(version), rsa_factory_(new RsaKeyFactory(this)),
-      ec_factory_(new EcKeyFactory(this)), aes_factory_(new AesKeyFactory(this, this)),
-      tdes_factory_(new TripleDesKeyFactory(this, this)),
-      hmac_factory_(new HmacKeyFactory(this, this)), os_version_(0), os_patchlevel_(0),
-      soft_keymaster_enforcement_(64, 64), security_level_(security_level) {}
+    : AttestationRecordContext(version),  //
+      rsa_factory_(new RsaKeyFactory(*this /* blob_maker */)),
+      ec_factory_(new EcKeyFactory(*this /* blob_maker */)),
+      aes_factory_(new AesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
+      tdes_factory_(new TripleDesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
+      hmac_factory_(new HmacKeyFactory(*this /* blob_maker */, *this /* random_source */)),
+      os_version_(0), os_patchlevel_(0), soft_keymaster_enforcement_(64, 64),
+      security_level_(security_level) {}
 
 PureSoftKeymasterContext::~PureSoftKeymasterContext() {}
 
