@@ -78,6 +78,7 @@ keymaster_key_param_t aidlEnumParam2Km(const KeyParameter& param) {
     case KM_TAG_BLOCK_MODE:
         return aidlEnumVal2Km<KeyParameterValue::blockMode>(tag, param.value);
     case KM_TAG_DIGEST:
+    case KM_TAG_RSA_OAEP_MGF_DIGEST:
         return aidlEnumVal2Km<KeyParameterValue::digest>(tag, param.value);
     case KM_TAG_PADDING:
         return aidlEnumVal2Km<KeyParameterValue::paddingMode>(tag, param.value);
