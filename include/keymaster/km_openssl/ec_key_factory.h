@@ -27,7 +27,7 @@ namespace keymaster {
 
 class EcKeyFactory : public AsymmetricKeyFactory, public SoftKeyFactoryMixin {
   public:
-    explicit EcKeyFactory(const SoftwareKeyBlobMaker* blob_maker)
+    explicit EcKeyFactory(const SoftwareKeyBlobMaker& blob_maker)
         : SoftKeyFactoryMixin(blob_maker) {}
 
     keymaster_algorithm_t keymaster_key_type() const override { return KM_ALGORITHM_EC; }

@@ -27,7 +27,7 @@ namespace keymaster {
 
 class RsaKeyFactory : public AsymmetricKeyFactory, public SoftKeyFactoryMixin {
   public:
-    explicit RsaKeyFactory(const SoftwareKeyBlobMaker* blob_maker)
+    explicit RsaKeyFactory(const SoftwareKeyBlobMaker& blob_maker)
         : SoftKeyFactoryMixin(blob_maker) {}
 
     keymaster_error_t GenerateKey(const AuthorizationSet& key_description,
