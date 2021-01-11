@@ -50,11 +50,14 @@ KeymasterBlob string2Blob(const std::string& str) {
 }  // anonymous namespace
 
 SoftKeymasterContext::SoftKeymasterContext(KmVersion version, const std::string& root_of_trust)
-    : AttestationRecordContext(version), rsa_factory_(new RsaKeyFactory(this)),
-      ec_factory_(new EcKeyFactory(this)), aes_factory_(new AesKeyFactory(this, this)),
-      tdes_factory_(new TripleDesKeyFactory(this, this)),
-      hmac_factory_(new HmacKeyFactory(this, this)), km1_dev_(nullptr),
-      root_of_trust_(string2Blob(root_of_trust)), os_version_(0), os_patchlevel_(0) {}
+    : AttestationRecordContext(version),  //
+      rsa_factory_(new RsaKeyFactory(*this /* blob_maker */)),
+      ec_factory_(new EcKeyFactory(*this /* blob_maker */)),
+      aes_factory_(new AesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
+      tdes_factory_(new TripleDesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
+      hmac_factory_(new HmacKeyFactory(*this /* blob_maker */, *this /* random_source */)),
+      km1_dev_(nullptr), root_of_trust_(string2Blob(root_of_trust)), os_version_(0),
+      os_patchlevel_(0) {}
 
 SoftKeymasterContext::~SoftKeymasterContext() {}
 
@@ -64,8 +67,8 @@ keymaster_error_t SoftKeymasterContext::SetHardwareDevice(keymaster1_device_t* k
     km1_dev_ = keymaster1_device;
 
     km1_engine_.reset(new Keymaster1Engine(keymaster1_device));
-    rsa_factory_.reset(new RsaKeymaster1KeyFactory(this, km1_engine_.get()));
-    ec_factory_.reset(new EcdsaKeymaster1KeyFactory(this, km1_engine_.get()));
+    rsa_factory_.reset(new RsaKeymaster1KeyFactory(*this /* blob_maker */, km1_engine_.get()));
+    ec_factory_.reset(new EcdsaKeymaster1KeyFactory(*this /* blob_maker */, km1_engine_.get()));
 
     // Use default HMAC and AES key factories. Higher layers will pass HMAC/AES keys/ops that are
     // supported by the hardware to it and other ones to the software-only factory.

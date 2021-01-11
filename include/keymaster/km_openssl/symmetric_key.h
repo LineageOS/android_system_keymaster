@@ -28,9 +28,9 @@ class SymmetricKey;
 
 class SymmetricKeyFactory : public KeyFactory, public SoftKeyFactoryMixin {
   public:
-    explicit SymmetricKeyFactory(const SoftwareKeyBlobMaker* blob_maker,
-                                 const RandomSource* random_source)
-        : SoftKeyFactoryMixin(blob_maker), random_source_(*random_source) {}
+    explicit SymmetricKeyFactory(const SoftwareKeyBlobMaker& blob_maker,
+                                 const RandomSource& random_source)
+        : SoftKeyFactoryMixin(blob_maker), random_source_(random_source) {}
 
     keymaster_error_t GenerateKey(const AuthorizationSet& key_description,
                                   KeymasterKeyBlob* key_blob, AuthorizationSet* hw_enforced,
