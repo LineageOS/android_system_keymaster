@@ -24,7 +24,7 @@
 
 namespace keymaster {
 
-RsaKeymaster1KeyFactory::RsaKeymaster1KeyFactory(const SoftwareKeyBlobMaker* blob_maker,
+RsaKeymaster1KeyFactory::RsaKeymaster1KeyFactory(const SoftwareKeyBlobMaker& blob_maker,
                                                  const Keymaster1Engine* engine)
     : RsaKeyFactory(blob_maker), engine_(engine),
       sign_factory_(new RsaKeymaster1OperationFactory(KM_PURPOSE_SIGN, engine)),
