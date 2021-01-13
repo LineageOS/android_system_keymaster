@@ -52,8 +52,7 @@ namespace keymaster {
 
 PureSoftKeymasterContext::PureSoftKeymasterContext(KmVersion version,
                                                    keymaster_security_level_t security_level)
-    : AttestationRecordContext(version),  //
-      rsa_factory_(new RsaKeyFactory(*this /* blob_maker */)),
+    : SoftAttestationContext(version), rsa_factory_(new RsaKeyFactory(*this /* blob_maker */)),
       ec_factory_(new EcKeyFactory(*this /* blob_maker */)),
       aes_factory_(new AesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
       tdes_factory_(new TripleDesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
@@ -445,16 +444,17 @@ keymaster_error_t PureSoftKeymasterContext::UnwrapKey(
     return error;
 }
 
-keymaster_error_t PureSoftKeymasterContext::GetVerifiedBootParams(
-    keymaster_blob_t* verified_boot_key, keymaster_blob_t* verified_boot_hash,
-    keymaster_verified_boot_t* verified_boot_state, bool* device_locked) const {
-    // TODO(swillden): See if there might be some sort of vbmeta data in goldfish/cuttlefish.
+const AttestationContext::VerifiedBootParams*
+PureSoftKeymasterContext::GetVerifiedBootParams(keymaster_error_t* error) const {
+    static VerifiedBootParams params;
     static std::string fake_vb_key(32, 0);
-    *verified_boot_key = {reinterpret_cast<uint8_t*>(fake_vb_key.data()), fake_vb_key.size()};
-    *verified_boot_hash = {reinterpret_cast<uint8_t*>(fake_vb_key.data()), fake_vb_key.size()};
-    *verified_boot_state = KM_VERIFIED_BOOT_UNVERIFIED;
-    *device_locked = false;
-    return KM_ERROR_OK;
+    params.verified_boot_key = {reinterpret_cast<uint8_t*>(fake_vb_key.data()), fake_vb_key.size()};
+    params.verified_boot_hash = {reinterpret_cast<uint8_t*>(fake_vb_key.data()),
+                                 fake_vb_key.size()};
+    params.verified_boot_state = KM_VERIFIED_BOOT_UNVERIFIED;
+    params.device_locked = false;
+    *error = KM_ERROR_OK;
+    return &params;
 }
 
 }  // namespace keymaster

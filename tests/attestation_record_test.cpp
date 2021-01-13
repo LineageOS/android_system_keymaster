@@ -16,13 +16,14 @@
 
 #include <fstream>
 
+#include <cppbor_parse.h>
 #include <gtest/gtest.h>
 
+#include <keymaster/attestation_record.h>
+#include <keymaster/contexts/soft_attestation_context.h>
 #include <keymaster/keymaster_context.h>
 
 #include "android_keymaster_test_utils.h"
-#include <cppbor_parse.h>
-#include <keymaster/attestation_record.h>
 
 // Use TAG_KDF as an 'unknown tag', as it is not deliberately thrown out
 // in attestation_record.cpp, but still among the keymaster tag types.
@@ -34,30 +35,27 @@ namespace test {
 
 TypedTag<KM_ULONG_REP, UNKNOWN_TAG> UNKNOWN_TAG_T;
 
-class TestContext : public AttestationRecordContext {
+class TestContext : public SoftAttestationContext {
   public:
-    TestContext(KmVersion version) : AttestationRecordContext(version) {}
+    TestContext(KmVersion version) : SoftAttestationContext(version) {}
 
     keymaster_security_level_t GetSecurityLevel() const override {
         return KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT;
     }
-    keymaster_error_t GenerateUniqueId(uint64_t /* creation_date_time */,
-                                       const keymaster_blob_t& application_id,
-                                       bool /* reset_since_rotation */,
-                                       Buffer* unique_id) const override {
+    Buffer GenerateUniqueId(uint64_t /* creation_date_time */,
+                            const keymaster_blob_t& application_id, bool /* reset_since_rotation */,
+                            keymaster_error_t* error) const override {
         // Use the application ID directly as the unique ID.
-        unique_id->Reinitialize(application_id.data, application_id.data_length);
-        return KM_ERROR_OK;
+        *error = KM_ERROR_OK;
+        return {application_id.data, application_id.data_length};
     }
-    keymaster_error_t GetVerifiedBootParams(keymaster_blob_t* verified_boot_key,
-                                            keymaster_blob_t* /* verified_boot_hash */,
-                                            keymaster_verified_boot_t* verified_boot_state,
-                                            bool* device_locked) const override {
-        verified_boot_key->data = vboot_key_;
-        verified_boot_key->data_length = sizeof(vboot_key_);
-        *verified_boot_state = KM_VERIFIED_BOOT_VERIFIED;
-        *device_locked = true;
-        return KM_ERROR_OK;
+    const VerifiedBootParams* GetVerifiedBootParams(keymaster_error_t* error) const override {
+        static VerifiedBootParams params{};
+        params.verified_boot_key = {vboot_key_, sizeof(vboot_key_)};
+        params.verified_boot_state = KM_VERIFIED_BOOT_VERIFIED;
+        params.device_locked = true;
+        *error = KM_ERROR_OK;
+        return &params;
     }
 
     void VerifyRootOfTrust(const keymaster_blob_t& verified_boot_key,

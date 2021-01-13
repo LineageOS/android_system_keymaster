@@ -24,6 +24,7 @@
 #include <hardware/keymaster_defs.h>
 
 #include <keymaster/attestation_record.h>
+#include <keymaster/contexts/soft_attestation_context.h>
 #include <keymaster/keymaster_context.h>
 #include <keymaster/km_openssl/software_random_source.h>
 #include <keymaster/legacy_support/keymaster1_engine.h>
@@ -34,13 +35,13 @@
 namespace keymaster {
 
 class Keymaster1PassthroughContext : public KeymasterContext,
-                                     AttestationRecordContext,
+                                     public SoftAttestationContext,
                                      public SoftwareRandomSource,
                                      public SoftwareKeyBlobMaker {
   public:
     Keymaster1PassthroughContext(KmVersion version, keymaster1_device_t* dev);
 
-    KmVersion GetKmVersion() const override { return AttestationRecordContext::GetKmVersion(); }
+    KmVersion GetKmVersion() const override { return AttestationContext::GetKmVersion(); }
 
     /**
      * Sets the system version as reported by the system *itself*.  This is used to verify that the
