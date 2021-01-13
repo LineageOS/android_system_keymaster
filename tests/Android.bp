@@ -4,18 +4,19 @@ shared_test_libs = [
     "libcrypto",
     "libcutils",
     "libhidlbase",
-    "libsoftkeymasterdevice",
     "libkeymaster_messages",
     "libkeymaster_portable",
     "liblog",
+    "libsoft_attestation_cert",
+    "libsoftkeymasterdevice",
     "libutils",
 ]
 
 test_cflags = [
+    "-DKEYMASTER_NAME_TAGS",
     "-Wall",
     "-Werror",
     "-Wextra",
-    "-DKEYMASTER_NAME_TAGS",
     "-Wunused-variable",
 ]
 
