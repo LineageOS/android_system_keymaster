@@ -50,7 +50,7 @@ KeymasterBlob string2Blob(const std::string& str) {
 }  // anonymous namespace
 
 SoftKeymasterContext::SoftKeymasterContext(KmVersion version, const std::string& root_of_trust)
-    : AttestationRecordContext(version),  //
+    : SoftAttestationContext(version),  //
       rsa_factory_(new RsaKeyFactory(*this /* blob_maker */)),
       ec_factory_(new EcKeyFactory(*this /* blob_maker */)),
       aes_factory_(new AesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
@@ -376,14 +376,14 @@ CertificateChain SoftKeymasterContext::GenerateAttestation(const Key& key,
     // SoftKeymasterContext we can assume that the Key is an AsymmetricKey. So we can downcast.
     const AsymmetricKey& asymmetric_key = static_cast<const AsymmetricKey&>(key);
 
-    auto attestation_chain = getAttestationChain(key_algorithm, error);
+    auto attestation_chain = GetAttestationChain(key_algorithm, error);
     if (*error != KM_ERROR_OK) return {};
 
-    auto attestation_key = getAttestationKey(key_algorithm, error);
+    auto attestation_key = GetAttestationKey(key_algorithm, error);
     if (*error != KM_ERROR_OK) return {};
 
     return generate_attestation(asymmetric_key, attest_params, move(attestation_chain),
-                                *attestation_key, *this, error);
+                                attestation_key, *this, error);
 }
 
 keymaster_error_t SoftKeymasterContext::UnwrapKey(const KeymasterKeyBlob&, const KeymasterKeyBlob&,
@@ -391,18 +391,6 @@ keymaster_error_t SoftKeymasterContext::UnwrapKey(const KeymasterKeyBlob&, const
                                                   AuthorizationSet*, keymaster_key_format_t*,
                                                   KeymasterKeyBlob*) const {
     return KM_ERROR_UNIMPLEMENTED;
-}
-
-keymaster_error_t SoftKeymasterContext::GetVerifiedBootParams(
-    keymaster_blob_t* verified_boot_key, keymaster_blob_t* verified_boot_hash,
-    keymaster_verified_boot_t* verified_boot_state, bool* device_locked) const {
-    // TODO(swillden): See if there might be some sort of vbmeta data in goldfish/cuttlefish.
-    static std::string fake_vb_key(32, 0);
-    *verified_boot_key = {reinterpret_cast<uint8_t*>(fake_vb_key.data()), fake_vb_key.size()};
-    *verified_boot_hash = {reinterpret_cast<uint8_t*>(fake_vb_key.data()), fake_vb_key.size()};
-    *verified_boot_state = KM_VERIFIED_BOOT_UNVERIFIED;
-    *device_locked = false;
-    return KM_ERROR_OK;
 }
 
 }  // namespace keymaster
