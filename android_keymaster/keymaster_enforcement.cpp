@@ -385,6 +385,7 @@ keymaster_error_t KeymasterEnforcement::AuthorizeBegin(const keymaster_purpose_t
         case KM_TAG_TRUSTED_CONFIRMATION_REQUIRED:
         case KM_TAG_TRUSTED_USER_PRESENCE_REQUIRED:
         case KM_TAG_CONFIRMATION_TOKEN:
+        case KM_TAG_USAGE_COUNT_LIMIT:
             break;
 
         case KM_TAG_IDENTITY_CREDENTIAL_KEY:
