@@ -78,6 +78,7 @@ keymaster_key_param_t aidlEnumParam2Km(const KeyParameter& param) {
     case KM_TAG_BLOCK_MODE:
         return aidlEnumVal2Km<KeyParameterValue::blockMode>(tag, param.value);
     case KM_TAG_DIGEST:
+    case KM_TAG_RSA_OAEP_MGF_DIGEST:
         return aidlEnumVal2Km<KeyParameterValue::digest>(tag, param.value);
     case KM_TAG_PADDING:
         return aidlEnumVal2Km<KeyParameterValue::paddingMode>(tag, param.value);
@@ -121,49 +122,55 @@ vector<uint8_t> authToken2AidlVec(const HardwareAuthToken& token) {
     return result;
 }
 
+KeyParameter kmParam2Aidl(const keymaster_key_param_t& param) {
+    auto tag = legacy_enum_conversion(param.tag);
+    switch (typeFromTag(param.tag)) {
+    case KM_ENUM:
+    case KM_ENUM_REP:
+        return kmEnumParam2Aidl(param);
+        break;
+
+    case KM_UINT:
+    case KM_UINT_REP:
+        return KeyParameter{tag,
+                            KeyParameterValue::make<KeyParameterValue::integer>(param.integer)};
+
+    case KM_ULONG:
+    case KM_ULONG_REP:
+        return KeyParameter{
+            tag, KeyParameterValue::make<KeyParameterValue::longInteger>(param.long_integer)};
+        break;
+
+    case KM_DATE:
+        return KeyParameter{tag,
+                            KeyParameterValue::make<KeyParameterValue::dateTime>(param.date_time)};
+        break;
+
+    case KM_BOOL:
+        return KeyParameter{tag, param.boolean};
+        break;
+
+    case KM_BIGNUM:
+    case KM_BYTES:
+        return {tag, KeyParameterValue::make<KeyParameterValue::blob>(
+                         std::vector(param.blob.data, param.blob.data + param.blob.data_length))};
+        break;
+
+    case KM_INVALID:
+    default:
+        CHECK(false) << "Unknown or unused tag type: Something is broken";
+        return KeyParameter{Tag::INVALID, false};
+        break;
+    }
+}
+
 vector<KeyParameter> kmParamSet2Aidl(const keymaster_key_param_set_t& set) {
     vector<KeyParameter> result;
     if (set.length == 0 || set.params == nullptr) return result;
 
     result.reserve(set.length);
-    keymaster_key_param_t* params = set.params;
     for (size_t i = 0; i < set.length; ++i) {
-        auto tag = legacy_enum_conversion(params[i].tag);
-        switch (typeFromTag(params[i].tag)) {
-        case KM_ENUM:
-        case KM_ENUM_REP:
-            result.push_back(kmEnumParam2Aidl(params[i]));
-            break;
-        case KM_UINT:
-        case KM_UINT_REP:
-            result.push_back(KeyParameter{
-                tag, KeyParameterValue::make<KeyParameterValue::integer>(params[i].integer)});
-            break;
-        case KM_ULONG:
-        case KM_ULONG_REP:
-            result.push_back(KeyParameter{
-                tag,
-                KeyParameterValue::make<KeyParameterValue::longInteger>(params[i].long_integer)});
-            break;
-        case KM_DATE:
-            result.push_back(KeyParameter{
-                tag, KeyParameterValue::make<KeyParameterValue::dateTime>(params[i].date_time)});
-            break;
-        case KM_BOOL:
-            result.push_back(KeyParameter{tag, params[i].boolean});
-            break;
-        case KM_BIGNUM:
-        case KM_BYTES:
-            result.push_back(
-                {tag, KeyParameterValue::make<KeyParameterValue::blob>(std::vector(
-                          params[i].blob.data, params[i].blob.data + params[i].blob.data_length))});
-            break;
-        case KM_INVALID:
-        default:
-            CHECK(false) << "Unknown or unused enum tag: Something is broken";
-            result.push_back(KeyParameter{tag, false});
-            break;
-        }
+        result.push_back(kmParam2Aidl(set.params[i]));
     }
     return result;
 }

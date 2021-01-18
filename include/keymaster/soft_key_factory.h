@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef SYSTEM_KEYMASTER_SOFTWARE_KEY_FACTORY_H_
-#define SYSTEM_KEYMASTER_SOFTWARE_KEY_FACTORY_H_
+#pragma once
 
 #include "key_factory.h"
 #include <keymaster/attestation_record.h>
@@ -43,8 +42,8 @@ class SoftwareKeyBlobMaker {
 
 class SoftKeyFactoryMixin {
   public:
-    explicit SoftKeyFactoryMixin(const SoftwareKeyBlobMaker* blob_maker)
-        : blob_maker_(*blob_maker) {}
+    explicit SoftKeyFactoryMixin(const SoftwareKeyBlobMaker& blob_maker)
+        : blob_maker_(blob_maker) {}
     virtual ~SoftKeyFactoryMixin() {}
 
   protected:
@@ -52,5 +51,3 @@ class SoftKeyFactoryMixin {
 };
 
 }  // namespace keymaster
-
-#endif  // SYSTEM_KEYMASTER_SOFTWARE_KEY_FACTORY_H_

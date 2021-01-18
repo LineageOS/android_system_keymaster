@@ -27,7 +27,7 @@ using std::unique_ptr;
 
 namespace keymaster {
 
-EcdsaKeymaster1KeyFactory::EcdsaKeymaster1KeyFactory(const SoftwareKeyBlobMaker* blob_maker,
+EcdsaKeymaster1KeyFactory::EcdsaKeymaster1KeyFactory(const SoftwareKeyBlobMaker& blob_maker,
                                                      const Keymaster1Engine* engine)
     : EcKeyFactory(blob_maker), engine_(engine),
       sign_factory_(new EcdsaKeymaster1OperationFactory(KM_PURPOSE_SIGN, engine)),
