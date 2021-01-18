@@ -52,8 +52,10 @@ namespace keymaster {
 
 PureSoftKeymasterContext::PureSoftKeymasterContext(KmVersion version,
                                                    keymaster_security_level_t security_level)
-    : SoftAttestationContext(version), rsa_factory_(new RsaKeyFactory(*this /* blob_maker */)),
-      ec_factory_(new EcKeyFactory(*this /* blob_maker */)),
+
+    : SoftAttestationContext(version),
+      rsa_factory_(new RsaKeyFactory(*this /* blob_maker */, *this /* context */)),
+      ec_factory_(new EcKeyFactory(*this /* blob_maker */, *this /* context */)),
       aes_factory_(new AesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
       tdes_factory_(new TripleDesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
       hmac_factory_(new HmacKeyFactory(*this /* blob_maker */, *this /* random_source */)),
