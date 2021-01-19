@@ -60,12 +60,12 @@ KeyFactory* Keymaster1PassthroughContext::GetKeyFactory(keymaster_algorithm_t al
         case KM_ALGORITHM_RSA:
             result.reset(new Keymaster1ArbitrationFactory<RsaKeymaster1KeyFactory>(
                 pt_engine_.get(), KM_ALGORITHM_RSA, device_, *this /* blob_maker */,
-                km1_engine_.get()));
+                *this /* context */, km1_engine_.get()));
             break;
         case KM_ALGORITHM_EC:
             result.reset(new Keymaster1ArbitrationFactory<EcdsaKeymaster1KeyFactory>(
                 pt_engine_.get(), KM_ALGORITHM_EC, device_, *this /* blob_maker */,
-                km1_engine_.get()));
+                *this /* context */, km1_engine_.get()));
             break;
         case KM_ALGORITHM_AES:
             result.reset(new Keymaster1ArbitrationFactory<AesKeyFactory>(
