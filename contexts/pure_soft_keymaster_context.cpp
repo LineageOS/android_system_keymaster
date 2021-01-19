@@ -33,6 +33,7 @@
 #include <keymaster/km_openssl/aes_key.h>
 #include <keymaster/km_openssl/asymmetric_key.h>
 #include <keymaster/km_openssl/attestation_utils.h>
+#include <keymaster/km_openssl/certificate_utils.h>
 #include <keymaster/km_openssl/ec_key_factory.h>
 #include <keymaster/km_openssl/hmac_key.h>
 #include <keymaster/km_openssl/openssl_err.h>
@@ -285,6 +286,27 @@ PureSoftKeymasterContext::GenerateAttestation(const Key& key, const Authorizatio
 
     return generate_attestation(asymmetric_key, attest_params, move(attestation_chain),
                                 *attestation_key, *this, error);
+}
+
+CertificateChain PureSoftKeymasterContext::GenerateSelfSignedCertificate(
+    const Key& key, const AuthorizationSet& cert_params, bool fake_signature,
+    keymaster_error_t* error) const {
+    keymaster_algorithm_t key_algorithm;
+    if (!key.authorizations().GetTagValue(TAG_ALGORITHM, &key_algorithm)) {
+        *error = KM_ERROR_UNKNOWN_ERROR;
+        return {};
+    }
+
+    if ((key_algorithm != KM_ALGORITHM_RSA && key_algorithm != KM_ALGORITHM_EC)) {
+        *error = KM_ERROR_INCOMPATIBLE_ALGORITHM;
+        return {};
+    }
+
+    // We have established that the given key has the correct algorithm, and because this is the
+    // SoftKeymasterContext we can assume that the Key is an AsymmetricKey. So we can downcast.
+    const AsymmetricKey& asymmetric_key = static_cast<const AsymmetricKey&>(key);
+
+    return generate_self_signed_cert(asymmetric_key, cert_params, fake_signature, error);
 }
 
 static keymaster_error_t TranslateAuthorizationSetError(AuthorizationSet::Error err) {
