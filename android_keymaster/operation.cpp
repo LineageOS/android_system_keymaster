@@ -73,6 +73,7 @@ bool OperationFactory::is_public_key_operation() const {
     case KM_PURPOSE_SIGN:
     case KM_PURPOSE_DECRYPT:
     case KM_PURPOSE_DERIVE_KEY:
+    case KM_PURPOSE_AGREE_KEY:
         return false;
     };
 
