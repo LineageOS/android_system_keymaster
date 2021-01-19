@@ -69,10 +69,12 @@ class PureSoftKeymasterContext : public KeymasterContext,
     keymaster_error_t DeleteKey(const KeymasterKeyBlob& blob) const override;
     keymaster_error_t DeleteAllKeys() const override;
     keymaster_error_t AddRngEntropy(const uint8_t* buf, size_t length) const override;
-
     CertificateChain GenerateAttestation(const Key& key, const AuthorizationSet& attest_params,
                                          keymaster_error_t* error) const override;
-
+    CertificateChain GenerateSelfSignedCertificate(const Key& key,
+                                                   const AuthorizationSet& cert_params,
+                                                   bool fake_signature,
+                                                   keymaster_error_t* error) const override;
     KeymasterEnforcement* enforcement_policy() override {
         // SoftKeymaster does no enforcement; it's all done by Keystore.
         return &soft_keymaster_enforcement_;
