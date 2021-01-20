@@ -175,36 +175,6 @@ ScopedAStatus AndroidKeyMintDevice::getHardwareInfo(KeyMintHardwareInfo* info) {
     return ScopedAStatus::ok();
 }
 
-ScopedAStatus AndroidKeyMintDevice::verifyAuthorization(int64_t challenge,                   //
-                                                        const HardwareAuthToken& authToken,  //
-                                                        VerificationToken* verificationToken) {
-
-    VerifyAuthorizationRequest request(impl_->message_version());
-    request.challenge = static_cast<uint64_t>(challenge);
-    request.auth_token.challenge = authToken.challenge;
-    request.auth_token.user_id = authToken.userId;
-    request.auth_token.authenticator_id = authToken.authenticatorId;
-    request.auth_token.authenticator_type = legacy_enum_conversion(authToken.authenticatorType);
-
-    // TODO(seleneh) b/162481130 remove the casting once uint is supported in aidl
-    request.auth_token.timestamp = static_cast<uint64_t>(authToken.timestamp.milliSeconds);
-    KeymasterBlob mac(authToken.mac.data(), authToken.mac.size());
-    request.auth_token.mac = KeymasterBlob(authToken.mac.data(), authToken.mac.size());
-
-    auto response = impl_->VerifyAuthorization(request);
-
-    if (response.error != KM_ERROR_OK) {
-        return kmError2ScopedAStatus(response.error);
-    }
-
-    verificationToken->challenge = response.token.challenge;
-    verificationToken->timestamp.milliSeconds = static_cast<int64_t>(response.token.timestamp);
-    verificationToken->securityLevel = legacy_enum_conversion(response.token.security_level);
-    verificationToken->mac = kmBlob2vector(response.token.mac);
-
-    return ScopedAStatus::ok();
-}
-
 ScopedAStatus AndroidKeyMintDevice::addRngEntropy(const vector<uint8_t>& data) {
     if (data.size() == 0) {
         return ScopedAStatus::ok();
