@@ -18,6 +18,7 @@
 
 #include <openssl/evp.h>
 
+#include <keymaster/keymaster_context.h>
 #include <keymaster/km_openssl/ec_key.h>
 #include <keymaster/km_openssl/ecdsa_operation.h>
 #include <keymaster/km_openssl/openssl_err.h>
@@ -75,7 +76,7 @@ keymaster_error_t EcKeyFactory::GenerateKey(const AuthorizationSet& key_descript
                                             KeymasterKeyBlob* key_blob,
                                             AuthorizationSet* hw_enforced,
                                             AuthorizationSet* sw_enforced,
-                                            CertificateChain* /* cert_chain */) const {
+                                            CertificateChain* cert_chain) const {
     if (!key_blob || !hw_enforced || !sw_enforced) return KM_ERROR_OUTPUT_PARAMETER_NULL;
 
     AuthorizationSet authorizations(key_description);
@@ -117,8 +118,23 @@ keymaster_error_t EcKeyFactory::GenerateKey(const AuthorizationSet& key_descript
     error = EvpKeyToKeyMaterial(pkey.get(), &key_material);
     if (error != KM_ERROR_OK) return error;
 
-    return blob_maker_.CreateKeyBlob(authorizations, KM_ORIGIN_GENERATED, key_material, key_blob,
-                                     hw_enforced, sw_enforced);
+    error = blob_maker_.CreateKeyBlob(authorizations, KM_ORIGIN_GENERATED, key_material, key_blob,
+                                      hw_enforced, sw_enforced);
+    if (error != KM_ERROR_OK) return error;
+
+    if (context_.GetKmVersion() < KmVersion::KEYMINT_1) return KM_ERROR_OK;
+    if (!cert_chain) return KM_ERROR_UNEXPECTED_NULL_POINTER;
+
+    EcKey key(*hw_enforced, *sw_enforced, this, move(ec_key));
+    if (key_description.Contains(TAG_ATTESTATION_CHALLENGE)) {
+        *cert_chain = context_.GenerateAttestation(key, key_description, &error);
+    } else {
+        *cert_chain = context_.GenerateSelfSignedCertificate(
+            key, key_description,
+            !key_description.Contains(TAG_PURPOSE, KM_PURPOSE_SIGN) /* fake_signature */, &error);
+    }
+
+    return error;
 }
 
 keymaster_error_t EcKeyFactory::ImportKey(const AuthorizationSet& key_description,
@@ -127,7 +143,7 @@ keymaster_error_t EcKeyFactory::ImportKey(const AuthorizationSet& key_descriptio
                                           KeymasterKeyBlob* output_key_blob,
                                           AuthorizationSet* hw_enforced,
                                           AuthorizationSet* sw_enforced,
-                                          CertificateChain* /* cert_chain */) const {
+                                          CertificateChain* cert_chain) const {
     if (!output_key_blob || !hw_enforced || !sw_enforced) return KM_ERROR_OUTPUT_PARAMETER_NULL;
 
     AuthorizationSet authorizations;
@@ -136,8 +152,30 @@ keymaster_error_t EcKeyFactory::ImportKey(const AuthorizationSet& key_descriptio
         key_description, input_key_material_format, input_key_material, &authorizations, &key_size);
     if (error != KM_ERROR_OK) return error;
 
-    return blob_maker_.CreateKeyBlob(authorizations, KM_ORIGIN_IMPORTED, input_key_material,
-                                     output_key_blob, hw_enforced, sw_enforced);
+    error = blob_maker_.CreateKeyBlob(authorizations, KM_ORIGIN_IMPORTED, input_key_material,
+                                      output_key_blob, hw_enforced, sw_enforced);
+    if (error != KM_ERROR_OK) return error;
+
+    if (context_.GetKmVersion() < KmVersion::KEYMINT_1) return KM_ERROR_OK;
+    if (!cert_chain) return KM_ERROR_UNEXPECTED_NULL_POINTER;
+
+    EVP_PKEY_Ptr pkey;
+    error = KeyMaterialToEvpKey(KM_KEY_FORMAT_PKCS8, input_key_material, KM_ALGORITHM_EC, &pkey);
+    if (error != KM_ERROR_OK) return error;
+
+    EC_KEY_Ptr ec_key(EVP_PKEY_get1_EC_KEY(pkey.get()));
+    if (!ec_key.get()) return KM_ERROR_INVALID_ARGUMENT;
+
+    EcKey key(*hw_enforced, *sw_enforced, this, move(ec_key));
+    if (key_description.Contains(KM_TAG_ATTESTATION_CHALLENGE)) {
+        *cert_chain = context_.GenerateAttestation(key, key_description, &error);
+    } else {
+        *cert_chain = context_.GenerateSelfSignedCertificate(
+            key, key_description,
+            !key_description.Contains(TAG_PURPOSE, KM_PURPOSE_SIGN) /* fake_signature */, &error);
+    }
+
+    return error;
 }
 
 keymaster_error_t EcKeyFactory::UpdateImportKeyDescription(const AuthorizationSet& key_description,
