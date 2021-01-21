@@ -150,6 +150,7 @@ class SoftKeymintTestInstanceCreator : public Keymaster2TestInstanceCreator {
     }
 
     bool is_keymaster1_hw() const override { return false; }
+    bool is_keymint() const override { return true; }
     KeymasterContext* keymaster_context() const override { return context_; }
     string name() const override { return "Soft Keymint"; }
     KmVersion km_version() const override { return KmVersion::KEYMINT_1; }
@@ -3797,7 +3798,14 @@ static bool verify_attestation_record(const string& challenge, const string& att
     return true;
 }
 
-TEST_P(AttestationTest, RsaAttestation) {
+TEST_P(AttestationTest, RsaAttestationKeymaster) {
+    // We can't test KeyMint attestation here because these tests are architected to use the
+    // Keymaster2 API (an old-style C-struct HAL, pre-HIDL), which doesn't have a way to return the
+    // certificates.  For now, we'll have to rely on the KeyMint VTS tests to validate KeyMint
+    // attestation.
+    //
+    // TODO: Refactor this test suite to use the HIDL/AIDL interfaces.
+    if (GetParam()->is_keymint()) return;
     ASSERT_EQ(KM_ERROR_OK, GenerateKey(AuthorizationSetBuilder()
                                            .RsaSigningKey(256, 3)
                                            .Digest(KM_DIGEST_NONE)
@@ -3823,6 +3831,13 @@ TEST_P(AttestationTest, RsaAttestation) {
 }
 
 TEST_P(AttestationTest, EcAttestation) {
+    // We can't test KeyMint attestation here because these tests are architected to use the
+    // Keymaster2 API (an old-style C-struct HAL, pre-HIDL), which doesn't have a way to return the
+    // certificates.  For now, we'll have to rely on the KeyMint VTS tests to validate KeyMint
+    // attestation.
+    //
+    // TODO: Refactor this test suite to use the HIDL/AIDL interfaces.
+    if (GetParam()->is_keymint()) return;
     ASSERT_EQ(KM_ERROR_OK, GenerateKey(AuthorizationSetBuilder().EcdsaSigningKey(256).Digest(
                                KM_DIGEST_SHA_2_256)));
 

@@ -478,6 +478,8 @@ struct CertificateChain : public keymaster_cert_chain_t {
         return retval;
     }
 
+    operator bool() { return entries; }
+
     keymaster_blob_t* begin() { return entries; }
     const keymaster_blob_t* begin() const { return entries; }
     keymaster_blob_t* end() { return entries + entry_count; }

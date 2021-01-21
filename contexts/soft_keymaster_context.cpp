@@ -28,6 +28,7 @@
 #include <keymaster/km_openssl/aes_key.h>
 #include <keymaster/km_openssl/asymmetric_key.h>
 #include <keymaster/km_openssl/attestation_utils.h>
+#include <keymaster/km_openssl/certificate_utils.h>
 #include <keymaster/km_openssl/hmac_key.h>
 #include <keymaster/km_openssl/openssl_err.h>
 #include <keymaster/km_openssl/triple_des_key.h>
@@ -51,8 +52,8 @@ KeymasterBlob string2Blob(const std::string& str) {
 
 SoftKeymasterContext::SoftKeymasterContext(KmVersion version, const std::string& root_of_trust)
     : SoftAttestationContext(version),  //
-      rsa_factory_(new RsaKeyFactory(*this /* blob_maker */)),
-      ec_factory_(new EcKeyFactory(*this /* blob_maker */)),
+      rsa_factory_(new RsaKeyFactory(*this /* blob_maker */, *this /* context */)),
+      ec_factory_(new EcKeyFactory(*this /* blob_maker */, *this /* context */)),
       aes_factory_(new AesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
       tdes_factory_(new TripleDesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
       hmac_factory_(new HmacKeyFactory(*this /* blob_maker */, *this /* random_source */)),
@@ -67,8 +68,10 @@ keymaster_error_t SoftKeymasterContext::SetHardwareDevice(keymaster1_device_t* k
     km1_dev_ = keymaster1_device;
 
     km1_engine_.reset(new Keymaster1Engine(keymaster1_device));
-    rsa_factory_.reset(new RsaKeymaster1KeyFactory(*this /* blob_maker */, km1_engine_.get()));
-    ec_factory_.reset(new EcdsaKeymaster1KeyFactory(*this /* blob_maker */, km1_engine_.get()));
+    rsa_factory_.reset(new RsaKeymaster1KeyFactory(
+        *this /* blob_maker */, *this /* attestation_context */, km1_engine_.get()));
+    ec_factory_.reset(new EcdsaKeymaster1KeyFactory(
+        *this /* blob_maker */, *this /* attestation_context */, km1_engine_.get()));
 
     // Use default HMAC and AES key factories. Higher layers will pass HMAC/AES keys/ops that are
     // supported by the hardware to it and other ones to the software-only factory.
@@ -358,9 +361,9 @@ keymaster_error_t SoftKeymasterContext::ParseKeymaster1HwBlob(
     return KM_ERROR_OK;
 }
 
-CertificateChain SoftKeymasterContext::GenerateAttestation(const Key& key,
-                                                           const AuthorizationSet& attest_params,
-                                                           keymaster_error_t* error) const {
+CertificateChain  //
+SoftKeymasterContext::GenerateAttestation(const Key& key, const AuthorizationSet& attest_params,
+                                          keymaster_error_t* error) const {
     keymaster_algorithm_t key_algorithm;
     if (!key.authorizations().GetTagValue(TAG_ALGORITHM, &key_algorithm)) {
         *error = KM_ERROR_UNKNOWN_ERROR;
@@ -384,6 +387,27 @@ CertificateChain SoftKeymasterContext::GenerateAttestation(const Key& key,
 
     return generate_attestation(asymmetric_key, attest_params, move(attestation_chain),
                                 attestation_key, *this, error);
+}
+
+CertificateChain SoftKeymasterContext::GenerateSelfSignedCertificate(
+    const Key& key, const AuthorizationSet& cert_params, bool fake_signature,
+    keymaster_error_t* error) const {
+    keymaster_algorithm_t key_algorithm;
+    if (!key.authorizations().GetTagValue(TAG_ALGORITHM, &key_algorithm)) {
+        *error = KM_ERROR_UNKNOWN_ERROR;
+        return {};
+    }
+
+    if ((key_algorithm != KM_ALGORITHM_RSA && key_algorithm != KM_ALGORITHM_EC)) {
+        *error = KM_ERROR_INCOMPATIBLE_ALGORITHM;
+        return {};
+    }
+
+    // We have established that the given key has the correct algorithm, and because this is the
+    // SoftKeymasterContext we can assume that the Key is an AsymmetricKey. So we can downcast.
+    const AsymmetricKey& asymmetric_key = static_cast<const AsymmetricKey&>(key);
+
+    return generate_self_signed_cert(asymmetric_key, cert_params, fake_signature, error);
 }
 
 keymaster_error_t SoftKeymasterContext::UnwrapKey(const KeymasterKeyBlob&, const KeymasterKeyBlob&,

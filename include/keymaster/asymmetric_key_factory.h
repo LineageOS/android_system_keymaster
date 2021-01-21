@@ -20,15 +20,19 @@
 
 namespace keymaster {
 
+class KeymasterContext;
+
 /**
  * Abstract base for KeyFactories that handle asymmetric keys.
  */
 class AsymmetricKey;
 class AsymmetricKeyFactory : public KeyFactory {
   public:
+    AsymmetricKeyFactory(const KeymasterContext& context) : context_(context) {}
     keymaster_error_t LoadKey(KeymasterKeyBlob&& key_material,
                               const AuthorizationSet& additional_params,
-                              AuthorizationSet&& hw_enforced, AuthorizationSet&& sw_enforced,
+                              AuthorizationSet&& hw_enforced,  //
+                              AuthorizationSet&& sw_enforced,  //
                               UniquePtr<Key>* key) const override;
 
     virtual keymaster_error_t CreateEmptyKey(AuthorizationSet&& hw_enforced,
@@ -42,6 +46,9 @@ class AsymmetricKeyFactory : public KeyFactory {
     SupportedImportFormats(size_t* format_count) const override;
     virtual const keymaster_key_format_t*
     SupportedExportFormats(size_t* format_count) const override;
+
+  protected:
+    const KeymasterContext& context_;
 };
 
 }  // namespace keymaster

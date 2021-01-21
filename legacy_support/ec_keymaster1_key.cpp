@@ -28,8 +28,9 @@ using std::unique_ptr;
 namespace keymaster {
 
 EcdsaKeymaster1KeyFactory::EcdsaKeymaster1KeyFactory(const SoftwareKeyBlobMaker& blob_maker,
+                                                     const KeymasterContext& context,
                                                      const Keymaster1Engine* engine)
-    : EcKeyFactory(blob_maker), engine_(engine),
+    : EcKeyFactory(blob_maker, context), engine_(engine),
       sign_factory_(new EcdsaKeymaster1OperationFactory(KM_PURPOSE_SIGN, engine)),
       // For pubkey ops we can use the normal operation factories.
       verify_factory_(new EcdsaVerifyOperationFactory) {}

@@ -148,6 +148,17 @@ vector<KeyCharacteristics> convertKeyCharacteristics(SecurityLevel keyMintSecuri
     return {std::move(enforced)};
 }
 
+Certificate convertCertificate(const keymaster_blob_t& cert) {
+    return {std::vector<uint8_t>(cert.data, cert.data + cert.data_length)};
+}
+
+vector<Certificate> convertCertificateChain(const CertificateChain& chain) {
+    vector<Certificate> retval;
+    retval.reserve(chain.entry_count);
+    std::transform(chain.begin(), chain.end(), std::back_inserter(retval), convertCertificate);
+    return retval;
+}
+
 }  // namespace
 
 constexpr size_t kOperationTableSize = 16;
@@ -171,36 +182,6 @@ ScopedAStatus AndroidKeyMintDevice::getHardwareInfo(KeyMintHardwareInfo* info) {
     info->securityLevel = securityLevel_;
     info->keyMintName = "FakeKeyMintDevice";
     info->keyMintAuthorName = "Google";
-
-    return ScopedAStatus::ok();
-}
-
-ScopedAStatus AndroidKeyMintDevice::verifyAuthorization(int64_t challenge,                   //
-                                                        const HardwareAuthToken& authToken,  //
-                                                        VerificationToken* verificationToken) {
-
-    VerifyAuthorizationRequest request(impl_->message_version());
-    request.challenge = static_cast<uint64_t>(challenge);
-    request.auth_token.challenge = authToken.challenge;
-    request.auth_token.user_id = authToken.userId;
-    request.auth_token.authenticator_id = authToken.authenticatorId;
-    request.auth_token.authenticator_type = legacy_enum_conversion(authToken.authenticatorType);
-
-    // TODO(seleneh) b/162481130 remove the casting once uint is supported in aidl
-    request.auth_token.timestamp = static_cast<uint64_t>(authToken.timestamp.milliSeconds);
-    KeymasterBlob mac(authToken.mac.data(), authToken.mac.size());
-    request.auth_token.mac = KeymasterBlob(authToken.mac.data(), authToken.mac.size());
-
-    auto response = impl_->VerifyAuthorization(request);
-
-    if (response.error != KM_ERROR_OK) {
-        return kmError2ScopedAStatus(response.error);
-    }
-
-    verificationToken->challenge = response.token.challenge;
-    verificationToken->timestamp.milliSeconds = static_cast<int64_t>(response.token.timestamp);
-    verificationToken->securityLevel = legacy_enum_conversion(response.token.security_level);
-    verificationToken->mac = kmBlob2vector(response.token.mac);
 
     return ScopedAStatus::ok();
 }
@@ -244,6 +225,7 @@ ScopedAStatus AndroidKeyMintDevice::generateKey(const vector<KeyParameter>& keyP
     creationResult->keyBlob = kmBlob2vector(response.key_blob);
     creationResult->keyCharacteristics =
         convertKeyCharacteristics(securityLevel_, response.unenforced, response.enforced);
+    creationResult->certificateChain = convertCertificateChain(response.certificate_chain);
     return ScopedAStatus::ok();
 }
 
@@ -266,6 +248,7 @@ ScopedAStatus AndroidKeyMintDevice::importKey(const vector<KeyParameter>& keyPar
     creationResult->keyBlob = kmBlob2vector(response.key_blob);
     creationResult->keyCharacteristics =
         convertKeyCharacteristics(securityLevel_, response.unenforced, response.enforced);
+    creationResult->certificateChain = convertCertificateChain(response.certificate_chain);
 
     return ScopedAStatus::ok();
 }
@@ -295,6 +278,7 @@ ScopedAStatus AndroidKeyMintDevice::importWrappedKey(const vector<uint8_t>& wrap
     creationResult->keyBlob = kmBlob2vector(response.key_blob);
     creationResult->keyCharacteristics =
         convertKeyCharacteristics(securityLevel_, response.unenforced, response.enforced);
+    creationResult->certificateChain = convertCertificateChain(response.certificate_chain);
 
     return ScopedAStatus::ok();
 }

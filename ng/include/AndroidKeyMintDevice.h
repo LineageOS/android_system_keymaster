@@ -37,9 +37,6 @@ class AndroidKeyMintDevice : public BnKeyMintDevice {
 
     ScopedAStatus getHardwareInfo(KeyMintHardwareInfo* info) override;
 
-    ScopedAStatus verifyAuthorization(int64_t challenge, const HardwareAuthToken& token,
-                                      VerificationToken* verificationToken) override;
-
     ScopedAStatus addRngEntropy(const vector<uint8_t>& data) override;
 
     ScopedAStatus generateKey(const vector<KeyParameter>& keyParams,
