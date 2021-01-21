@@ -148,6 +148,17 @@ vector<KeyCharacteristics> convertKeyCharacteristics(SecurityLevel keyMintSecuri
     return {std::move(enforced)};
 }
 
+Certificate convertCertificate(const keymaster_blob_t& cert) {
+    return {std::vector<uint8_t>(cert.data, cert.data + cert.data_length)};
+}
+
+vector<Certificate> convertCertificateChain(const CertificateChain& chain) {
+    vector<Certificate> retval;
+    retval.reserve(chain.entry_count);
+    std::transform(chain.begin(), chain.end(), std::back_inserter(retval), convertCertificate);
+    return retval;
+}
+
 }  // namespace
 
 constexpr size_t kOperationTableSize = 16;
@@ -214,6 +225,7 @@ ScopedAStatus AndroidKeyMintDevice::generateKey(const vector<KeyParameter>& keyP
     creationResult->keyBlob = kmBlob2vector(response.key_blob);
     creationResult->keyCharacteristics =
         convertKeyCharacteristics(securityLevel_, response.unenforced, response.enforced);
+    creationResult->certificateChain = convertCertificateChain(response.certificate_chain);
     return ScopedAStatus::ok();
 }
 
@@ -236,6 +248,7 @@ ScopedAStatus AndroidKeyMintDevice::importKey(const vector<KeyParameter>& keyPar
     creationResult->keyBlob = kmBlob2vector(response.key_blob);
     creationResult->keyCharacteristics =
         convertKeyCharacteristics(securityLevel_, response.unenforced, response.enforced);
+    creationResult->certificateChain = convertCertificateChain(response.certificate_chain);
 
     return ScopedAStatus::ok();
 }
@@ -265,6 +278,7 @@ ScopedAStatus AndroidKeyMintDevice::importWrappedKey(const vector<uint8_t>& wrap
     creationResult->keyBlob = kmBlob2vector(response.key_blob);
     creationResult->keyCharacteristics =
         convertKeyCharacteristics(securityLevel_, response.unenforced, response.enforced);
+    creationResult->certificateChain = convertCertificateChain(response.certificate_chain);
 
     return ScopedAStatus::ok();
 }
