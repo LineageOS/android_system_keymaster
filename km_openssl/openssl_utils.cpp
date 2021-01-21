@@ -98,7 +98,7 @@ keymaster_error_t convert_pkcs8_blob_to_evp(const uint8_t* key_data, size_t key_
 keymaster_error_t KeyMaterialToEvpKey(keymaster_key_format_t key_format,
                                       const KeymasterKeyBlob& key_material,
                                       keymaster_algorithm_t expected_algorithm,
-                                      UniquePtr<EVP_PKEY, EVP_PKEY_Delete>* pkey) {
+                                      EVP_PKEY_Ptr* pkey) {
     if (key_format != KM_KEY_FORMAT_PKCS8) return KM_ERROR_UNSUPPORTED_KEY_FORMAT;
 
     return convert_pkcs8_blob_to_evp(key_material.key_material, key_material.key_material_size,

@@ -112,7 +112,7 @@ keymaster_error_t add_attestation_extension(const AuthorizationSet& attest_param
                                             const AttestationContext& context,  //
                                             X509* certificate) {
     X509_EXTENSION_Ptr attest_extension;
-    if (context.GetKmVersion() < KmVersion::KEYMINT_1) {
+    if (context.GetKmVersion() <= KmVersion::KEYMINT_1) {
         if (auto error = build_attestation_extension(attest_params, tee_enforced, sw_enforced,
                                                      context, &attest_extension)) {
             return error;
