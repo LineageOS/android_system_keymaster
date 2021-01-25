@@ -539,6 +539,10 @@ bool KeymasterEnforcement::AuthTokenMatches(const AuthProxy& auth_set,
     return true;
 }
 
+keymaster_error_t KeymasterEnforcement::GenerateTimestampToken(TimestampToken* /*token*/) {
+    return KM_ERROR_UNIMPLEMENTED;
+}
+
 bool AccessTimeMap::LastKeyAccessTime(km_id_t keyid, uint32_t* last_access_time) const {
     for (auto& entry : last_access_list_)
         if (entry.keyid == keyid) {

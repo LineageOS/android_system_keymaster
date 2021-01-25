@@ -25,7 +25,6 @@ class AndroidKeymaster;
 }
 
 namespace aidl::android::hardware::security::keymint {
-
 using ::ndk::ScopedAStatus;
 using std::shared_ptr;
 using std::vector;
@@ -64,6 +63,8 @@ class AndroidKeyMintDevice : public BnKeyMintDevice {
     ScopedAStatus begin(KeyPurpose purpose, const vector<uint8_t>& keyBlob,
                         const vector<KeyParameter>& params, const HardwareAuthToken& authToken,
                         BeginResult* result) override;
+
+    std::shared_ptr<::keymaster::AndroidKeymaster>& getKeymasterImpl() { return impl_; }
 
   protected:
     std::shared_ptr<::keymaster::AndroidKeymaster> impl_;
