@@ -16,41 +16,59 @@
 
 #pragma once
 
+#include <openssl/x509v3.h>
+
 #include <hardware/keymaster_defs.h>
 
 #include <keymaster/km_openssl/openssl_utils.h>
 
-#include <openssl/x509v3.h>
-
 namespace keymaster {
+
+class AsymmetricKey;
+class AuthorizationSet;
 
 keymaster_error_t make_name_from_str(const char name[], X509_NAME_Ptr* name_out);
 
-keymaster_error_t make_name_from_der(const uint8_t* name, size_t length, X509_NAME_Ptr* name_out);
+keymaster_error_t make_name_from_der(const keymaster_blob_t& name, X509_NAME_Ptr* name_out);
 
 keymaster_error_t get_common_name(X509_NAME* name, UniquePtr<const char[]>* name_out);
+
+// CertificateParams encapsulates a set of certificate parameters that may be provided by the
+// caller, or may be defaulted.
+struct CertificateCallerParams {
+    // TODO(swillden): Change the serial to a blob, and change TAG_CERTIFICATE_SERIAL to BIGNUM.
+    uint32_t serial;
+    X509_NAME_Ptr subject_name;
+    uint64_t active_date_time;
+    uint64_t expire_date_time;
+};
+
+keymaster_error_t get_certificate_params(const AuthorizationSet& caller_params,
+                                         CertificateCallerParams* cert_params);
 
 keymaster_error_t make_key_usage_extension(bool is_signing_key, bool is_encryption_key,
                                            X509_EXTENSION_Ptr* usage_extension_out);
 
-// Creates a rump certificate structure with serial, subject and issuer names, as well as
-// activation and expiry date.
-// Callers should pass an empty X509_Ptr and check the return value for KM_ERROR_OK (0) before
-// accessing the result.
-keymaster_error_t make_cert_rump(const uint32_t serial, const X509_NAME* subject,
-                                 const X509_NAME* issuer, const uint64_t activeDateTimeMilliSeconds,
-                                 const uint64_t usageExpireDateTimeMilliSeconds,
-                                 X509_Ptr* cert_out);
+// Creates a rump certificate structure with serial, subject and issuer names, as well as activation
+// and expiry date.  Callers should pass an empty X509_Ptr and check the return value for
+// KM_ERROR_OK (0) before accessing the result.
+keymaster_error_t make_cert_rump(const uint32_t serial, const X509_NAME* issuer,
+                                 const CertificateCallerParams& cert_params, X509_Ptr* cert_out);
 
-keymaster_error_t make_cert(const EVP_PKEY* evp_pkey, const uint32_t serial,
-                            const X509_NAME* subject, const X509_NAME* issuer,
-                            const uint64_t activeDateTimeMilliSeconds,
-                            const uint64_t usageExpireDateTimeMilliSeconds,
-                            const bool is_signing_key, const bool is_encryption_key,
-                            X509_Ptr* cert_out);
+keymaster_error_t make_cert(const EVP_PKEY* evp_pkey, const X509_NAME* issuer,
+                            const CertificateCallerParams& cert_params, const bool is_signing_key,
+                            const bool is_encryption_key, X509_Ptr* cert_out);
 
-// Takes a certificate, a signing certificate, and the raw private signing_key.
-// Signs the certificate with the latter.
-keymaster_error_t sign_cert(X509* certificate, X509* signing_cert,
-                            const keymaster_key_blob_t& signing_key);
+// Sign the certificate with the provided signing key.  Key must be in PKCS#8 format.
+keymaster_error_t sign_cert(X509* certificate, const keymaster_key_blob_t& signing_key);
+
+// Generate a certificate for the provided asymmetric key, with params.  The certificate will be
+// self-signed unless `fake_signature` is set, in which case a fake signature will be placed in the
+// certificate.  Specifically, the signature algorithm will be set to RSA PKCS#1 v1.5 with digest
+// SHA-256, but the signature field will contain a single zero byte.
+CertificateChain generate_self_signed_cert(const AsymmetricKey& key, const AuthorizationSet& params,
+                                           bool fake_signature, keymaster_error_t* error);
+
+keymaster_error_t encode_certificate(X509* certificate, keymaster_blob_t* derCert);
+
 }  // namespace keymaster

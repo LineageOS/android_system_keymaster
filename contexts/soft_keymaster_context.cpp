@@ -28,6 +28,7 @@
 #include <keymaster/km_openssl/aes_key.h>
 #include <keymaster/km_openssl/asymmetric_key.h>
 #include <keymaster/km_openssl/attestation_utils.h>
+#include <keymaster/km_openssl/certificate_utils.h>
 #include <keymaster/km_openssl/hmac_key.h>
 #include <keymaster/km_openssl/openssl_err.h>
 #include <keymaster/km_openssl/triple_des_key.h>
@@ -50,11 +51,14 @@ KeymasterBlob string2Blob(const std::string& str) {
 }  // anonymous namespace
 
 SoftKeymasterContext::SoftKeymasterContext(KmVersion version, const std::string& root_of_trust)
-    : AttestationRecordContext(version), rsa_factory_(new RsaKeyFactory(this)),
-      ec_factory_(new EcKeyFactory(this)), aes_factory_(new AesKeyFactory(this, this)),
-      tdes_factory_(new TripleDesKeyFactory(this, this)),
-      hmac_factory_(new HmacKeyFactory(this, this)), km1_dev_(nullptr),
-      root_of_trust_(string2Blob(root_of_trust)), os_version_(0), os_patchlevel_(0) {}
+    : SoftAttestationContext(version),  //
+      rsa_factory_(new RsaKeyFactory(*this /* blob_maker */, *this /* context */)),
+      ec_factory_(new EcKeyFactory(*this /* blob_maker */, *this /* context */)),
+      aes_factory_(new AesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
+      tdes_factory_(new TripleDesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
+      hmac_factory_(new HmacKeyFactory(*this /* blob_maker */, *this /* random_source */)),
+      km1_dev_(nullptr), root_of_trust_(string2Blob(root_of_trust)), os_version_(0),
+      os_patchlevel_(0) {}
 
 SoftKeymasterContext::~SoftKeymasterContext() {}
 
@@ -64,8 +68,10 @@ keymaster_error_t SoftKeymasterContext::SetHardwareDevice(keymaster1_device_t* k
     km1_dev_ = keymaster1_device;
 
     km1_engine_.reset(new Keymaster1Engine(keymaster1_device));
-    rsa_factory_.reset(new RsaKeymaster1KeyFactory(this, km1_engine_.get()));
-    ec_factory_.reset(new EcdsaKeymaster1KeyFactory(this, km1_engine_.get()));
+    rsa_factory_.reset(new RsaKeymaster1KeyFactory(
+        *this /* blob_maker */, *this /* attestation_context */, km1_engine_.get()));
+    ec_factory_.reset(new EcdsaKeymaster1KeyFactory(
+        *this /* blob_maker */, *this /* attestation_context */, km1_engine_.get()));
 
     // Use default HMAC and AES key factories. Higher layers will pass HMAC/AES keys/ops that are
     // supported by the hardware to it and other ones to the software-only factory.
@@ -355,9 +361,9 @@ keymaster_error_t SoftKeymasterContext::ParseKeymaster1HwBlob(
     return KM_ERROR_OK;
 }
 
-CertificateChain SoftKeymasterContext::GenerateAttestation(const Key& key,
-                                                           const AuthorizationSet& attest_params,
-                                                           keymaster_error_t* error) const {
+CertificateChain  //
+SoftKeymasterContext::GenerateAttestation(const Key& key, const AuthorizationSet& attest_params,
+                                          keymaster_error_t* error) const {
     keymaster_algorithm_t key_algorithm;
     if (!key.authorizations().GetTagValue(TAG_ALGORITHM, &key_algorithm)) {
         *error = KM_ERROR_UNKNOWN_ERROR;
@@ -373,14 +379,35 @@ CertificateChain SoftKeymasterContext::GenerateAttestation(const Key& key,
     // SoftKeymasterContext we can assume that the Key is an AsymmetricKey. So we can downcast.
     const AsymmetricKey& asymmetric_key = static_cast<const AsymmetricKey&>(key);
 
-    auto attestation_chain = getAttestationChain(key_algorithm, error);
+    auto attestation_chain = GetAttestationChain(key_algorithm, error);
     if (*error != KM_ERROR_OK) return {};
 
-    auto attestation_key = getAttestationKey(key_algorithm, error);
+    auto attestation_key = GetAttestationKey(key_algorithm, error);
     if (*error != KM_ERROR_OK) return {};
 
     return generate_attestation(asymmetric_key, attest_params, move(attestation_chain),
-                                *attestation_key, *this, error);
+                                attestation_key, *this, error);
+}
+
+CertificateChain SoftKeymasterContext::GenerateSelfSignedCertificate(
+    const Key& key, const AuthorizationSet& cert_params, bool fake_signature,
+    keymaster_error_t* error) const {
+    keymaster_algorithm_t key_algorithm;
+    if (!key.authorizations().GetTagValue(TAG_ALGORITHM, &key_algorithm)) {
+        *error = KM_ERROR_UNKNOWN_ERROR;
+        return {};
+    }
+
+    if ((key_algorithm != KM_ALGORITHM_RSA && key_algorithm != KM_ALGORITHM_EC)) {
+        *error = KM_ERROR_INCOMPATIBLE_ALGORITHM;
+        return {};
+    }
+
+    // We have established that the given key has the correct algorithm, and because this is the
+    // SoftKeymasterContext we can assume that the Key is an AsymmetricKey. So we can downcast.
+    const AsymmetricKey& asymmetric_key = static_cast<const AsymmetricKey&>(key);
+
+    return generate_self_signed_cert(asymmetric_key, cert_params, fake_signature, error);
 }
 
 keymaster_error_t SoftKeymasterContext::UnwrapKey(const KeymasterKeyBlob&, const KeymasterKeyBlob&,
@@ -388,18 +415,6 @@ keymaster_error_t SoftKeymasterContext::UnwrapKey(const KeymasterKeyBlob&, const
                                                   AuthorizationSet*, keymaster_key_format_t*,
                                                   KeymasterKeyBlob*) const {
     return KM_ERROR_UNIMPLEMENTED;
-}
-
-keymaster_error_t SoftKeymasterContext::GetVerifiedBootParams(
-    keymaster_blob_t* verified_boot_key, keymaster_blob_t* verified_boot_hash,
-    keymaster_verified_boot_t* verified_boot_state, bool* device_locked) const {
-    // TODO(swillden): See if there might be some sort of vbmeta data in goldfish/cuttlefish.
-    static std::string fake_vb_key(32, 0);
-    *verified_boot_key = {reinterpret_cast<uint8_t*>(fake_vb_key.data()), fake_vb_key.size()};
-    *verified_boot_hash = {reinterpret_cast<uint8_t*>(fake_vb_key.data()), fake_vb_key.size()};
-    *verified_boot_state = KM_VERIFIED_BOOT_UNVERIFIED;
-    *device_locked = false;
-    return KM_ERROR_OK;
 }
 
 }  // namespace keymaster

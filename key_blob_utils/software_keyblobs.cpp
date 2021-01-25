@@ -258,24 +258,94 @@ keymaster_error_t SetKeyBlobAuthorizations(const AuthorizationSet& key_descripti
     for (auto& entry : key_description) {
         switch (entry.tag) {
         // These cannot be specified by the client.
-        case KM_TAG_ROOT_OF_TRUST:
+        case KM_TAG_BOOT_PATCHLEVEL:
         case KM_TAG_ORIGIN:
+        case KM_TAG_OS_PATCHLEVEL:
+        case KM_TAG_OS_VERSION:
+        case KM_TAG_ROOT_OF_TRUST:
+        case KM_TAG_VENDOR_PATCHLEVEL:
             LOG_E("Root of trust and origin tags may not be specified", 0);
             return KM_ERROR_INVALID_TAG;
 
-        // These don't work.
+        // These aren't supported by SoftKeymaster.
+        case KM_TAG_ALLOW_WHILE_ON_BODY:
+        case KM_TAG_DEVICE_UNIQUE_ATTESTATION:
+        case KM_TAG_ECIES_SINGLE_HASH_MODE:
+        case KM_TAG_EXPORTABLE:
+        case KM_TAG_IDENTITY_CREDENTIAL_KEY:
+        case KM_TAG_KDF:
+        case KM_TAG_ROLLBACK_RESISTANCE:
         case KM_TAG_ROLLBACK_RESISTANT:
-            LOG_E("KM_TAG_ROLLBACK_RESISTANT not supported", 0);
+        case KM_TAG_STORAGE_KEY:
+            LOG_E("Tag %d not supported by SoftKeymaster", entry.tag);
             return KM_ERROR_UNSUPPORTED_TAG;
 
         // These are hidden.
-        case KM_TAG_APPLICATION_ID:
         case KM_TAG_APPLICATION_DATA:
+        case KM_TAG_APPLICATION_ID:
+            break;
+
+        // These should not be in key descriptions because they're for operation parameters.
+        case KM_TAG_ASSOCIATED_DATA:
+        case KM_TAG_AUTH_TOKEN:
+        case KM_TAG_CONFIRMATION_TOKEN:
+        case KM_TAG_INVALID:
+        case KM_TAG_MAC_LENGTH:
+        case KM_TAG_NONCE:
+            LOG_E("Tag %d not allowed in key generation/import", entry.tag);
+            break;
+
+        // These are provided to support attesation key generation, but should not be included in
+        // the key characteristics.
+        case KM_TAG_ATTESTATION_APPLICATION_ID:
+        case KM_TAG_ATTESTATION_CHALLENGE:
+        case KM_TAG_ATTESTATION_ID_BRAND:
+        case KM_TAG_ATTESTATION_ID_DEVICE:
+        case KM_TAG_ATTESTATION_ID_IMEI:
+        case KM_TAG_ATTESTATION_ID_MANUFACTURER:
+        case KM_TAG_ATTESTATION_ID_MEID:
+        case KM_TAG_ATTESTATION_ID_MODEL:
+        case KM_TAG_ATTESTATION_ID_PRODUCT:
+        case KM_TAG_ATTESTATION_ID_SERIAL:
+        case KM_TAG_CERTIFICATE_SERIAL:
+        case KM_TAG_CERTIFICATE_SUBJECT:
+        case KM_TAG_RESET_SINCE_ID_ROTATION:
             break;
 
         // Everything else we just copy into sw_enforced, unless the KeyFactory has placed it in
         // hw_enforced, in which case we defer to its decision.
-        default:
+        case KM_TAG_ACTIVE_DATETIME:
+        case KM_TAG_ALGORITHM:
+        case KM_TAG_ALL_APPLICATIONS:
+        case KM_TAG_ALL_USERS:
+        case KM_TAG_AUTH_TIMEOUT:
+        case KM_TAG_BLOB_USAGE_REQUIREMENTS:
+        case KM_TAG_BLOCK_MODE:
+        case KM_TAG_BOOTLOADER_ONLY:
+        case KM_TAG_CALLER_NONCE:
+        case KM_TAG_CREATION_DATETIME:
+        case KM_TAG_DIGEST:
+        case KM_TAG_EARLY_BOOT_ONLY:
+        case KM_TAG_EC_CURVE:
+        case KM_TAG_INCLUDE_UNIQUE_ID:
+        case KM_TAG_KEY_SIZE:
+        case KM_TAG_MAX_USES_PER_BOOT:
+        case KM_TAG_MIN_MAC_LENGTH:
+        case KM_TAG_MIN_SECONDS_BETWEEN_OPS:
+        case KM_TAG_NO_AUTH_REQUIRED:
+        case KM_TAG_ORIGINATION_EXPIRE_DATETIME:
+        case KM_TAG_PADDING:
+        case KM_TAG_PURPOSE:
+        case KM_TAG_RSA_OAEP_MGF_DIGEST:
+        case KM_TAG_RSA_PUBLIC_EXPONENT:
+        case KM_TAG_TRUSTED_CONFIRMATION_REQUIRED:
+        case KM_TAG_TRUSTED_USER_PRESENCE_REQUIRED:
+        case KM_TAG_UNIQUE_ID:
+        case KM_TAG_UNLOCKED_DEVICE_REQUIRED:
+        case KM_TAG_USAGE_EXPIRE_DATETIME:
+        case KM_TAG_USER_AUTH_TYPE:
+        case KM_TAG_USER_ID:
+        case KM_TAG_USER_SECURE_ID:
             if (hw_enforced->GetTagCount(entry.tag) == 0) sw_enforced->push_back(entry);
             break;
         }

@@ -38,7 +38,8 @@ namespace keymaster {
  */
 class RsaKeymaster1KeyFactory : public RsaKeyFactory {
   public:
-    RsaKeymaster1KeyFactory(const SoftwareKeyBlobMaker* blob_maker, const Keymaster1Engine* engine);
+    RsaKeymaster1KeyFactory(const SoftwareKeyBlobMaker& blob_maker, const KeymasterContext& context,
+                            const Keymaster1Engine* engine);
 
     keymaster_error_t GenerateKey(const AuthorizationSet& key_description,
                                   KeymasterKeyBlob* key_blob, AuthorizationSet* hw_enforced,

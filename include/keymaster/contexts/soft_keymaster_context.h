@@ -23,7 +23,9 @@
 
 #include <hardware/keymaster1.h>
 
+#include <keymaster/attestation_context.h>
 #include <keymaster/attestation_record.h>
+#include <keymaster/contexts/soft_attestation_context.h>
 #include <keymaster/keymaster_context.h>
 #include <keymaster/km_openssl/software_random_source.h>
 #include <keymaster/random_source.h>
@@ -43,12 +45,12 @@ class Key;
 class SoftKeymasterContext : public KeymasterContext,
                              SoftwareKeyBlobMaker,
                              SoftwareRandomSource,
-                             AttestationRecordContext {
+                             public SoftAttestationContext {
   public:
     SoftKeymasterContext(KmVersion version, const std::string& root_of_trust = "SW");
     ~SoftKeymasterContext() override;
 
-    KmVersion GetKmVersion() const override { return AttestationRecordContext::GetKmVersion(); }
+    KmVersion GetKmVersion() const override { return AttestationContext::GetKmVersion(); }
 
     /**
      * Use the specified HW keymaster1 device for performing undigested RSA and EC operations after
@@ -79,6 +81,10 @@ class SoftKeymasterContext : public KeymasterContext,
 
     CertificateChain GenerateAttestation(const Key& key, const AuthorizationSet& attest_params,
                                          keymaster_error_t* error) const override;
+    CertificateChain GenerateSelfSignedCertificate(const Key& key,
+                                                   const AuthorizationSet& cert_params,
+                                                   bool fake_signature,
+                                                   keymaster_error_t* error) const override;
 
     keymaster_error_t
     UnwrapKey(const KeymasterKeyBlob& wrapped_key_blob, const KeymasterKeyBlob& wrapping_key_blob,
@@ -99,15 +105,6 @@ class SoftKeymasterContext : public KeymasterContext,
                                     AuthorizationSet* hw_enforced,
                                     AuthorizationSet* sw_enforced) const override;
     /*********************************************************************************************/
-
-    /*********************************************************************************************
-     * Implement AttestationRecordContext
-     */
-
-    keymaster_error_t GetVerifiedBootParams(keymaster_blob_t* verified_boot_key,
-                                            keymaster_blob_t* verified_boot_hash,
-                                            keymaster_verified_boot_t* verified_boot_state,
-                                            bool* device_locked) const override;
 
   private:
     keymaster_error_t ParseKeymaster1HwBlob(const KeymasterKeyBlob& blob,

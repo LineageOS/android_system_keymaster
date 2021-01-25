@@ -37,7 +37,8 @@ namespace keymaster {
  */
 class EcdsaKeymaster1KeyFactory : public EcKeyFactory {
   public:
-    EcdsaKeymaster1KeyFactory(const SoftwareKeyBlobMaker* blob_maker,
+    EcdsaKeymaster1KeyFactory(const SoftwareKeyBlobMaker& blob_maker,
+                              const KeymasterContext& context,  //
                               const Keymaster1Engine* engine);
 
     keymaster_error_t GenerateKey(const AuthorizationSet& key_description,

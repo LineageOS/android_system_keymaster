@@ -33,6 +33,7 @@
 #include <keymaster/km_openssl/aes_key.h>
 #include <keymaster/km_openssl/asymmetric_key.h>
 #include <keymaster/km_openssl/attestation_utils.h>
+#include <keymaster/km_openssl/certificate_utils.h>
 #include <keymaster/km_openssl/ec_key_factory.h>
 #include <keymaster/km_openssl/hmac_key.h>
 #include <keymaster/km_openssl/openssl_err.h>
@@ -52,11 +53,15 @@ namespace keymaster {
 
 PureSoftKeymasterContext::PureSoftKeymasterContext(KmVersion version,
                                                    keymaster_security_level_t security_level)
-    : AttestationRecordContext(version), rsa_factory_(new RsaKeyFactory(this)),
-      ec_factory_(new EcKeyFactory(this)), aes_factory_(new AesKeyFactory(this, this)),
-      tdes_factory_(new TripleDesKeyFactory(this, this)),
-      hmac_factory_(new HmacKeyFactory(this, this)), os_version_(0), os_patchlevel_(0),
-      soft_keymaster_enforcement_(64, 64), security_level_(security_level) {}
+
+    : SoftAttestationContext(version),
+      rsa_factory_(new RsaKeyFactory(*this /* blob_maker */, *this /* context */)),
+      ec_factory_(new EcKeyFactory(*this /* blob_maker */, *this /* context */)),
+      aes_factory_(new AesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
+      tdes_factory_(new TripleDesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
+      hmac_factory_(new HmacKeyFactory(*this /* blob_maker */, *this /* random_source */)),
+      os_version_(0), os_patchlevel_(0), soft_keymaster_enforcement_(64, 64),
+      security_level_(security_level) {}
 
 PureSoftKeymasterContext::~PureSoftKeymasterContext() {}
 
@@ -283,6 +288,27 @@ PureSoftKeymasterContext::GenerateAttestation(const Key& key, const Authorizatio
                                 *attestation_key, *this, error);
 }
 
+CertificateChain PureSoftKeymasterContext::GenerateSelfSignedCertificate(
+    const Key& key, const AuthorizationSet& cert_params, bool fake_signature,
+    keymaster_error_t* error) const {
+    keymaster_algorithm_t key_algorithm;
+    if (!key.authorizations().GetTagValue(TAG_ALGORITHM, &key_algorithm)) {
+        *error = KM_ERROR_UNKNOWN_ERROR;
+        return {};
+    }
+
+    if ((key_algorithm != KM_ALGORITHM_RSA && key_algorithm != KM_ALGORITHM_EC)) {
+        *error = KM_ERROR_INCOMPATIBLE_ALGORITHM;
+        return {};
+    }
+
+    // We have established that the given key has the correct algorithm, and because this is the
+    // SoftKeymasterContext we can assume that the Key is an AsymmetricKey. So we can downcast.
+    const AsymmetricKey& asymmetric_key = static_cast<const AsymmetricKey&>(key);
+
+    return generate_self_signed_cert(asymmetric_key, cert_params, fake_signature, error);
+}
+
 static keymaster_error_t TranslateAuthorizationSetError(AuthorizationSet::Error err) {
     switch (err) {
     case AuthorizationSet::OK:
@@ -442,16 +468,17 @@ keymaster_error_t PureSoftKeymasterContext::UnwrapKey(
     return error;
 }
 
-keymaster_error_t PureSoftKeymasterContext::GetVerifiedBootParams(
-    keymaster_blob_t* verified_boot_key, keymaster_blob_t* verified_boot_hash,
-    keymaster_verified_boot_t* verified_boot_state, bool* device_locked) const {
-    // TODO(swillden): See if there might be some sort of vbmeta data in goldfish/cuttlefish.
+const AttestationContext::VerifiedBootParams*
+PureSoftKeymasterContext::GetVerifiedBootParams(keymaster_error_t* error) const {
+    static VerifiedBootParams params;
     static std::string fake_vb_key(32, 0);
-    *verified_boot_key = {reinterpret_cast<uint8_t*>(fake_vb_key.data()), fake_vb_key.size()};
-    *verified_boot_hash = {reinterpret_cast<uint8_t*>(fake_vb_key.data()), fake_vb_key.size()};
-    *verified_boot_state = KM_VERIFIED_BOOT_UNVERIFIED;
-    *device_locked = false;
-    return KM_ERROR_OK;
+    params.verified_boot_key = {reinterpret_cast<uint8_t*>(fake_vb_key.data()), fake_vb_key.size()};
+    params.verified_boot_hash = {reinterpret_cast<uint8_t*>(fake_vb_key.data()),
+                                 fake_vb_key.size()};
+    params.verified_boot_state = KM_VERIFIED_BOOT_UNVERIFIED;
+    params.device_locked = false;
+    *error = KM_ERROR_OK;
+    return &params;
 }
 
 }  // namespace keymaster

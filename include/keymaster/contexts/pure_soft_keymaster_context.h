@@ -19,7 +19,9 @@
 #include <memory>
 #include <string>
 
+#include <keymaster/attestation_context.h>
 #include <keymaster/attestation_record.h>
+#include <keymaster/contexts/soft_attestation_context.h>
 #include <keymaster/keymaster_context.h>
 #include <keymaster/km_openssl/soft_keymaster_enforcement.h>
 #include <keymaster/km_openssl/software_random_source.h>
@@ -38,7 +40,7 @@ class Key;
  */
 class PureSoftKeymasterContext : public KeymasterContext,
                                  protected SoftwareKeyBlobMaker,
-                                 public AttestationRecordContext,
+                                 public SoftAttestationContext,
                                  SoftwareRandomSource {
   public:
     // Security level must only be used for testing.
@@ -46,7 +48,7 @@ class PureSoftKeymasterContext : public KeymasterContext,
         KmVersion version, keymaster_security_level_t security_level = KM_SECURITY_LEVEL_SOFTWARE);
     ~PureSoftKeymasterContext() override;
 
-    KmVersion GetKmVersion() const override { return AttestationRecordContext::GetKmVersion(); }
+    KmVersion GetKmVersion() const override { return AttestationContext::GetKmVersion(); }
 
     /*********************************************************************************************
      * Implement KeymasterContext
@@ -67,10 +69,12 @@ class PureSoftKeymasterContext : public KeymasterContext,
     keymaster_error_t DeleteKey(const KeymasterKeyBlob& blob) const override;
     keymaster_error_t DeleteAllKeys() const override;
     keymaster_error_t AddRngEntropy(const uint8_t* buf, size_t length) const override;
-
     CertificateChain GenerateAttestation(const Key& key, const AuthorizationSet& attest_params,
                                          keymaster_error_t* error) const override;
-
+    CertificateChain GenerateSelfSignedCertificate(const Key& key,
+                                                   const AuthorizationSet& cert_params,
+                                                   bool fake_signature,
+                                                   keymaster_error_t* error) const override;
     KeymasterEnforcement* enforcement_policy() override {
         // SoftKeymaster does no enforcement; it's all done by Keystore.
         return &soft_keymaster_enforcement_;
@@ -91,13 +95,10 @@ class PureSoftKeymasterContext : public KeymasterContext,
               KeymasterKeyBlob* wrapped_key_material) const override;
 
     /*********************************************************************************************
-     * Implement AttestationRecordContext
+     * Implement AttestationContext
      */
 
-    keymaster_error_t GetVerifiedBootParams(keymaster_blob_t* verified_boot_key,
-                                            keymaster_blob_t* verified_boot_hash,
-                                            keymaster_verified_boot_t* verified_boot_state,
-                                            bool* device_locked) const override;
+    const VerifiedBootParams* GetVerifiedBootParams(keymaster_error_t* error) const override;
 
     keymaster_security_level_t GetSecurityLevel() const override { return security_level_; }
 

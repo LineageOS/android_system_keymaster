@@ -24,9 +24,10 @@
 
 namespace keymaster {
 
-RsaKeymaster1KeyFactory::RsaKeymaster1KeyFactory(const SoftwareKeyBlobMaker* blob_maker,
+RsaKeymaster1KeyFactory::RsaKeymaster1KeyFactory(const SoftwareKeyBlobMaker& blob_maker,
+                                                 const KeymasterContext& context,
                                                  const Keymaster1Engine* engine)
-    : RsaKeyFactory(blob_maker), engine_(engine),
+    : RsaKeyFactory(blob_maker, context), engine_(engine),
       sign_factory_(new RsaKeymaster1OperationFactory(KM_PURPOSE_SIGN, engine)),
       decrypt_factory_(new RsaKeymaster1OperationFactory(KM_PURPOSE_DECRYPT, engine)),
       // For pubkey ops we can use the normal operation factories.

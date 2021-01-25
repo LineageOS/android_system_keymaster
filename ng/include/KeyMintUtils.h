@@ -68,6 +68,7 @@ inline keymaster_tag_type_t typeFromTag(const keymaster_tag_t tag) {
     return keymaster_tag_get_type(tag);
 }
 
+KeyParameter kmParam2Aidl(const keymaster_key_param_t& param);
 vector<KeyParameter> kmParamSet2Aidl(const keymaster_key_param_set_t& set);
 keymaster_key_param_set_t aidlKeyParams2Km(const vector<KeyParameter>& keyParams);
 
