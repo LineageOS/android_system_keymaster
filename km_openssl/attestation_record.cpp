@@ -612,6 +612,9 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
         case KM_TAG_VENDOR_PATCHLEVEL:
             integer_ptr = &record->vendor_patchlevel;
             break;
+        case KM_TAG_USAGE_COUNT_LIMIT:
+            integer_ptr = &record->usage_count_limit;
+            break;
 
         /* Non-repeating long unsigned integers */
         case KM_TAG_RSA_PUBLIC_EXPONENT:
