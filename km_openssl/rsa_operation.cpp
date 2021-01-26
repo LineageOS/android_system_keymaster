@@ -525,10 +525,6 @@ keymaster_error_t RsaCryptOperation::InitMgfDigest() {
     return KM_ERROR_OK;
 }
 
-struct EVP_PKEY_CTX_Delete {
-    void operator()(EVP_PKEY_CTX* p) { EVP_PKEY_CTX_free(p); }
-};
-
 keymaster_error_t RsaEncryptOperation::Finish(const AuthorizationSet& additional_params,
                                               const Buffer& input, const Buffer& /* signature */,
                                               AuthorizationSet* /* output_params */,
@@ -538,8 +534,7 @@ keymaster_error_t RsaEncryptOperation::Finish(const AuthorizationSet& additional
     keymaster_error_t error = UpdateForFinish(additional_params, input);
     if (error != KM_ERROR_OK) return error;
 
-    UniquePtr<EVP_PKEY_CTX, EVP_PKEY_CTX_Delete> ctx(
-        EVP_PKEY_CTX_new(rsa_key_, nullptr /* engine */));
+    EVP_PKEY_CTX_Ptr ctx(EVP_PKEY_CTX_new(rsa_key_, nullptr /* engine */));
     if (!ctx.get()) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 
     if (EVP_PKEY_encrypt_init(ctx.get()) <= 0) return TranslateLastOpenSslError();
@@ -582,8 +577,7 @@ keymaster_error_t RsaDecryptOperation::Finish(const AuthorizationSet& additional
     keymaster_error_t error = UpdateForFinish(additional_params, input);
     if (error != KM_ERROR_OK) return error;
 
-    UniquePtr<EVP_PKEY_CTX, EVP_PKEY_CTX_Delete> ctx(
-        EVP_PKEY_CTX_new(rsa_key_, nullptr /* engine */));
+    EVP_PKEY_CTX_Ptr ctx(EVP_PKEY_CTX_new(rsa_key_, nullptr /* engine */));
     if (!ctx.get()) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 
     if (EVP_PKEY_decrypt_init(ctx.get()) <= 0) return TranslateLastOpenSslError();
