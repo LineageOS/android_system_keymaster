@@ -20,6 +20,7 @@
 
 #include <keymaster/keymaster_context.h>
 #include <keymaster/km_openssl/ec_key.h>
+#include <keymaster/km_openssl/ecdh_operation.h>
 #include <keymaster/km_openssl/ecdsa_operation.h>
 #include <keymaster/km_openssl/openssl_err.h>
 
@@ -29,6 +30,7 @@ namespace keymaster {
 
 static EcdsaSignOperationFactory sign_factory;
 static EcdsaVerifyOperationFactory verify_factory;
+static EcdhOperationFactory agree_key_factory;
 
 OperationFactory* EcKeyFactory::GetOperationFactory(keymaster_purpose_t purpose) const {
     switch (purpose) {
@@ -36,6 +38,8 @@ OperationFactory* EcKeyFactory::GetOperationFactory(keymaster_purpose_t purpose)
         return &sign_factory;
     case KM_PURPOSE_VERIFY:
         return &verify_factory;
+    case KM_PURPOSE_AGREE_KEY:
+        return &agree_key_factory;
     default:
         return nullptr;
     }
