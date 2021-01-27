@@ -47,6 +47,7 @@ keymaster_error_t get_certificate_params(const AuthorizationSet& caller_params,
                                          CertificateCallerParams* cert_params);
 
 keymaster_error_t make_key_usage_extension(bool is_signing_key, bool is_encryption_key,
+                                           bool is_key_agreement_key,
                                            X509_EXTENSION_Ptr* usage_extension_out);
 
 // Creates a rump certificate structure with serial, subject and issuer names, as well as activation
@@ -57,7 +58,8 @@ keymaster_error_t make_cert_rump(const uint32_t serial, const X509_NAME* issuer,
 
 keymaster_error_t make_cert(const EVP_PKEY* evp_pkey, const X509_NAME* issuer,
                             const CertificateCallerParams& cert_params, const bool is_signing_key,
-                            const bool is_encryption_key, X509_Ptr* cert_out);
+                            const bool is_encryption_key, const bool is_key_agreement_key,
+                            X509_Ptr* cert_out);
 
 // Sign the certificate with the provided signing key.  Key must be in PKCS#8 format.
 keymaster_error_t sign_cert(X509* certificate, const keymaster_key_blob_t& signing_key);

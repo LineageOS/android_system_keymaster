@@ -97,6 +97,7 @@ cc_library {
         "km_openssl/ckdf.cpp",
         "km_openssl/ec_key.cpp",
         "km_openssl/ec_key_factory.cpp",
+        "km_openssl/ecdh_operation.cpp",
         "km_openssl/ecdsa_operation.cpp",
         "km_openssl/ecies_kem.cpp",
         "km_openssl/hkdf.cpp",
