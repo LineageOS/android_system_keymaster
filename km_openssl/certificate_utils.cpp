@@ -33,6 +33,7 @@ constexpr int kDataEnciphermentKeyUsageBit = 3;
 constexpr int kDefaultSerial = 1;
 constexpr int kDigitalSignatureKeyUsageBit = 0;
 constexpr int kKeyEnciphermentKeyUsageBit = 2;
+constexpr int kKeyAgreementKeyUsageBit = 4;
 constexpr int kMaxKeyUsageBit = 8;
 // Per RFC 5280 4.1.2.5, an undefined expiration (not-after) field should be set to GeneralizedTime
 // 999912312359559, which is 253402325999000 ms from Jan 1, 1970.
@@ -127,6 +128,7 @@ keymaster_error_t get_certificate_params(const AuthorizationSet& caller_params,
 }
 
 keymaster_error_t make_key_usage_extension(bool is_signing_key, bool is_encryption_key,
+                                           bool is_key_agreement_key,
                                            X509_EXTENSION_Ptr* usage_extension_out) {
     if (usage_extension_out == nullptr) return KM_ERROR_UNEXPECTED_NULL_POINTER;
 
@@ -149,6 +151,12 @@ keymaster_error_t make_key_usage_extension(bool is_signing_key, bool is_encrypti
     if (is_encryption_key) {
         if (!ASN1_BIT_STRING_set_bit(key_usage.get(), kKeyEnciphermentKeyUsageBit, 1) ||
             !ASN1_BIT_STRING_set_bit(key_usage.get(), kDataEnciphermentKeyUsageBit, 1)) {
+            return TranslateLastOpenSslError();
+        }
+    }
+
+    if (is_key_agreement_key) {
+        if (!ASN1_BIT_STRING_set_bit(key_usage.get(), kKeyAgreementKeyUsageBit, 1)) {
             return TranslateLastOpenSslError();
         }
     }
@@ -244,7 +252,8 @@ keymaster_error_t make_cert_rump(const X509_NAME* issuer,
 
 keymaster_error_t make_cert(const EVP_PKEY* evp_pkey, const X509_NAME* issuer,
                             const CertificateCallerParams& cert_params, const bool is_signing_key,
-                            const bool is_encryption_key, X509_Ptr* cert_out) {
+                            const bool is_encryption_key, const bool is_key_agreement_key,
+                            X509_Ptr* cert_out) {
 
     // Make the rump certificate with serial, subject, not before and not after dates.
     X509_Ptr certificate;
@@ -259,8 +268,8 @@ keymaster_error_t make_cert(const EVP_PKEY* evp_pkey, const X509_NAME* issuer,
 
     // Make and add the key usage extension.
     X509_EXTENSION_Ptr key_usage_extension;
-    if (auto error =
-            make_key_usage_extension(is_signing_key, is_encryption_key, &key_usage_extension)) {
+    if (auto error = make_key_usage_extension(is_signing_key, is_encryption_key,
+                                              is_key_agreement_key, &key_usage_extension)) {
         return error;
     }
     if (!X509_add_ext(certificate.get(), key_usage_extension.get() /* Don't release; copied */,
@@ -311,6 +320,7 @@ CertificateChain generate_self_signed_cert(const AsymmetricKey& key, const Autho
 
     bool is_signing_key = key.authorizations().Contains(TAG_PURPOSE, KM_PURPOSE_SIGN);
     bool is_encryption_key = key.authorizations().Contains(TAG_PURPOSE, KM_PURPOSE_DECRYPT);
+    bool is_key_agreement_key = key.authorizations().Contains(TAG_PURPOSE, KM_PURPOSE_AGREE_KEY);
 
     CertificateCallerParams cert_params{};
     *error = get_certificate_params(params, &cert_params);
@@ -318,7 +328,7 @@ CertificateChain generate_self_signed_cert(const AsymmetricKey& key, const Autho
 
     X509_Ptr cert;
     *error = make_cert(pkey.get(), cert_params.subject_name.get() /* issuer */, cert_params,
-                       is_signing_key, is_encryption_key, &cert);
+                       is_signing_key, is_encryption_key, is_key_agreement_key, &cert);
     if (*error != KM_ERROR_OK) return {};
 
     if (fake_signature) {

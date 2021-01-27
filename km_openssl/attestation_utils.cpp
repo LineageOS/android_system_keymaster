@@ -134,18 +134,16 @@ keymaster_error_t add_attestation_extension(const AuthorizationSet& attest_param
 
 }  // anonymous namespace
 
-keymaster_error_t make_attestation_cert(const EVP_PKEY* evp_pkey, const X509_NAME* issuer,
-                                        const CertificateCallerParams& cert_params,
-                                        const bool is_signing_key, const bool is_encryption_key,
-                                        const AuthorizationSet& attest_params,
-                                        const AuthorizationSet& tee_enforced,
-                                        const AuthorizationSet& sw_enforced,
-                                        const AttestationContext& context, X509_Ptr* cert_out) {
+keymaster_error_t make_attestation_cert(
+    const EVP_PKEY* evp_pkey, const X509_NAME* issuer, const CertificateCallerParams& cert_params,
+    const bool is_signing_key, const bool is_encryption_key, const bool is_key_agreement_key,
+    const AuthorizationSet& attest_params, const AuthorizationSet& tee_enforced,
+    const AuthorizationSet& sw_enforced, const AttestationContext& context, X509_Ptr* cert_out) {
 
     // First make the basic certificate with usage extension.
     X509_Ptr certificate;
     if (auto error = make_cert(evp_pkey, issuer, cert_params, is_signing_key, is_encryption_key,
-                               &certificate)) {
+                               is_key_agreement_key, &certificate)) {
         return error;
     }
 
@@ -187,6 +185,7 @@ CertificateChain generate_attestation_from_EVP(const EVP_PKEY* evp_key,  //
     AuthProxy proxy(tee_enforced, sw_enforced);
     bool is_signing_key = proxy.Contains(TAG_PURPOSE, KM_PURPOSE_SIGN);
     bool is_encryption_key = proxy.Contains(TAG_PURPOSE, KM_PURPOSE_DECRYPT);
+    bool is_key_agreement_key = proxy.Contains(TAG_PURPOSE, KM_PURPOSE_AGREE_KEY);
 
     CertificateCallerParams cert_params{};
     *error = get_certificate_params(attest_params, &cert_params);
@@ -194,8 +193,8 @@ CertificateChain generate_attestation_from_EVP(const EVP_PKEY* evp_key,  //
 
     X509_Ptr certificate;
     *error = make_attestation_cert(evp_key, issuerSubject, cert_params, is_signing_key,
-                                   is_encryption_key, attest_params, tee_enforced, sw_enforced,
-                                   context, &certificate);
+                                   is_encryption_key, is_key_agreement_key, attest_params,
+                                   tee_enforced, sw_enforced, context, &certificate);
     if (*error != KM_ERROR_OK) return {};
 
     *error = sign_cert(certificate.get(), attestation_signing_key);
