@@ -118,6 +118,7 @@ typedef struct km_auth_list {
     ASN1_INTEGER* boot_patch_level;
     ASN1_INTEGER* vendor_patchlevel;
     ASN1_OCTET_STRING* confirmation_token;
+    ASN1_INTEGER* usage_count_limit;
 } KM_AUTH_LIST;
 
 ASN1_SEQUENCE(KM_AUTH_LIST) = {
@@ -190,6 +191,7 @@ ASN1_SEQUENCE(KM_AUTH_LIST) = {
     ASN1_EXP_OPT(KM_AUTH_LIST, vendor_patchlevel, ASN1_INTEGER, TAG_VENDOR_PATCHLEVEL.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, confirmation_token, ASN1_OCTET_STRING,
                  TAG_CONFIRMATION_TOKEN.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, usage_count_limit, ASN1_INTEGER, TAG_USAGE_COUNT_LIMIT.masked_tag()),
 } ASN1_SEQUENCE_END(KM_AUTH_LIST);
 DECLARE_ASN1_FUNCTIONS(KM_AUTH_LIST);
 

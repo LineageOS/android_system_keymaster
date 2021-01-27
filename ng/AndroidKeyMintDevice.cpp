@@ -138,6 +138,7 @@ vector<KeyCharacteristics> convertKeyCharacteristics(SecurityLevel keyMintSecuri
         case KM_TAG_RSA_OAEP_MGF_DIGEST:
         case KM_TAG_RSA_PUBLIC_EXPONENT:
         case KM_TAG_UNLOCKED_DEVICE_REQUIRED:
+        case KM_TAG_USAGE_COUNT_LIMIT:
         case KM_TAG_USER_AUTH_TYPE:
         case KM_TAG_USER_SECURE_ID:
         case KM_TAG_VENDOR_PATCHLEVEL:
