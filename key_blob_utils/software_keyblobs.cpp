@@ -342,6 +342,7 @@ keymaster_error_t SetKeyBlobAuthorizations(const AuthorizationSet& key_descripti
         case KM_TAG_TRUSTED_USER_PRESENCE_REQUIRED:
         case KM_TAG_UNIQUE_ID:
         case KM_TAG_UNLOCKED_DEVICE_REQUIRED:
+        case KM_TAG_USAGE_COUNT_LIMIT:
         case KM_TAG_USAGE_EXPIRE_DATETIME:
         case KM_TAG_USER_AUTH_TYPE:
         case KM_TAG_USER_ID:
