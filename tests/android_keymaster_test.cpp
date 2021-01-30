@@ -1709,8 +1709,8 @@ TEST_F(ImportWrappedKeyTest, GoldenKeySuccess) {
                              .Authorization(TAG_PURPOSE, KM_PURPOSE_WRAP)
                              .build();
     import_request.key_description.Reinitialize(import_params);
-    import_request.SetKeyMaterial(reinterpret_cast<const uint8_t*>(wrapping_key.c_str()),
-                                  wrapping_key.size());
+    import_request.key_data = KeymasterKeyBlob(
+        reinterpret_cast<const uint8_t*>(wrapping_key.c_str()), wrapping_key.size());
     import_request.key_format = KM_KEY_FORMAT_PKCS8;
     ImportKeyResponse import_response(kMaxMessageVersion);
     keymaster_.ImportKey(import_request, &import_response);
@@ -1754,8 +1754,8 @@ TEST_F(ImportWrappedKeyTest, SuccessMaskingKey) {
                              .Authorization(TAG_PURPOSE, KM_PURPOSE_WRAP)
                              .build();
     import_request.key_description.Reinitialize(import_params);
-    import_request.SetKeyMaterial(reinterpret_cast<const uint8_t*>(wrapping_key.c_str()),
-                                  wrapping_key.size());
+    import_request.key_data = KeymasterKeyBlob(
+        reinterpret_cast<const uint8_t*>(wrapping_key.c_str()), wrapping_key.size());
 
     import_request.key_format = KM_KEY_FORMAT_PKCS8;
     ImportKeyResponse import_response(kMaxMessageVersion);
@@ -1786,8 +1786,8 @@ TEST_F(ImportWrappedKeyTest, WrongMaskingKey) {
                              .Authorization(TAG_PURPOSE, KM_PURPOSE_WRAP)
                              .build();
     import_request.key_description.Reinitialize(import_params);
-    import_request.SetKeyMaterial(reinterpret_cast<const uint8_t*>(wrapping_key.c_str()),
-                                  wrapping_key.size());
+    import_request.key_data = KeymasterKeyBlob(
+        reinterpret_cast<const uint8_t*>(wrapping_key.c_str()), wrapping_key.size());
 
     import_request.key_format = KM_KEY_FORMAT_PKCS8;
     ImportKeyResponse import_response(kMaxMessageVersion);
@@ -1817,8 +1817,8 @@ TEST_F(ImportWrappedKeyTest, WrongPurpose) {
                              .Padding(KM_PAD_RSA_OAEP)
                              .build();
     import_request.key_description.Reinitialize(import_params);
-    import_request.SetKeyMaterial(reinterpret_cast<const uint8_t*>(wrapping_key.c_str()),
-                                  wrapping_key.size());
+    import_request.key_data = KeymasterKeyBlob(
+        reinterpret_cast<const uint8_t*>(wrapping_key.c_str()), wrapping_key.size());
     import_request.key_format = KM_KEY_FORMAT_PKCS8;
     ImportKeyResponse import_response(kMaxMessageVersion);
     keymaster_.ImportKey(import_request, &import_response);

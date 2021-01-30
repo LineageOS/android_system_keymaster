@@ -881,7 +881,7 @@ keymaster_error_t SoftKeymasterDevice::import_key(
     if (characteristics) *characteristics = nullptr;
 
     request.key_format = key_format;
-    request.SetKeyMaterial(key_data->data, key_data->data_length);
+    request.key_data = KeymasterKeyBlob(key_data->data, key_data->data_length);
 
     ImportKeyResponse response(impl_->message_version());
     impl_->ImportKey(request, &response);
