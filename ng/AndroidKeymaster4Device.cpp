@@ -359,7 +359,7 @@ Return<void> AndroidKeymaster4Device::importKey(const hidl_vec<KeyParameter>& pa
     ImportKeyRequest request(impl_->message_version());
     request.key_description.Reinitialize(KmParamSet(params));
     request.key_format = legacy_enum_conversion(keyFormat);
-    request.SetKeyMaterial(keyData.data(), keyData.size());
+    request.key_data = KeymasterKeyBlob(keyData.data(), keyData.size());
 
     ImportKeyResponse response(impl_->message_version());
     impl_->ImportKey(request, &response);
