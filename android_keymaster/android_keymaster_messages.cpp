@@ -170,6 +170,24 @@ bool KeymasterResponse::Deserialize(const uint8_t** buf_ptr, const uint8_t* end)
     return NonErrorDeserialize(buf_ptr, end);
 }
 
+size_t GenerateKeyRequest::SerializedSize() const {
+    size_t size = key_description.SerializedSize();
+    if (message_version < 4) return size;
+    return size + key_blob_size(attestation_signing_key_blob);
+}
+
+uint8_t* GenerateKeyRequest::Serialize(uint8_t* buf, const uint8_t* end) const {
+    buf = key_description.Serialize(buf, end);
+    if (message_version < 4) return buf;
+    return serialize_key_blob(attestation_signing_key_blob, buf, end);
+}
+
+bool GenerateKeyRequest::Deserialize(const uint8_t** buf_ptr, const uint8_t* end) {
+    if (!key_description.Deserialize(buf_ptr, end)) return false;
+    if (message_version < 4) return true;
+    return deserialize_key_blob(&attestation_signing_key_blob, buf_ptr, end);
+}
+
 size_t GenerateKeyResponse::NonErrorSerializedSize() const {
     size_t result =
         key_blob_size(key_blob) + enforced.SerializedSize() + unenforced.SerializedSize();
@@ -397,33 +415,30 @@ bool AddEntropyRequest::Deserialize(const uint8_t** buf_ptr, const uint8_t* end)
     return random_data.Deserialize(buf_ptr, end);
 }
 
-void ImportKeyRequest::SetKeyMaterial(const void* key_material, size_t length) {
-    delete[] key_data;
-    key_data = dup_buffer(key_material, length);
-    key_data_length = length;
-}
-
 size_t ImportKeyRequest::SerializedSize() const {
-    return key_description.SerializedSize() + sizeof(uint32_t) /* key_format */ +
-           sizeof(uint32_t) /* key_data_length */ + key_data_length;
+    size_t size = key_description.SerializedSize()     //
+                  + sizeof(uint32_t) /* key_format */  //
+                  + key_blob_size(key_data);
+    if (message_version < 4) return size;
+    return size + key_blob_size(attestation_signing_key_blob);
 }
 
 uint8_t* ImportKeyRequest::Serialize(uint8_t* buf, const uint8_t* end) const {
     buf = key_description.Serialize(buf, end);
     buf = append_uint32_to_buf(buf, end, key_format);
-    return append_size_and_data_to_buf(buf, end, key_data, key_data_length);
+    buf = serialize_key_blob(key_data, buf, end);
+    if (message_version < 4) return buf;
+    return serialize_key_blob(attestation_signing_key_blob, buf, end);
 }
 
 bool ImportKeyRequest::Deserialize(const uint8_t** buf_ptr, const uint8_t* end) {
-    delete[] key_data;
-    key_data = nullptr;
-    UniquePtr<uint8_t[]> deserialized_key_material;
-    if (!key_description.Deserialize(buf_ptr, end) ||
-        !copy_uint32_from_buf(buf_ptr, end, &key_format) ||
-        !copy_size_and_data_from_buf(buf_ptr, end, &key_data_length, &deserialized_key_material))
+    if (!(key_description.Deserialize(buf_ptr, end) &&
+          copy_uint32_from_buf(buf_ptr, end, &key_format) &&
+          deserialize_key_blob(&key_data, buf_ptr, end))) {
         return false;
-    key_data = deserialized_key_material.release();
-    return true;
+    }
+    if (message_version < 4) return true;
+    return deserialize_key_blob(&attestation_signing_key_blob, buf_ptr, end);
 }
 
 void ImportKeyResponse::SetKeyMaterial(const void* key_material, size_t length) {
@@ -667,11 +682,12 @@ bool ComputeSharedHmacResponse::NonErrorDeserialize(const uint8_t** buf_ptr, con
 }
 
 size_t ImportWrappedKeyRequest::SerializedSize() const {
-    return sizeof(uint32_t) /* wrapped_key_data_length */ + wrapped_key.key_material_size +
-           sizeof(uint32_t) /* wrapping_key_data_length */ + wrapping_key.key_material_size +
-           sizeof(uint32_t) /* masking_key_data_length */ + masking_key.key_material_size +
-           additional_params.SerializedSize() + sizeof(uint64_t) /* password_sid */ +
-           sizeof(uint64_t) /* biometric_sid */;
+    size_t size = key_blob_size(wrapped_key) + key_blob_size(wrapping_key) +
+                  key_blob_size(masking_key) + additional_params.SerializedSize() +
+                  sizeof(uint64_t)     // password_sid
+                  + sizeof(uint64_t);  // biometric_sid
+    if (message_version < 4) return size;
+    return size + key_blob_size(attestation_signing_key_blob);
 }
 
 uint8_t* ImportWrappedKeyRequest::Serialize(uint8_t* buf, const uint8_t* end) const {
@@ -680,16 +696,22 @@ uint8_t* ImportWrappedKeyRequest::Serialize(uint8_t* buf, const uint8_t* end) co
     buf = serialize_key_blob(masking_key, buf, end);
     buf = additional_params.Serialize(buf, end);
     buf = append_uint64_to_buf(buf, end, password_sid);
-    return append_uint64_to_buf(buf, end, biometric_sid);
+    buf = append_uint64_to_buf(buf, end, biometric_sid);
+    if (message_version < 4) return buf;
+    return serialize_key_blob(attestation_signing_key_blob, buf, end);
 }
 
 bool ImportWrappedKeyRequest::Deserialize(const uint8_t** buf_ptr, const uint8_t* end) {
-    return deserialize_key_blob(&wrapped_key, buf_ptr, end) &&
-           deserialize_key_blob(&wrapping_key, buf_ptr, end) &&
-           deserialize_key_blob(&masking_key, buf_ptr, end) &&
-           additional_params.Deserialize(buf_ptr, end) &&
-           copy_uint64_from_buf(buf_ptr, end, &password_sid) &&
-           copy_uint64_from_buf(buf_ptr, end, &biometric_sid);
+    if (!(deserialize_key_blob(&wrapped_key, buf_ptr, end) &&
+          deserialize_key_blob(&wrapping_key, buf_ptr, end) &&
+          deserialize_key_blob(&masking_key, buf_ptr, end) &&
+          additional_params.Deserialize(buf_ptr, end) &&
+          copy_uint64_from_buf(buf_ptr, end, &password_sid) &&
+          copy_uint64_from_buf(buf_ptr, end, &biometric_sid))) {
+        return false;
+    }
+    if (message_version < 4) return true;
+    return deserialize_key_blob(&attestation_signing_key_blob, buf_ptr, end);
 }
 
 void ImportWrappedKeyRequest::SetWrappedMaterial(const void* key_material, size_t length) {

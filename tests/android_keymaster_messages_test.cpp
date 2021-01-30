@@ -94,8 +94,19 @@ TEST(RoundTrip, GenerateKeyRequest) {
     for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
         GenerateKeyRequest req(ver);
         req.key_description.Reinitialize(params, array_length(params));
-        UniquePtr<GenerateKeyRequest> deserialized(round_trip(ver, req, 78));
+        req.attestation_signing_key_blob =
+            KeymasterKeyBlob(reinterpret_cast<const uint8_t*>("foo"), 3);
+
+        UniquePtr<GenerateKeyRequest> deserialized(round_trip(ver, req, ver < 4 ? 78 : 85));
         EXPECT_EQ(deserialized->key_description, req.key_description);
+        if (ver < 4) {
+            EXPECT_EQ(0U, deserialized->attestation_signing_key_blob.key_material_size);
+        } else {
+            EXPECT_EQ(3U, deserialized->attestation_signing_key_blob.key_material_size);
+            EXPECT_EQ(0, memcmp(req.attestation_signing_key_blob.key_material,
+                                deserialized->attestation_signing_key_blob.key_material,
+                                deserialized->attestation_signing_key_blob.key_material_size));
+        }
     }
 }
 
@@ -381,13 +392,24 @@ TEST(RoundTrip, ImportKeyRequest) {
         ImportKeyRequest msg(ver);
         msg.key_description.Reinitialize(params, array_length(params));
         msg.key_format = KM_KEY_FORMAT_X509;
-        msg.SetKeyMaterial("foo", 3);
+        msg.key_data = KeymasterKeyBlob(reinterpret_cast<const uint8_t*>("foo"), 3);
+        msg.attestation_signing_key_blob =
+            KeymasterKeyBlob(reinterpret_cast<const uint8_t*>("bar"), 3);
 
-        UniquePtr<ImportKeyRequest> deserialized(round_trip(ver, msg, 89));
+        UniquePtr<ImportKeyRequest> deserialized(round_trip(ver, msg, ver < 4 ? 89 : 96));
         EXPECT_EQ(msg.key_description, deserialized->key_description);
         EXPECT_EQ(msg.key_format, deserialized->key_format);
-        EXPECT_EQ(msg.key_data_length, deserialized->key_data_length);
-        EXPECT_EQ(0, memcmp(msg.key_data, deserialized->key_data, msg.key_data_length));
+        EXPECT_EQ(msg.key_data.key_material_size, deserialized->key_data.key_material_size);
+        EXPECT_EQ(0, memcmp(msg.key_data.key_material, deserialized->key_data.key_material,
+                            msg.key_data.key_material_size));
+        if (ver < 4) {
+            EXPECT_EQ(0U, deserialized->attestation_signing_key_blob.key_material_size);
+        } else {
+            EXPECT_EQ(3U, deserialized->attestation_signing_key_blob.key_material_size);
+            EXPECT_EQ(0, memcmp(msg.attestation_signing_key_blob.key_material,
+                                deserialized->attestation_signing_key_blob.key_material,
+                                msg.attestation_signing_key_blob.key_material_size));
+        }
     }
 }
 
