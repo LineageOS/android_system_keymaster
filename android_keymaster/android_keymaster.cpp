@@ -236,10 +236,6 @@ void AndroidKeymaster::GenerateKey(const GenerateKeyRequest& request,
     if (!request.key_description.GetTagValue(TAG_ALGORITHM, &algorithm) ||
         !(factory = context_->GetKeyFactory(algorithm))) {
         response->error = KM_ERROR_UNSUPPORTED_ALGORITHM;
-    } else if (context_->enforcement_policy() &&
-               request.key_description.GetTagValue(TAG_EARLY_BOOT_ONLY) &&
-               !context_->enforcement_policy()->in_early_boot()) {
-        response->error = KM_ERROR_EARLY_BOOT_ENDED;
     } else {
         KeymasterKeyBlob key_blob;
         response->enforced.Clear();
