@@ -38,21 +38,21 @@ namespace {
 vector<KeyCharacteristics> convertKeyCharacteristics(SecurityLevel keyMintSecurityLevel,
                                                      const AuthorizationSet& sw_enforced,
                                                      const AuthorizationSet& hw_enforced) {
-    KeyCharacteristics enforced;
+    KeyCharacteristics keyMintEnforced{keyMintSecurityLevel, {}};
 
-    enforced.securityLevel = keyMintSecurityLevel;
     if (keyMintSecurityLevel != SecurityLevel::SOFTWARE) {
         // We're pretending to be TRUSTED_ENVIRONMENT or STRONGBOX.  Only the entries in hw_enforced
         // should be returned.
-        enforced.authorizations = kmParamSet2Aidl(hw_enforced);
-        KeyCharacteristics enforced{keyMintSecurityLevel, kmParamSet2Aidl(hw_enforced)};
-        return {std::move(enforced)};
+        keyMintEnforced.authorizations = kmParamSet2Aidl(hw_enforced);
+        return {std::move(keyMintEnforced)};
     }
 
+    KeyCharacteristics keystoreEnforced{SecurityLevel::KEYSTORE, {}};
     CHECK(hw_enforced.empty()) << "Hardware-enforced list is non-empty for pure SW KeyMint";
 
-    // This is a pure software implementation, so all tags are in sw_enforced.  We need to walk
-    // through the SW-enforced list and figure out which tags to return and which not.
+    // This is a pure software implementation, so all tags are in sw_enforced.
+    // We need to walk through the SW-enforced list and figure out which tags to
+    // return in the software list and which in the keystore list.
 
     for (auto& entry : sw_enforced) {
         switch (entry.tag) {
@@ -60,38 +60,31 @@ vector<KeyCharacteristics> convertKeyCharacteristics(SecurityLevel keyMintSecuri
         case KM_TAG_ECIES_SINGLE_HASH_MODE:
         case KM_TAG_INVALID:
         case KM_TAG_KDF:
+        case KM_TAG_ROLLBACK_RESISTANCE:
             CHECK(false) << "We shouldn't see tag " << entry.tag;
             break;
 
         /* Unimplemented */
         case KM_TAG_ALLOW_WHILE_ON_BODY:
-        case KM_TAG_APPLICATION_ID:
         case KM_TAG_BOOTLOADER_ONLY:
         case KM_TAG_EARLY_BOOT_ONLY:
-        case KM_TAG_ROLLBACK_RESISTANCE:
         case KM_TAG_ROLLBACK_RESISTANT:
         case KM_TAG_STORAGE_KEY:
+        case KM_TAG_TRUSTED_CONFIRMATION_REQUIRED:
+        case KM_TAG_TRUSTED_USER_PRESENCE_REQUIRED:
             break;
 
         /* Unenforceable */
-        case KM_TAG_ACTIVE_DATETIME:
-        case KM_TAG_ALL_APPLICATIONS:
-        case KM_TAG_ALL_USERS:
         case KM_TAG_CREATION_DATETIME:
-        case KM_TAG_ORIGINATION_EXPIRE_DATETIME:
-        case KM_TAG_TRUSTED_CONFIRMATION_REQUIRED:
-        case KM_TAG_TRUSTED_USER_PRESENCE_REQUIRED:
-        case KM_TAG_USAGE_EXPIRE_DATETIME:
-        case KM_TAG_USER_ID:
             break;
 
         /* Disallowed in KeyCharacteristics */
         case KM_TAG_APPLICATION_DATA:
+        case KM_TAG_ATTESTATION_APPLICATION_ID:
             break;
 
         /* Not key characteristics */
         case KM_TAG_ASSOCIATED_DATA:
-        case KM_TAG_ATTESTATION_APPLICATION_ID:
         case KM_TAG_ATTESTATION_CHALLENGE:
         case KM_TAG_ATTESTATION_ID_BRAND:
         case KM_TAG_ATTESTATION_ID_DEVICE:
@@ -114,8 +107,9 @@ vector<KeyCharacteristics> convertKeyCharacteristics(SecurityLevel keyMintSecuri
         case KM_TAG_UNIQUE_ID:
             break;
 
-        /* Enforced */
+        /* KeyMint-enforced */
         case KM_TAG_ALGORITHM:
+        case KM_TAG_APPLICATION_ID:
         case KM_TAG_AUTH_TIMEOUT:
         case KM_TAG_BLOB_USAGE_REQUIREMENTS:
         case KM_TAG_BLOCK_MODE:
@@ -138,15 +132,31 @@ vector<KeyCharacteristics> convertKeyCharacteristics(SecurityLevel keyMintSecuri
         case KM_TAG_RSA_OAEP_MGF_DIGEST:
         case KM_TAG_RSA_PUBLIC_EXPONENT:
         case KM_TAG_UNLOCKED_DEVICE_REQUIRED:
-        case KM_TAG_USAGE_COUNT_LIMIT:
         case KM_TAG_USER_AUTH_TYPE:
         case KM_TAG_USER_SECURE_ID:
         case KM_TAG_VENDOR_PATCHLEVEL:
-            enforced.authorizations.push_back(kmParam2Aidl(entry));
+            keyMintEnforced.authorizations.push_back(kmParam2Aidl(entry));
+            break;
+
+        /* Keystore-enforced */
+        case KM_TAG_ACTIVE_DATETIME:
+        case KM_TAG_ALL_APPLICATIONS:
+        case KM_TAG_ALL_USERS:
+        case KM_TAG_ORIGINATION_EXPIRE_DATETIME:
+        case KM_TAG_USAGE_EXPIRE_DATETIME:
+        case KM_TAG_USER_ID:
+        case KM_TAG_USAGE_COUNT_LIMIT:
+            keystoreEnforced.authorizations.push_back(kmParam2Aidl(entry));
+            break;
         }
     }
 
-    return {std::move(enforced)};
+    vector<KeyCharacteristics> retval;
+    retval.reserve(2);
+    if (!keyMintEnforced.authorizations.empty()) retval.push_back(std::move(keyMintEnforced));
+    if (!keystoreEnforced.authorizations.empty()) retval.push_back(std::move(keystoreEnforced));
+
+    return retval;
 }
 
 Certificate convertCertificate(const keymaster_blob_t& cert) {
