@@ -16,6 +16,7 @@
 
 #include <keymaster/contexts/pure_soft_keymaster_context.h>
 
+#include <assert.h>
 #include <memory>
 
 #include <openssl/aes.h>
@@ -61,7 +62,13 @@ PureSoftKeymasterContext::PureSoftKeymasterContext(KmVersion version,
       tdes_factory_(new TripleDesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
       hmac_factory_(new HmacKeyFactory(*this /* blob_maker */, *this /* random_source */)),
       os_version_(0), os_patchlevel_(0), soft_keymaster_enforcement_(64, 64),
-      security_level_(security_level) {}
+      security_level_(security_level) {
+    // We're pretending to be some sort of secure hardware which supports secure key storage,
+    // this must only be used for testing.
+    if (security_level != KM_SECURITY_LEVEL_SOFTWARE) {
+        pure_soft_secure_key_storage_ = std::make_unique<PureSoftSecureKeyStorage>(64);
+    }
+}
 
 PureSoftKeymasterContext::~PureSoftKeymasterContext() {}
 
@@ -117,8 +124,17 @@ keymaster_error_t PureSoftKeymasterContext::CreateKeyBlob(const AuthorizationSet
                                                           KeymasterKeyBlob* blob,
                                                           AuthorizationSet* hw_enforced,
                                                           AuthorizationSet* sw_enforced) const {
+    // Check whether the key blob can be securely stored by pure software secure key storage.
+    bool canStoreBySecureKeyStorageIfRequired = false;
+    if (GetSecurityLevel() != KM_SECURITY_LEVEL_SOFTWARE &&
+        pure_soft_secure_key_storage_ != nullptr) {
+        pure_soft_secure_key_storage_->HasSlot(&canStoreBySecureKeyStorageIfRequired);
+    }
+
+    bool needStoreBySecureKeyStorage = false;
     if (key_description.GetTagValue(TAG_ROLLBACK_RESISTANCE)) {
-        return KM_ERROR_ROLLBACK_RESISTANCE_UNAVAILABLE;
+        needStoreBySecureKeyStorage = true;
+        if (!canStoreBySecureKeyStorageIfRequired) return KM_ERROR_ROLLBACK_RESISTANCE_UNAVAILABLE;
     }
 
     if (GetSecurityLevel() != KM_SECURITY_LEVEL_SOFTWARE) {
@@ -150,7 +166,15 @@ keymaster_error_t PureSoftKeymasterContext::CreateKeyBlob(const AuthorizationSet
             case KM_TAG_EARLY_BOOT_ONLY:
             case KM_TAG_UNLOCKED_DEVICE_REQUIRED:
             case KM_TAG_RSA_OAEP_MGF_DIGEST:
+            case KM_TAG_ROLLBACK_RESISTANCE:
                 hw_enforced->push_back(entry);
+                break;
+            case KM_TAG_USAGE_COUNT_LIMIT:
+                // Enforce single use key with usage count limit = 1 into secure key storage.
+                if (canStoreBySecureKeyStorageIfRequired && entry.integer == 1) {
+                    needStoreBySecureKeyStorage = true;
+                    hw_enforced->push_back(entry);
+                }
                 break;
             default:
                 break;
@@ -166,7 +190,15 @@ keymaster_error_t PureSoftKeymasterContext::CreateKeyBlob(const AuthorizationSet
     error = BuildHiddenAuthorizations(key_description, &hidden, softwareRootOfTrust);
     if (error != KM_ERROR_OK) return error;
 
-    return SerializeIntegrityAssuredBlob(key_material, hidden, *hw_enforced, *sw_enforced, blob);
+    error = SerializeIntegrityAssuredBlob(key_material, hidden, *hw_enforced, *sw_enforced, blob);
+    if (error != KM_ERROR_OK) return error;
+
+    // Pretend to be some sort of secure hardware that can securely store the key blob.
+    if (!needStoreBySecureKeyStorage) return KM_ERROR_OK;
+    km_id_t keyid;
+    if (!soft_keymaster_enforcement_.CreateKeyId(*blob, &keyid)) return KM_ERROR_UNKNOWN_ERROR;
+    assert(needStoreBySecureKeyStorage && canStoreBySecureKeyStorageIfRequired);
+    return pure_soft_secure_key_storage_->WriteKey(keyid, *blob);
 }
 
 keymaster_error_t PureSoftKeymasterContext::UpgradeKeyBlob(const KeymasterKeyBlob& key_to_upgrade,
@@ -217,6 +249,20 @@ keymaster_error_t PureSoftKeymasterContext::ParseKeyBlob(const KeymasterKeyBlob&
             !sw_enforced.GetTagValue(TAG_ALGORITHM, &algorithm)) {
             return KM_ERROR_INVALID_ARGUMENT;
         }
+
+        // Pretend to be some sort of secure hardware that can securely store
+        // the key blob. Check the key blob is still securely stored now.
+        if (hw_enforced.Contains(KM_TAG_ROLLBACK_RESISTANCE) ||
+            hw_enforced.Contains(KM_TAG_USAGE_COUNT_LIMIT)) {
+            if (pure_soft_secure_key_storage_ == nullptr) return KM_ERROR_INVALID_KEY_BLOB;
+            km_id_t keyid;
+            bool exists;
+            if (!soft_keymaster_enforcement_.CreateKeyId(blob, &keyid))
+                return KM_ERROR_INVALID_KEY_BLOB;
+            error = pure_soft_secure_key_storage_->KeyExists(keyid, &exists);
+            if (error != KM_ERROR_OK || !exists) return KM_ERROR_INVALID_KEY_BLOB;
+        }
+
         auto factory = GetKeyFactory(algorithm);
         return factory->LoadKey(move(key_material), additional_params, move(hw_enforced),
                                 move(sw_enforced), key);
@@ -244,12 +290,27 @@ keymaster_error_t PureSoftKeymasterContext::ParseKeyBlob(const KeymasterKeyBlob&
     return constructKey();
 }
 
-keymaster_error_t PureSoftKeymasterContext::DeleteKey(const KeymasterKeyBlob& /* blob */) const {
-    // Nothing to do for software-only contexts.
+keymaster_error_t PureSoftKeymasterContext::DeleteKey(const KeymasterKeyBlob& blob) const {
+    // Pretend to be some secure hardware with secure storage.
+    if (GetSecurityLevel() != KM_SECURITY_LEVEL_SOFTWARE &&
+        pure_soft_secure_key_storage_ != nullptr) {
+        km_id_t keyid;
+        if (!soft_keymaster_enforcement_.CreateKeyId(blob, &keyid)) return KM_ERROR_UNKNOWN_ERROR;
+        return pure_soft_secure_key_storage_->DeleteKey(keyid);
+    }
+
+    // Otherwise, nothing to do for software-only contexts.
     return KM_ERROR_OK;
 }
 
 keymaster_error_t PureSoftKeymasterContext::DeleteAllKeys() const {
+    // Pretend to be some secure hardware with secure storage.
+    if (GetSecurityLevel() != KM_SECURITY_LEVEL_SOFTWARE &&
+        pure_soft_secure_key_storage_ != nullptr) {
+        return pure_soft_secure_key_storage_->DeleteAllKeys();
+    }
+
+    // Otherwise, nothing to do for software-only contexts.
     return KM_ERROR_OK;
 }
 

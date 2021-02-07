@@ -367,7 +367,6 @@ ScopedAStatus AndroidKeyMintDevice::begin(KeyPurpose purpose, const vector<uint8
 }
 
 IKeyMintDevice* CreateKeyMintDevice(SecurityLevel securityLevel) {
-
     return ::new AndroidKeyMintDevice(securityLevel);
 }
 

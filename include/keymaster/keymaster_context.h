@@ -23,6 +23,7 @@
 #include <keymaster/android_keymaster_utils.h>
 #include <keymaster/keymaster_enforcement.h>
 #include <keymaster/km_version.h>
+#include <keymaster/secure_key_storage.h>
 
 namespace keymaster {
 
@@ -170,6 +171,12 @@ class KeymasterContext {
               const AuthorizationSet& wrapping_key_params, const KeymasterKeyBlob& masking_key,
               AuthorizationSet* wrapped_key_params, keymaster_key_format_t* wrapped_key_format,
               KeymasterKeyBlob* wrapped_key_material) const = 0;
+
+    /**
+     * Return the secure key storage for this context, or null if there is no available secure key
+     * storage.
+     */
+    virtual SecureKeyStorage* secure_key_storage() { return nullptr; }
 
   private:
     // Uncopyable.
