@@ -97,6 +97,8 @@ vector<KeyCharacteristics> convertKeyCharacteristics(SecurityLevel keyMintSecuri
         case KM_TAG_AUTH_TOKEN:
         case KM_TAG_CERTIFICATE_SERIAL:
         case KM_TAG_CERTIFICATE_SUBJECT:
+        case KM_TAG_CERTIFICATE_NOT_AFTER:
+        case KM_TAG_CERTIFICATE_NOT_BEFORE:
         case KM_TAG_CONFIRMATION_TOKEN:
         case KM_TAG_DEVICE_UNIQUE_ATTESTATION:
         case KM_TAG_IDENTITY_CREDENTIAL_KEY:
