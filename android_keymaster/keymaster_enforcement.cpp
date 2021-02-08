@@ -328,6 +328,8 @@ keymaster_error_t KeymasterEnforcement::AuthorizeBegin(const keymaster_purpose_t
         case KM_TAG_DEVICE_UNIQUE_ATTESTATION:
         case KM_TAG_CERTIFICATE_SUBJECT:
         case KM_TAG_CERTIFICATE_SERIAL:
+        case KM_TAG_CERTIFICATE_NOT_AFTER:
+        case KM_TAG_CERTIFICATE_NOT_BEFORE:
             return KM_ERROR_INVALID_KEY_BLOB;
 
         /* Tags used for cryptographic parameters in keygen.  Nothing to enforce. */
