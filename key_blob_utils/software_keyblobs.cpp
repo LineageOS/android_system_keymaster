@@ -309,6 +309,8 @@ keymaster_error_t SetKeyBlobAuthorizations(const AuthorizationSet& key_descripti
         case KM_TAG_ATTESTATION_ID_SERIAL:
         case KM_TAG_CERTIFICATE_SERIAL:
         case KM_TAG_CERTIFICATE_SUBJECT:
+        case KM_TAG_CERTIFICATE_NOT_BEFORE:
+        case KM_TAG_CERTIFICATE_NOT_AFTER:
         case KM_TAG_RESET_SINCE_ID_ROTATION:
             break;
 

@@ -188,7 +188,7 @@ CertificateChain generate_attestation_from_EVP(const EVP_PKEY* evp_key,  //
     bool is_key_agreement_key = proxy.Contains(TAG_PURPOSE, KM_PURPOSE_AGREE_KEY);
 
     CertificateCallerParams cert_params{};
-    *error = get_certificate_params(attest_params, &cert_params);
+    *error = get_certificate_params(attest_params, &cert_params, context.GetKmVersion());
     if (*error != KM_ERROR_OK) return {};
 
     X509_Ptr certificate;
