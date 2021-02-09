@@ -30,14 +30,14 @@ namespace {
 
 constexpr const char kDefaultSubject[] = "Android Keystore Key";
 constexpr int kDataEnciphermentKeyUsageBit = 3;
-constexpr int kDefaultSerial = 1;
 constexpr int kDigitalSignatureKeyUsageBit = 0;
 constexpr int kKeyEnciphermentKeyUsageBit = 2;
 constexpr int kKeyAgreementKeyUsageBit = 4;
 constexpr int kMaxKeyUsageBit = 8;
+
 // Per RFC 5280 4.1.2.5, an undefined expiration (not-after) field should be set to GeneralizedTime
-// 999912312359559, which is 253402325999000 ms from Jan 1, 1970.
-constexpr uint64_t kUndefinedExpirationDateTime = 253402325999000;
+// 999912312359559, which is 253402300799000 ms from Jan 1, 1970.
+constexpr uint64_t kUndefinedExpirationDateTime = 253402300799000;
 
 template <typename T> T&& min(T&& a, T&& b) {
     return (a < b) ? forward<T>(a) : forward<T>(b);
@@ -108,17 +108,35 @@ keymaster_error_t get_common_name(X509_NAME* name, UniquePtr<const char[]>* name
 }
 
 keymaster_error_t get_certificate_params(const AuthorizationSet& caller_params,
-                                         CertificateCallerParams* cert_params) {
+                                         CertificateCallerParams* cert_params,
+                                         KmVersion kmVersion) {
     if (!cert_params) return KM_ERROR_UNEXPECTED_NULL_POINTER;
 
-    cert_params->serial = kDefaultSerial;
-    caller_params.GetTagValue(TAG_CERTIFICATE_SERIAL, &cert_params->serial);
+    BIGNUM_Ptr serial(BN_new());
+    if (!serial) {
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    }
 
-    cert_params->active_date_time = 0;
-    caller_params.GetTagValue(TAG_ACTIVE_DATETIME, &cert_params->active_date_time);
+    keymaster_blob_t serial_blob{.data = nullptr, .data_length = 0};
+    if (caller_params.GetTagValue(TAG_CERTIFICATE_SERIAL, &serial_blob)) {
+        if (BN_bin2bn(serial_blob.data, serial_blob.data_length, serial.get()) == nullptr) {
+            return TranslateLastOpenSslError();
+        }
+    } else {
+        // Default serial is one.
+        BN_one(serial.get());
+    }
+    cert_params->serial = move(serial);
 
-    cert_params->expire_date_time = kUndefinedExpirationDateTime;
-    caller_params.GetTagValue(TAG_USAGE_EXPIRE_DATETIME, &cert_params->expire_date_time);
+    if (!caller_params.GetTagValue(TAG_CERTIFICATE_NOT_BEFORE, &cert_params->active_date_time)) {
+        if (kmVersion >= KmVersion::KEYMINT_1) return KM_ERROR_MISSING_NOT_BEFORE;
+        cert_params->active_date_time = 0;
+    }
+
+    if (!caller_params.GetTagValue(TAG_CERTIFICATE_NOT_AFTER, &cert_params->expire_date_time)) {
+        if (kmVersion >= KmVersion::KEYMINT_1) return KM_ERROR_MISSING_NOT_AFTER;
+        cert_params->expire_date_time = kUndefinedExpirationDateTime;
+    }
 
     keymaster_blob_t subject{};
     if (caller_params.GetTagValue(TAG_CERTIFICATE_SUBJECT, &subject) && subject.data_length) {
@@ -323,7 +341,11 @@ CertificateChain generate_self_signed_cert(const AsymmetricKey& key, const Autho
     bool is_key_agreement_key = key.authorizations().Contains(TAG_PURPOSE, KM_PURPOSE_AGREE_KEY);
 
     CertificateCallerParams cert_params{};
-    *error = get_certificate_params(params, &cert_params);
+    // Self signed certificates are only generated since Keymint 1.0. To keep the API stable for
+    // now, we pass KEYMINT_1 to get_certificate_params, which has the intended effect. If
+    // get_certificate_params ever has to distinguish between versions of KeyMint this needs to be
+    // changed.
+    *error = get_certificate_params(params, &cert_params, KmVersion::KEYMINT_1);
     if (*error != KM_ERROR_OK) return {};
 
     X509_Ptr cert;
