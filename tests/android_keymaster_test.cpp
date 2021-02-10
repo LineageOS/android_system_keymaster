@@ -134,32 +134,6 @@ class SoftKeymasterTestInstanceCreator : public Keymaster2TestInstanceCreator {
 };
 
 /**
- * Test instance creator that builds a pure software keymint implementation.
- */
-class SoftKeymintTestInstanceCreator : public Keymaster2TestInstanceCreator {
-  public:
-    keymaster2_device_t* CreateDevice() const override {
-        std::cerr << "Creating software-only keymint device" << std::endl;
-        context_ = new TestKeymasterContext(KmVersion::KEYMINT_1);
-        SoftKeymasterDevice* device = new SoftKeymasterDevice(context_);
-        AuthorizationSet version_info(AuthorizationSetBuilder()
-                                          .Authorization(TAG_OS_VERSION, kOsVersion)
-                                          .Authorization(TAG_OS_PATCHLEVEL, kOsPatchLevel));
-        device->keymaster2_device()->configure(device->keymaster2_device(), &version_info);
-        return device->keymaster2_device();
-    }
-
-    bool is_keymaster1_hw() const override { return false; }
-    bool is_keymint() const override { return true; }
-    KeymasterContext* keymaster_context() const override { return context_; }
-    string name() const override { return "Soft Keymint"; }
-    KmVersion km_version() const override { return KmVersion::KEYMINT_1; }
-
-  private:
-    mutable TestKeymasterContext* context_;
-};
-
-/**
  * Test instance creator that builds a SoftKeymasterDevice which wraps a fake hardware keymaster1
  * instance, with minimal digest support.
  */
@@ -232,7 +206,6 @@ class Keymaster1TestInstanceCreator : public Keymaster2TestInstanceCreator {
 
 static auto test_params =
     testing::Values(InstanceCreatorPtr(new SoftKeymasterTestInstanceCreator),
-                    InstanceCreatorPtr(new SoftKeymintTestInstanceCreator),
                     InstanceCreatorPtr(new Keymaster1TestInstanceCreator),
                     InstanceCreatorPtr(new Sha256OnlyKeymaster1TestInstanceCreator));
 
