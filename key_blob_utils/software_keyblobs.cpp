@@ -331,6 +331,7 @@ keymaster_error_t SetKeyBlobAuthorizations(const AuthorizationSet& key_descripti
         case KM_TAG_EC_CURVE:
         case KM_TAG_INCLUDE_UNIQUE_ID:
         case KM_TAG_KEY_SIZE:
+        case KM_TAG_MAX_BOOT_LEVEL:
         case KM_TAG_MAX_USES_PER_BOOT:
         case KM_TAG_MIN_MAC_LENGTH:
         case KM_TAG_MIN_SECONDS_BETWEEN_OPS:
