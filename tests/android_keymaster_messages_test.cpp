@@ -705,6 +705,34 @@ TEST(RoundTrip, UpgradeKeyResponse) {
     }
 }
 
+TEST(RoundTrip, GenerateTimestampTokenRequest) {
+    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        GenerateTimestampTokenRequest msg(ver);
+        msg.challenge = 1;
+        UniquePtr<GenerateTimestampTokenRequest> deserialized(round_trip(ver, msg, 8));
+        EXPECT_EQ(1U, deserialized->challenge);
+    }
+}
+
+TEST(RoundTrip, GenerateTimestampTokenResponse) {
+    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        GenerateTimestampTokenResponse msg(ver);
+        msg.error = KM_ERROR_OK;
+        msg.token.challenge = 1;
+        msg.token.timestamp = 2;
+        msg.token.security_level = KM_SECURITY_LEVEL_SOFTWARE;
+        msg.token.mac.data = dup_array(TEST_DATA);
+        msg.token.mac.data_length = array_length(TEST_DATA);
+        UniquePtr<GenerateTimestampTokenResponse> deserialized(round_trip(ver, msg, 39));
+        EXPECT_EQ(1U, deserialized->token.challenge);
+        EXPECT_EQ(2U, deserialized->token.timestamp);
+        EXPECT_EQ(KM_SECURITY_LEVEL_SOFTWARE, deserialized->token.security_level);
+        EXPECT_EQ(msg.token.mac.data_length, deserialized->token.mac.data_length);
+        EXPECT_EQ(
+            0, memcmp(msg.token.mac.data, deserialized->token.mac.data, msg.token.mac.data_length));
+    }
+}
+
 uint8_t msgbuf[] = {
     220, 88,  183, 255, 71,  1,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
     0,   173, 0,   0,   0,   228, 174, 98,  187, 191, 135, 253, 200, 51,  230, 114, 247, 151, 109,
@@ -799,6 +827,8 @@ GARBAGE_TEST(AttestKeyRequest);
 GARBAGE_TEST(AttestKeyResponse);
 GARBAGE_TEST(UpgradeKeyRequest);
 GARBAGE_TEST(UpgradeKeyResponse);
+GARBAGE_TEST(GenerateTimestampTokenRequest);
+GARBAGE_TEST(GenerateTimestampTokenResponse);
 
 }  // namespace test
 
