@@ -197,4 +197,16 @@ SoftKeymasterEnforcement::VerifyAuthorization(const VerifyAuthorizationRequest& 
     return response;
 }
 
+keymaster_error_t SoftKeymasterEnforcement::GenerateTimestampToken(TimestampToken* token) {
+    token->timestamp = get_current_time_ms();
+    token->security_level = SecurityLevel();
+    keymaster_blob_t data_chunks[] = {
+        toBlob(kAuthVerificationLabel),
+        toBlob(token->challenge),
+        toBlob(token->timestamp),
+        toBlob(token->security_level),
+    };
+    return hmacSha256(hmac_key_, data_chunks, 4, &token->mac);
+}
+
 }  // namespace keymaster
