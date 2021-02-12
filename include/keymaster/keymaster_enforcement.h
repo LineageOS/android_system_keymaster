@@ -176,9 +176,14 @@ class KeymasterEnforcement {
     VerifyAuthorization(const VerifyAuthorizationRequest& request) = 0;
 
     /**
-     * Creates a key ID for use in subsequent calls to AuthorizeOperation.  AndroidKeymaster uses
-     * this method for creating key IDs. The generated id must be stable in that the same key_blob
-     * bits yield the same keyid.
+     * Generate TimestampToken for secure clock instance.
+     */
+    virtual keymaster_error_t GenerateTimestampToken(TimestampToken* token);
+
+    /**
+     * Creates a key ID for use in subsequent calls to AuthorizeOperation.  AndroidKeymaster
+     * uses this method for creating key IDs. The generated id must be stable in that the same
+     * key_blob bits yield the same keyid.
      *
      * Returns false if an error in the crypto library prevents creation of an ID.
      */
