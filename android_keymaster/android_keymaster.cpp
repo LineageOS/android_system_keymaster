@@ -192,8 +192,8 @@ AndroidKeymaster::ComputeSharedHmac(const ComputeSharedHmacRequest& request) {
         response.error = KM_ERROR_UNIMPLEMENTED;
         return response;
     }
-
     response.error = policy->ComputeSharedHmac(request.params_array, &response.sharing_check);
+
     return response;
 }
 
@@ -207,6 +207,17 @@ AndroidKeymaster::VerifyAuthorization(const VerifyAuthorizationRequest& request)
     }
 
     return policy->VerifyAuthorization(request);
+}
+
+void AndroidKeymaster::GenerateTimestampToken(GenerateTimestampTokenRequest& request,
+                                              GenerateTimestampTokenResponse* response) {
+    KeymasterEnforcement* policy = context_->enforcement_policy();
+    if (!policy) {
+        response->error = KM_ERROR_UNIMPLEMENTED;
+    } else {
+        response->token.challenge = request.challenge;
+        response->error = policy->GenerateTimestampToken(&response->token);
+    }
 }
 
 void AndroidKeymaster::AddRngEntropy(const AddEntropyRequest& request,
