@@ -32,6 +32,7 @@ namespace aidl::android::hardware::security::keymint {
 
 using namespace ::keymaster;
 using namespace km_utils;
+using secureclock::TimeStampToken;
 
 namespace {
 
@@ -195,7 +196,7 @@ ScopedAStatus AndroidKeyMintDevice::getHardwareInfo(KeyMintHardwareInfo* info) {
     info->securityLevel = securityLevel_;
     info->keyMintName = "FakeKeyMintDevice";
     info->keyMintAuthorName = "Google";
-
+    info->timestampTokenRequired = false;
     return ScopedAStatus::ok();
 }
 
@@ -363,6 +364,26 @@ ScopedAStatus AndroidKeyMintDevice::begin(KeyPurpose purpose, const vector<uint8
     result->operation =
         ndk::SharedRefBase::make<AndroidKeyMintOperation>(impl_, response.op_handle);
     return ScopedAStatus::ok();
+}
+
+ScopedAStatus AndroidKeyMintDevice::deviceLocked(
+    bool in_passwordOnly,
+    const std::optional<::aidl::android::hardware::security::secureclock::TimeStampToken>&
+        in_timestampToken) {
+    DeviceLockedRequest request(impl_->message_version());
+    request.passwordOnly = in_passwordOnly;
+    if (in_timestampToken.has_value()) {
+        request.token.challenge = in_timestampToken->challenge;
+        request.token.mac = {in_timestampToken->mac.data(), in_timestampToken->mac.size()};
+        request.token.timestamp = in_timestampToken->timestamp.milliSeconds;
+    }
+    DeviceLockedResponse response = impl_->DeviceLocked(request);
+    return kmError2ScopedAStatus(response.error);
+}
+
+ScopedAStatus AndroidKeyMintDevice::earlyBootEnded() {
+    EarlyBootEndedResponse response = impl_->EarlyBootEnded();
+    return kmError2ScopedAStatus(response.error);
 }
 
 IKeyMintDevice* CreateKeyMintDevice(SecurityLevel securityLevel) {
