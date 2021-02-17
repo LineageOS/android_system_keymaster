@@ -99,9 +99,11 @@ class AndroidKeymaster {
     uint32_t message_version() const { return message_version_; }
 
   private:
-    keymaster_error_t LoadKey(const keymaster_key_blob_t& key_blob,
-                              const AuthorizationSet& additional_params, const KeyFactory** factory,
-                              UniquePtr<Key>* key);
+    // Loads the KM key from `key_blob`, getting app ID and app data from `additional_params`, if
+    // needed.  If loading the key fails for any reason (including failure of the version binding
+    // check), the returned UniquePtr is null and `*error` is set (`error` must not be null).
+    UniquePtr<Key> LoadKey(const keymaster_key_blob_t& key_blob,
+                           const AuthorizationSet& additional_params, keymaster_error_t* error);
 
     UniquePtr<KeymasterContext> context_;
     UniquePtr<OperationTable> operation_table_;

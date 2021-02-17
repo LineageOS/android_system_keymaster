@@ -19,9 +19,9 @@
 #include <cppbor_parse.h>
 #include <gtest/gtest.h>
 
-#include <keymaster/attestation_record.h>
 #include <keymaster/contexts/soft_attestation_context.h>
 #include <keymaster/keymaster_context.h>
+#include <keymaster/km_openssl/attestation_record.h>
 
 #include "android_keymaster_test_utils.h"
 
