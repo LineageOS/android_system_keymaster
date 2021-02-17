@@ -215,10 +215,18 @@ ScopedAStatus AndroidKeyMintDevice::addRngEntropy(const vector<uint8_t>& data) {
 }
 
 ScopedAStatus AndroidKeyMintDevice::generateKey(const vector<KeyParameter>& keyParams,
+                                                const optional<AttestationKey>& attestationKey,
                                                 KeyCreationResult* creationResult) {
 
     GenerateKeyRequest request(impl_->message_version());
     request.key_description.Reinitialize(KmParamSet(keyParams));
+    if (attestationKey) {
+        request.attestation_signing_key_blob =
+            KeymasterKeyBlob(attestationKey->keyBlob.data(), attestationKey->keyBlob.size());
+        request.attest_key_params.Reinitialize(KmParamSet(attestationKey->attestKeyParams));
+        request.issuer_subject = KeymasterBlob(attestationKey->issuerSubjectName.data(),
+                                               attestationKey->issuerSubjectName.size());
+    }
 
     GenerateKeyResponse response(impl_->message_version());
     impl_->GenerateKey(request, &response);
@@ -245,12 +253,20 @@ ScopedAStatus AndroidKeyMintDevice::generateKey(const vector<KeyParameter>& keyP
 
 ScopedAStatus AndroidKeyMintDevice::importKey(const vector<KeyParameter>& keyParams,
                                               KeyFormat keyFormat, const vector<uint8_t>& keyData,
+                                              const optional<AttestationKey>& attestationKey,
                                               KeyCreationResult* creationResult) {
 
     ImportKeyRequest request(impl_->message_version());
     request.key_description.Reinitialize(KmParamSet(keyParams));
     request.key_format = legacy_enum_conversion(keyFormat);
     request.key_data = KeymasterKeyBlob(keyData.data(), keyData.size());
+    if (attestationKey) {
+        request.attestation_signing_key_blob =
+            KeymasterKeyBlob(attestationKey->keyBlob.data(), attestationKey->keyBlob.size());
+        request.attest_key_params.Reinitialize(KmParamSet(attestationKey->attestKeyParams));
+        request.issuer_subject = KeymasterBlob(attestationKey->issuerSubjectName.data(),
+                                               attestationKey->issuerSubjectName.size());
+    }
 
     ImportKeyResponse response(impl_->message_version());
     impl_->ImportKey(request, &response);
@@ -267,12 +283,13 @@ ScopedAStatus AndroidKeyMintDevice::importKey(const vector<KeyParameter>& keyPar
     return ScopedAStatus::ok();
 }
 
-ScopedAStatus AndroidKeyMintDevice::importWrappedKey(const vector<uint8_t>& wrappedKeyData,
-                                                     const vector<uint8_t>& wrappingKeyBlob,
-                                                     const vector<uint8_t>& maskingKey,
-                                                     const vector<KeyParameter>& unwrappingParams,
-                                                     int64_t passwordSid, int64_t biometricSid,
-                                                     KeyCreationResult* creationResult) {
+ScopedAStatus
+AndroidKeyMintDevice::importWrappedKey(const vector<uint8_t>& wrappedKeyData,         //
+                                       const vector<uint8_t>& wrappingKeyBlob,        //
+                                       const vector<uint8_t>& maskingKey,             //
+                                       const vector<KeyParameter>& unwrappingParams,  //
+                                       int64_t passwordSid, int64_t biometricSid,     //
+                                       KeyCreationResult* creationResult) {
 
     ImportWrappedKeyRequest request(impl_->message_version());
     request.SetWrappedMaterial(wrappedKeyData.data(), wrappedKeyData.size());

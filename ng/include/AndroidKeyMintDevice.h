@@ -26,6 +26,7 @@ class AndroidKeymaster;
 
 namespace aidl::android::hardware::security::keymint {
 using ::ndk::ScopedAStatus;
+using std::optional;
 using std::shared_ptr;
 using std::vector;
 
@@ -39,10 +40,12 @@ class AndroidKeyMintDevice : public BnKeyMintDevice {
     ScopedAStatus addRngEntropy(const vector<uint8_t>& data) override;
 
     ScopedAStatus generateKey(const vector<KeyParameter>& keyParams,
+                              const optional<AttestationKey>& attestationKey,
                               KeyCreationResult* creationResult) override;
 
     ScopedAStatus importKey(const vector<KeyParameter>& keyParams, KeyFormat keyFormat,
                             const vector<uint8_t>& keyData,
+                            const optional<AttestationKey>& attestationKey,
                             KeyCreationResult* creationResult) override;
 
     ScopedAStatus importWrappedKey(const vector<uint8_t>& wrappedKeyData,

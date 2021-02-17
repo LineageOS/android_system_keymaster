@@ -227,7 +227,8 @@ keymaster_error_t Keymaster1PassthroughContext::CreateKeyBlob(
 }
 
 CertificateChain Keymaster1PassthroughContext::GenerateAttestation(
-    const Key& key, const AuthorizationSet& attest_params, keymaster_error_t* error) const {
+    const Key& key, const AuthorizationSet& attest_params, UniquePtr<Key> /* attest_key */,
+    const KeymasterBlob& /* issuer_subject */, keymaster_error_t* error) const {
     keymaster_algorithm_t key_algorithm;
     if (!key.authorizations().GetTagValue(TAG_ALGORITHM, &key_algorithm)) {
         *error = KM_ERROR_UNKNOWN_ERROR;
@@ -243,14 +244,8 @@ CertificateChain Keymaster1PassthroughContext::GenerateAttestation(
     // SoftKeymasterContext we can assume that the Key is an AsymmetricKey. So we can downcast.
     const AsymmetricKey& asymmetric_key = static_cast<const AsymmetricKey&>(key);
 
-    auto attestation_chain = getAttestationChain(key_algorithm, error);
-    if (*error != KM_ERROR_OK) return {};
-
-    auto attestation_key = getAttestationKey(key_algorithm, error);
-    if (*error != KM_ERROR_OK) return {};
-
-    return generate_attestation(asymmetric_key, attest_params, move(attestation_chain),
-                                *attestation_key, *this, error);
+    return generate_attestation(asymmetric_key, attest_params, {} /* attest_key */,
+                                *this /* AttestationContext */, error);
 }
 
 keymaster_error_t Keymaster1PassthroughContext::UnwrapKey(

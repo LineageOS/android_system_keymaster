@@ -20,9 +20,9 @@
 
 #include <hardware/keymaster_defs.h>
 
-#include <keymaster/attestation_record.h>
 #include <keymaster/authorization_set.h>
 #include <keymaster/km_openssl/asymmetric_key.h>
+#include <keymaster/km_openssl/attestation_record.h>
 #include <keymaster/km_openssl/attestation_utils.h>
 #include <keymaster/km_openssl/certificate_utils.h>
 #include <keymaster/km_openssl/openssl_err.h>
@@ -32,8 +32,8 @@ namespace keymaster {
 
 namespace {
 
-CertificateChain makeCertChain(X509* certificate, CertificateChain chain,
-                               keymaster_error_t* error) {
+CertificateChain make_cert_chain(X509* certificate, CertificateChain chain,
+                                 keymaster_error_t* error) {
     keymaster_blob_t blob{};
     *error = encode_certificate(certificate, &blob);
     if (*error != KM_ERROR_OK) return {};
@@ -132,18 +132,16 @@ keymaster_error_t add_attestation_extension(const AuthorizationSet& attest_param
     return KM_ERROR_OK;
 }
 
-}  // anonymous namespace
-
-keymaster_error_t make_attestation_cert(
-    const EVP_PKEY* evp_pkey, const X509_NAME* issuer, const CertificateCallerParams& cert_params,
-    const bool is_signing_key, const bool is_encryption_key, const bool is_key_agreement_key,
-    const AuthorizationSet& attest_params, const AuthorizationSet& tee_enforced,
-    const AuthorizationSet& sw_enforced, const AttestationContext& context, X509_Ptr* cert_out) {
+keymaster_error_t make_attestation_cert(const EVP_PKEY* evp_pkey, const X509_NAME* issuer,
+                                        const CertificateCallerParams& cert_params,
+                                        const AuthorizationSet& attest_params,
+                                        const AuthorizationSet& tee_enforced,
+                                        const AuthorizationSet& sw_enforced,
+                                        const AttestationContext& context, X509_Ptr* cert_out) {
 
     // First make the basic certificate with usage extension.
     X509_Ptr certificate;
-    if (auto error = make_cert(evp_pkey, issuer, cert_params, is_signing_key, is_encryption_key,
-                               is_key_agreement_key, &certificate)) {
+    if (auto error = make_cert(evp_pkey, issuer, cert_params, &certificate)) {
         return error;
     }
 
@@ -157,75 +155,178 @@ keymaster_error_t make_attestation_cert(
     return KM_ERROR_OK;
 }
 
-// Generate attestation certificate base on the EVP key and other parameters passed in.
-CertificateChain generate_attestation_from_EVP(const EVP_PKEY* evp_key,  //
-                                               const AuthorizationSet& sw_enforced,
-                                               const AuthorizationSet& tee_enforced,
-                                               const AuthorizationSet& attest_params,
-                                               const AttestationContext& context,
-                                               CertificateChain attestation_chain,
-                                               const keymaster_key_blob_t& attestation_signing_key,
-                                               keymaster_error_t* error) {
-    keymaster_error_t err;
-    if (!error) error = &err;
-
-    const uint8_t* p = attestation_chain.entries[0].data;
-    X509_Ptr signing_cert(d2i_X509(nullptr, &p, attestation_chain.entries[0].data_length));
-    if (!signing_cert.get()) {
-        *error = TranslateLastOpenSslError();
+X509_NAME_Ptr get_issuer_subject(const AttestKeyInfo& attest_key, keymaster_error_t* error) {
+    // Use subject from attest_key.
+    const uint8_t* p = attest_key.issuer_subject->data;
+    if (!p || !attest_key.issuer_subject->data_length) {
+        *error = KM_ERROR_MISSING_ISSUER_SUBJECT;
         return {};
     }
-
-    X509_NAME* issuerSubject = X509_get_subject_name(signing_cert.get());
-    if (!issuerSubject) {
-        *error = TranslateLastOpenSslError();
-        return {};
-    }
-
-    AuthProxy proxy(tee_enforced, sw_enforced);
-    bool is_signing_key = proxy.Contains(TAG_PURPOSE, KM_PURPOSE_SIGN);
-    bool is_encryption_key = proxy.Contains(TAG_PURPOSE, KM_PURPOSE_DECRYPT);
-    bool is_key_agreement_key = proxy.Contains(TAG_PURPOSE, KM_PURPOSE_AGREE_KEY);
-
-    CertificateCallerParams cert_params{};
-    *error = get_certificate_params(attest_params, &cert_params, context.GetKmVersion());
-    if (*error != KM_ERROR_OK) return {};
-
-    X509_Ptr certificate;
-    *error = make_attestation_cert(evp_key, issuerSubject, cert_params, is_signing_key,
-                                   is_encryption_key, is_key_agreement_key, attest_params,
-                                   tee_enforced, sw_enforced, context, &certificate);
-    if (*error != KM_ERROR_OK) return {};
-
-    *error = sign_cert(certificate.get(), attestation_signing_key);
-    if (*error != KM_ERROR_OK) return {};
-
-    return makeCertChain(certificate.get(), move(attestation_chain), error);
+    X509_NAME_Ptr retval(d2i_X509_NAME(nullptr /* Allocate X509_NAME */, &p,
+                                       attest_key.issuer_subject->data_length));
+    if (!retval) *error = KM_ERROR_INVALID_ISSUER_SUBJECT;
+    return retval;
 }
 
-// Generate attestation certificate base on the AsymmetricKey key and other parameters
-// passed in.  In attest_params, we expect the challenge, active time and expiration
-// time, and app id.
-//
-// The active time and expiration time are expected in milliseconds.
-//
-// Hardware and software enforced AuthorizationSet are expected to be built into the AsymmetricKey
-// input. In hardware enforced AuthorizationSet, we expect hardware related tags such as
-// TAG_IDENTITY_CREDENTIAL_KEY.
+X509_NAME_Ptr get_issuer_subject(const keymaster_blob_t& signing_cert_der,
+                                 keymaster_error_t* error) {
+    const uint8_t* p = signing_cert_der.data;
+    if (!p) {
+        *error = KM_ERROR_UNEXPECTED_NULL_POINTER;
+        return {};
+    }
+    X509_Ptr signing_cert(d2i_X509(nullptr /* Allocate X509 */, &p, signing_cert_der.data_length));
+    if (!signing_cert) {
+        *error = TranslateLastOpenSslError();
+        return {};
+    }
+
+    X509_NAME* issuer_subject = X509_get_subject_name(signing_cert.get());
+    if (!issuer_subject) {
+        *error = TranslateLastOpenSslError();
+        return {};
+    }
+
+    X509_NAME_Ptr retval(X509_NAME_dup(issuer_subject));
+    if (!retval) *error = TranslateLastOpenSslError();
+
+    return retval;
+}
+
+// Return subject from attest_key, if non-null, otherwise extract from cert_chain.
+X509_NAME_Ptr get_issuer_subject(const AttestKeyInfo& attest_key,
+                                 const CertificateChain& cert_chain, keymaster_error_t* error) {
+    if (attest_key) {
+        return get_issuer_subject(attest_key, error);
+    }
+
+    // Need to extract issuer from cert chain.  First cert in the chain is the signing key cert.
+    if (cert_chain.entry_count >= 1) return get_issuer_subject(cert_chain.entries[0], error);
+
+    *error = KM_ERROR_UNKNOWN_ERROR;
+    return {};
+}
+
+keymaster_error_t check_attest_key_auths(const Key& key) {
+    auto auths = key.authorizations();
+
+    if (!auths.Contains(TAG_ALGORITHM, KM_ALGORITHM_RSA) &&
+        !auths.Contains(TAG_ALGORITHM, KM_ALGORITHM_EC)) {
+        return KM_ERROR_INCOMPATIBLE_ALGORITHM;
+    }
+    if (!auths.Contains(TAG_PURPOSE, KM_PURPOSE_ATTEST_KEY)) {
+        return KM_ERROR_INCOMPATIBLE_PURPOSE;
+    }
+    return KM_ERROR_OK;
+}
+
+EVP_PKEY_Ptr get_attestation_key(keymaster_algorithm_t algorithm, const AttestationContext& context,
+                                 keymaster_error_t* error) {
+    KeymasterKeyBlob signing_key_blob = context.GetAttestationKey(algorithm, error);
+    if (*error != KM_ERROR_OK) return {};
+
+    const uint8_t* p = signing_key_blob.key_material;
+    EVP_PKEY_Ptr retval(
+        d2i_AutoPrivateKey(nullptr /* Allocate key */, &p, signing_key_blob.key_material_size));
+    if (!retval) *error = TranslateLastOpenSslError();
+    return retval;
+}
+
+}  // namespace
+
+AttestKeyInfo::AttestKeyInfo(const UniquePtr<Key>& key, const KeymasterBlob* issuer_subject_,
+                             keymaster_error_t* error)
+    : issuer_subject(issuer_subject_) {
+    if (!error) return;
+
+    if (!key) {
+        // No key... so this is just an empty AttestKeyInfo.
+        issuer_subject = nullptr;
+        return;
+    }
+
+    if (!issuer_subject) {
+        *error = KM_ERROR_UNEXPECTED_NULL_POINTER;
+        return;
+    }
+
+    *error = check_attest_key_auths(*key);
+    if (*error != KM_ERROR_OK) return;
+
+    signing_key.reset(EVP_PKEY_new());
+    if (!signing_key) {
+        *error = TranslateLastOpenSslError();
+        return;
+    }
+
+    if (!static_cast<const AsymmetricKey&>(*key).InternalToEvp(signing_key.get())) {
+        *error = KM_ERROR_UNKNOWN_ERROR;
+    }
+}
+
 CertificateChain generate_attestation(const AsymmetricKey& key,
                                       const AuthorizationSet& attest_params,
-                                      CertificateChain attestation_chain,
-                                      const keymaster_key_blob_t& attestation_signing_key,
-                                      const AttestationContext& context, keymaster_error_t* error) {
+                                      AttestKeyInfo attest_key,
+                                      const AttestationContext& context,  //
+                                      keymaster_error_t* error) {
     EVP_PKEY_Ptr pkey(EVP_PKEY_new());
     if (!key.InternalToEvp(pkey.get())) {
         *error = TranslateLastOpenSslError();
         return {};
     }
 
-    return generate_attestation_from_EVP(pkey.get(), key.sw_enforced(), key.hw_enforced(),
-                                         attest_params, context, move(attestation_chain),
-                                         attestation_signing_key, error);
+    return generate_attestation(pkey.get(), key.sw_enforced(), key.hw_enforced(), attest_params,
+                                move(attest_key), context, error);
+}
+
+CertificateChain generate_attestation(const EVP_PKEY* evp_key,              //
+                                      const AuthorizationSet& sw_enforced,  //
+                                      const AuthorizationSet& tee_enforced,
+                                      const AuthorizationSet& attest_params,
+                                      AttestKeyInfo attest_key,
+                                      const AttestationContext& context,  //
+                                      keymaster_error_t* error) {
+    if (!error) return {};
+
+    CertificateCallerParams cert_params{};
+    *error = get_certificate_params(attest_params, &cert_params, context.GetKmVersion());
+    if (*error != KM_ERROR_OK) return {};
+
+    AuthProxy proxy(tee_enforced, sw_enforced);
+    cert_params.is_signing_key = proxy.Contains(TAG_PURPOSE, KM_PURPOSE_SIGN);
+    cert_params.is_encryption_key = proxy.Contains(TAG_PURPOSE, KM_PURPOSE_DECRYPT);
+    cert_params.is_agreement_key = proxy.Contains(TAG_PURPOSE, KM_PURPOSE_AGREE_KEY);
+
+    keymaster_algorithm_t algorithm;
+    if (!proxy.GetTagValue(TAG_ALGORITHM, &algorithm)) {
+        *error = KM_ERROR_UNSUPPORTED_PURPOSE;
+        return {};
+    }
+
+    CertificateChain cert_chain =
+        attest_key ? CertificateChain() : context.GetAttestationChain(algorithm, error);
+    if (*error != KM_ERROR_OK) return {};
+
+    X509_NAME_Ptr issuer_subject = get_issuer_subject(attest_key, cert_chain, error);
+    if (*error != KM_ERROR_OK) return {};
+
+    X509_Ptr certificate;
+    *error = make_attestation_cert(evp_key, issuer_subject.get(), cert_params, attest_params,
+                                   tee_enforced, sw_enforced, context, &certificate);
+    if (*error != KM_ERROR_OK) return {};
+
+    EVP_PKEY_Ptr signing_key;
+    const EVP_PKEY* signing_key_ptr = attest_key.signing_key.get();
+    if (!signing_key_ptr) {
+        signing_key = get_attestation_key(algorithm, context, error);
+        if (*error != KM_ERROR_OK) return {};
+        signing_key_ptr = signing_key.get();
+    }
+
+    *error = sign_cert(certificate.get(), signing_key_ptr);
+    if (*error != KM_ERROR_OK) return {};
+
+    return make_cert_chain(certificate.get(), move(cert_chain), error);
 }
 
 }  // namespace keymaster

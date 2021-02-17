@@ -31,23 +31,99 @@ namespace keymaster {
 class AuthorizationSet;
 class AttestationContext;
 class AsymmetricKey;
+class Key;
 
-// Generate attestation certificate base on the AsymmetricKey key and other parameters passed in.
+struct AttestKeyInfo {
+    AttestKeyInfo() = default;
+    AttestKeyInfo(const UniquePtr<Key>& key, const KeymasterBlob* issuer_subject,
+                  keymaster_error_t* error);
+    AttestKeyInfo(AttestKeyInfo&&) = default;
+    AttestKeyInfo(const AttestKeyInfo&) = delete;
+
+    void operator=(const AttestKeyInfo&) = delete;
+
+    operator bool() const { return signing_key; }
+
+    EVP_PKEY_Ptr signing_key;
+    const KeymasterBlob* issuer_subject;
+};
+
+/**
+ * Generate attestation certificate.
+ *
+ * @param key is an AsymmetricKey object containing the key to be attested.  The contained
+ *        authorization lists are used for the key description.
+ *
+ * @param attest_params contains parameters for the attestation, including:
+ *
+ *         TAG_ATTESTATION_CHALLENGE
+ *         TAG_ATTESTATION_APPLICATION_ID
+ *         TAG_ATTESTATION_ID_*
+ *         TAG_DEVICE_UNIQUE_ATTESTATION
+ *         TAG_RESET_SINCE_ROTATION
+ *
+ * @param attest_key optionally contains the attestation key and issuer subject to use.  If
+ *        attest_key.signing_key is non-null, that key will be used to sign the attestation and the
+ *        issuer subject that will be placed in the attestation certificate.  This is only used for
+ *        KeyMint.  If attest_key.signing_key is null, the signing key will be obtained from the
+ *        AttestationContext, and the issuer subject will be obtained from the cetificate chain
+ *        provided by the AttestationContext.
+ *
+ * @param context is the attestation context, used to generate unique IDs and obtain boot parameters
+ *        as well as provide information about the SecurityLevel and KM version.
+ *
+ * @param error must be non-null and will be used to return any errors.  In the event of an error
+ *        the returned certificate chain will be empty.
+ *
+ * @return Returns the completed certificate chain, ordered from leaf (which is the generated
+ *         attestation certificate) to root.
+ */
 CertificateChain generate_attestation(const AsymmetricKey& key,
                                       const AuthorizationSet& attest_params,
-                                      CertificateChain attestation_chain,
-                                      const keymaster_key_blob_t& attestation_signing_key,
-                                      const AttestationContext& context, keymaster_error_t* error);
+                                      AttestKeyInfo attest_key,
+                                      const AttestationContext& context,  //
+                                      keymaster_error_t* error);
 
-// Generate attestation certificate based on the EVP key and other parameters passed in.
-CertificateChain generate_attestation_from_EVP(const EVP_PKEY* evp_key,  //
-                                               const AuthorizationSet& sw_enforced,
-                                               const AuthorizationSet& hw_enforced,
-                                               const AuthorizationSet& attest_params,
-                                               const AttestationContext& context,
-                                               CertificateChain attestation_chain,
-                                               const keymaster_key_blob_t& attestation_signing_key,
-                                               keymaster_error_t* error);
+/**
+ * Generate attestation certificate.
+ *
+ * @param evp_key contains the key to be attested.  Must not be null.
+ *
+ * @param sw_enforced contains the software-enforced elements of the key description.
+ *
+ * @param hw_enforced contains the hardware-enforced elements of the key description.
+ *
+ * @param attest_params contains parameters for the attestation, including:
+ *
+ *         TAG_ATTESTATION_CHALLENGE
+ *         TAG_ATTESTATION_APPLICATION_ID
+ *         TAG_ATTESTATION_ID_*
+ *         TAG_DEVICE_UNIQUE_ATTESTATION
+ *         TAG_RESET_SINCE_ROTATION
+ *
+ * @param attest_key optionally contains the attestation key and issuer subject to use.  If
+ *        attest_key.signing_key is non-null, that key will be used to sign the attestation and the
+ *        issuer subject that will be placed in the attestation certificate.  This is only used for
+ *        KeyMint.  If attest_key.signign_key is null, the signing key will be obtained from the
+ *        AttestationContext, and the issuer subject will be obtained from the cetificate chain
+ *        provided by the AttestationContext.
+ *
+ * @param context is the attestation context, used to generate unique IDs and obtain boot parameters
+ *        as well as provide information about the SecurityLevel and KM version.
+ *
+ * @param error must be non-null and will be used to return any errors.  In the event of an error
+ *        the returned certificate chain will be empty.
+ *
+ * @return Returns the completed certificate chain, ordered from leaf (which is the generated
+ *         attestation certificate) to root.
+ */
+CertificateChain generate_attestation(const EVP_PKEY* evp_key,              //
+                                      const AuthorizationSet& sw_enforced,  //
+                                      const AuthorizationSet& hw_enforced,  //
+                                      const AuthorizationSet& attest_params,
+                                      AttestKeyInfo attest_key,
+                                      const AttestationContext& context,  //
+                                      keymaster_error_t* error);
 
 }  // namespace keymaster
 

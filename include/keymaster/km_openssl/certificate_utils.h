@@ -41,6 +41,9 @@ struct CertificateCallerParams {
     X509_NAME_Ptr subject_name;
     uint64_t active_date_time;
     uint64_t expire_date_time;
+    bool is_signing_key = false;
+    bool is_encryption_key = false;
+    bool is_agreement_key = false;
 };
 
 keymaster_error_t get_certificate_params(const AuthorizationSet& caller_params,
@@ -57,12 +60,10 @@ keymaster_error_t make_cert_rump(const uint32_t serial, const X509_NAME* issuer,
                                  const CertificateCallerParams& cert_params, X509_Ptr* cert_out);
 
 keymaster_error_t make_cert(const EVP_PKEY* evp_pkey, const X509_NAME* issuer,
-                            const CertificateCallerParams& cert_params, const bool is_signing_key,
-                            const bool is_encryption_key, const bool is_key_agreement_key,
-                            X509_Ptr* cert_out);
+                            const CertificateCallerParams& cert_params, X509_Ptr* cert_out);
 
-// Sign the certificate with the provided signing key.  Key must be in PKCS#8 format.
-keymaster_error_t sign_cert(X509* certificate, const keymaster_key_blob_t& signing_key);
+// Sign the certificate with the provided signing key.
+keymaster_error_t sign_cert(X509* certificate, const EVP_PKEY* signing_key);
 
 // Generate a certificate for the provided asymmetric key, with params.  The certificate will be
 // self-signed unless `fake_signature` is set, in which case a fake signature will be placed in the

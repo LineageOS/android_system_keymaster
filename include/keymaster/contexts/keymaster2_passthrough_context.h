@@ -102,8 +102,11 @@ class Keymaster2PassthroughContext : public KeymasterContext {
      */
     KeymasterEnforcement* enforcement_policy() override;
 
-    CertificateChain GenerateAttestation(const Key& key, const AuthorizationSet& attest_params,
-                                         keymaster_error_t* cert_chain) const override;
+    CertificateChain GenerateAttestation(const Key& key,  //
+                                         const AuthorizationSet& attest_params,
+                                         UniquePtr<Key> attest_key,
+                                         const KeymasterBlob& issuer_subject,
+                                         keymaster_error_t* error) const override;
     CertificateChain GenerateSelfSignedCertificate(const Key& /* key */,
                                                    const AuthorizationSet& /* cert_params */,
                                                    bool /* fake_signature */,

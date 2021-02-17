@@ -64,14 +64,19 @@ template <typename KM1_SOFTDIGEST_FACTORY> class Keymaster1ArbitrationFactory : 
         : software_digest_factory_(forward<SOFT_FACTORY_CONSRUCTOR_ARGS>(args)...),
           passthrough_factory_(ptengine, algorithm), legacy_support_(dev) {}
     keymaster_error_t GenerateKey(const AuthorizationSet& key_description,
-                                  KeymasterKeyBlob* key_blob, AuthorizationSet* hw_enforced,
+                                  UniquePtr<Key> attest_key,  //
+                                  const KeymasterBlob& issuer_subject,
+                                  KeymasterKeyBlob* key_blob,     //
+                                  AuthorizationSet* hw_enforced,  //
                                   AuthorizationSet* sw_enforced,
                                   CertificateChain* cert_chain) const {
         if (legacy_support_.RequiresSoftwareDigesting(key_description)) {
-            return software_digest_factory_.GenerateKey(key_description, key_blob, hw_enforced,
+            return software_digest_factory_.GenerateKey(key_description, move(attest_key),
+                                                        issuer_subject, key_blob, hw_enforced,
                                                         sw_enforced, cert_chain);
         } else {
-            return passthrough_factory_.GenerateKey(key_description, key_blob, hw_enforced,
+            return passthrough_factory_.GenerateKey(key_description, move(attest_key),
+                                                    issuer_subject, key_blob, hw_enforced,
                                                     sw_enforced, cert_chain);
         }
     }
@@ -79,16 +84,19 @@ template <typename KM1_SOFTDIGEST_FACTORY> class Keymaster1ArbitrationFactory : 
     keymaster_error_t ImportKey(const AuthorizationSet& key_description,
                                 keymaster_key_format_t input_key_material_format,
                                 const KeymasterKeyBlob& input_key_material,
-                                KeymasterKeyBlob* output_key_blob, AuthorizationSet* hw_enforced,
+                                UniquePtr<Key> attest_key,  //
+                                const KeymasterBlob& issuer_subject,
+                                KeymasterKeyBlob* output_key_blob,  //
+                                AuthorizationSet* hw_enforced,      //
                                 AuthorizationSet* sw_enforced, CertificateChain* cert_chain) const {
         if (legacy_support_.RequiresSoftwareDigesting(key_description)) {
-            return software_digest_factory_.ImportKey(key_description, input_key_material_format,
-                                                      input_key_material, output_key_blob,
-                                                      hw_enforced, sw_enforced, cert_chain);
+            return software_digest_factory_.ImportKey(
+                key_description, input_key_material_format, input_key_material, move(attest_key),
+                issuer_subject, output_key_blob, hw_enforced, sw_enforced, cert_chain);
         } else {
-            return passthrough_factory_.ImportKey(key_description, input_key_material_format,
-                                                  input_key_material, output_key_blob, hw_enforced,
-                                                  sw_enforced, cert_chain);
+            return passthrough_factory_.ImportKey(
+                key_description, input_key_material_format, input_key_material, move(attest_key),
+                issuer_subject, output_key_blob, hw_enforced, sw_enforced, cert_chain);
         }
     }
 
@@ -136,8 +144,12 @@ template <typename KM1_SOFTDIGEST_FACTORY> class Keymaster1ArbitrationFactory : 
 
 template <>
 keymaster_error_t Keymaster1ArbitrationFactory<EcdsaKeymaster1KeyFactory>::GenerateKey(
-    const AuthorizationSet& key_description, KeymasterKeyBlob* key_blob,
-    AuthorizationSet* hw_enforced, AuthorizationSet* sw_enforced,
+    const AuthorizationSet& key_description,  //
+    UniquePtr<Key> attest_key,                //
+    const KeymasterBlob& issuer_subject,      //
+    KeymasterKeyBlob* key_blob,               //
+    AuthorizationSet* hw_enforced,            //
+    AuthorizationSet* sw_enforced,            //
     CertificateChain* cert_chain) const;
 
 template <>

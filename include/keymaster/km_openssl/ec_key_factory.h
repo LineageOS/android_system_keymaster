@@ -20,7 +20,6 @@
 #include <openssl/evp.h>
 
 #include <keymaster/asymmetric_key_factory.h>
-#include <keymaster/attestation_record.h>
 #include <keymaster/soft_key_factory.h>
 
 namespace keymaster {
@@ -34,13 +33,19 @@ class EcKeyFactory : public AsymmetricKeyFactory, public SoftKeyFactoryMixin {
     int evp_key_type() const override { return EVP_PKEY_EC; }
 
     keymaster_error_t GenerateKey(const AuthorizationSet& key_description,
-                                  KeymasterKeyBlob* key_blob, AuthorizationSet* hw_enforced,
+                                  UniquePtr<Key> attest_key,            //
+                                  const KeymasterBlob& issuer_subject,  //
+                                  KeymasterKeyBlob* key_blob,
+                                  AuthorizationSet* hw_enforced,  //
                                   AuthorizationSet* sw_enforced,
                                   CertificateChain* cert_chain) const override;
     keymaster_error_t ImportKey(const AuthorizationSet& key_description,
                                 keymaster_key_format_t input_key_material_format,
                                 const KeymasterKeyBlob& input_key_material,
-                                KeymasterKeyBlob* output_key_blob, AuthorizationSet* hw_enforced,
+                                UniquePtr<Key> attest_key,  //
+                                const KeymasterBlob& issuer_subject,
+                                KeymasterKeyBlob* output_key_blob,  //
+                                AuthorizationSet* hw_enforced,      //
                                 AuthorizationSet* sw_enforced,
                                 CertificateChain* cert_chain) const override;
 

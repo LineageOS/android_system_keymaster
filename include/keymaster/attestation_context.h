@@ -92,8 +92,8 @@ class AttestationContext {
                                                keymaster_error_t* error) const = 0;
 
     /**
-     * Return the factory attestation signing key certificate chain, prefixed by one empty entry,
-     * for the attestation certificate.  If not available, set `error` to KM_ERROR_UNIMPLEMENTED.
+     * Return the factory attestation signing key certificate chain.  If not available, set `error`
+     * to KM_ERROR_UNIMPLEMENTED.
      */
     virtual CertificateChain GetAttestationChain(keymaster_algorithm_t algorithm,
                                                  keymaster_error_t* error) const = 0;
