@@ -23,10 +23,10 @@
 #include <openssl/x509.h>
 
 #include <keymaster/android_keymaster.h>
-#include <keymaster/attestation_record.h>
 #include <keymaster/contexts/pure_soft_keymaster_context.h>
 #include <keymaster/contexts/soft_keymaster_context.h>
 #include <keymaster/key_factory.h>
+#include <keymaster/km_openssl/attestation_record.h>
 #include <keymaster/km_openssl/hmac_key.h>
 #include <keymaster/km_openssl/openssl_utils.h>
 #include <keymaster/km_openssl/soft_keymaster_enforcement.h>

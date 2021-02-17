@@ -30,8 +30,8 @@ namespace keymaster {
 // class SoftKeymasterContext;
 
 /**
- * KeymasterPassthroughKeyFactory is a KeyFactory that creates and loads keys which are actually backed
- * by a hardware keymaster2 module.
+ * KeymasterPassthroughKeyFactory is a KeyFactory that creates and loads keys which are actually
+ * backed by a hardware keymaster2 module.
  */
 class KeymasterPassthroughKeyFactory : public KeyFactory {
     using engine_t = KeymasterPassthroughEngine;
@@ -41,6 +41,8 @@ class KeymasterPassthroughKeyFactory : public KeyFactory {
         : KeyFactory(), engine_(engine), algorithm_(algorithm) {}
 
     keymaster_error_t GenerateKey(const AuthorizationSet& key_description,
+                                  UniquePtr<Key> /* attest_key */,
+                                  const KeymasterBlob& /* issuer_subject */,
                                   KeymasterKeyBlob* key_blob, AuthorizationSet* hw_enforced,
                                   AuthorizationSet* sw_enforced,
                                   CertificateChain* /* cert_chain */) const override {
@@ -50,6 +52,8 @@ class KeymasterPassthroughKeyFactory : public KeyFactory {
     keymaster_error_t ImportKey(const AuthorizationSet& key_description,
                                 keymaster_key_format_t input_key_material_format,
                                 const KeymasterKeyBlob& input_key_material,
+                                UniquePtr<Key> /* attest_key */,
+                                const KeymasterBlob& /* issuer_subject */,
                                 KeymasterKeyBlob* output_key_blob, AuthorizationSet* hw_enforced,
                                 AuthorizationSet* sw_enforced,
                                 CertificateChain* /* cert_chain */) const override {

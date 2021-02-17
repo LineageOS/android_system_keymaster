@@ -338,6 +338,8 @@ struct GenerateKeyRequest : public KeymasterMessage {
 
     AuthorizationSet key_description;
     KeymasterKeyBlob attestation_signing_key_blob;
+    AuthorizationSet attest_key_params;
+    KeymasterBlob issuer_subject;
 };
 
 struct GenerateKeyResponse : public KeymasterResponse {
@@ -504,6 +506,8 @@ struct ImportKeyRequest : public KeymasterMessage {
     keymaster_key_format_t key_format;
     KeymasterKeyBlob key_data;
     KeymasterKeyBlob attestation_signing_key_blob;
+    AuthorizationSet attest_key_params;
+    KeymasterBlob issuer_subject;
 };
 
 struct ImportKeyResponse : public KeymasterResponse {
@@ -796,7 +800,6 @@ struct ImportWrappedKeyRequest : public KeymasterMessage {
     AuthorizationSet additional_params;
     uint64_t password_sid;
     uint64_t biometric_sid;
-    KeymasterKeyBlob attestation_signing_key_blob;
 };
 
 struct ImportWrappedKeyResponse : public KeymasterResponse {
