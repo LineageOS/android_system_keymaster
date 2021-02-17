@@ -23,7 +23,6 @@
 #include <hardware/keymaster1.h>
 #include <hardware/keymaster_defs.h>
 
-#include <keymaster/attestation_record.h>
 #include <keymaster/contexts/soft_attestation_context.h>
 #include <keymaster/keymaster_context.h>
 #include <keymaster/km_openssl/software_random_source.h>
@@ -109,7 +108,10 @@ class Keymaster1PassthroughContext : public KeymasterContext,
      */
     KeymasterEnforcement* enforcement_policy() override;
 
-    CertificateChain GenerateAttestation(const Key& key, const AuthorizationSet& attest_params,
+    CertificateChain GenerateAttestation(const Key& key,  //
+                                         const AuthorizationSet& attest_params,
+                                         UniquePtr<Key> attest_key,
+                                         const KeymasterBlob& issuer_subject,
                                          keymaster_error_t* error) const override;
     CertificateChain GenerateSelfSignedCertificate(const Key& /* key */,
                                                    const AuthorizationSet& /* cert_params */,

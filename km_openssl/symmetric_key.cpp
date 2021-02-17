@@ -31,6 +31,8 @@
 namespace keymaster {
 
 keymaster_error_t SymmetricKeyFactory::GenerateKey(const AuthorizationSet& key_description,
+                                                   UniquePtr<Key> /* attest_key */,
+                                                   const KeymasterBlob& /* issuer_subject */,
                                                    KeymasterKeyBlob* key_blob,
                                                    AuthorizationSet* hw_enforced,
                                                    AuthorizationSet* sw_enforced,
@@ -59,9 +61,11 @@ keymaster_error_t SymmetricKeyFactory::GenerateKey(const AuthorizationSet& key_d
                                      hw_enforced, sw_enforced);
 }
 
-keymaster_error_t SymmetricKeyFactory::ImportKey(const AuthorizationSet& key_description,
+keymaster_error_t SymmetricKeyFactory::ImportKey(const AuthorizationSet& key_description,  //
                                                  keymaster_key_format_t input_key_material_format,
-                                                 const KeymasterKeyBlob& input_key_material,
+                                                 const KeymasterKeyBlob& input_key_material,  //
+                                                 UniquePtr<Key> /* attest_key */,
+                                                 const KeymasterBlob& /* issuer_subject */,
                                                  KeymasterKeyBlob* output_key_blob,
                                                  AuthorizationSet* hw_enforced,
                                                  AuthorizationSet* sw_enforced,

@@ -81,6 +81,8 @@ static void UpdateToWorkAroundUnsupportedDigests(const AuthorizationSet& key_des
 }
 
 keymaster_error_t RsaKeymaster1KeyFactory::GenerateKey(const AuthorizationSet& key_description,
+                                                       UniquePtr<Key> /* attest_key */,
+                                                       const KeymasterBlob& /* issuer_subject */,
                                                        KeymasterKeyBlob* key_blob,
                                                        AuthorizationSet* hw_enforced,
                                                        AuthorizationSet* sw_enforced,
@@ -94,6 +96,8 @@ keymaster_error_t  //
 RsaKeymaster1KeyFactory::ImportKey(const AuthorizationSet& key_description,
                                    keymaster_key_format_t input_key_material_format,
                                    const KeymasterKeyBlob& input_key_material,
+                                   UniquePtr<Key> /* attest_key */,
+                                   const KeymasterBlob& /* issuer_subject */,
                                    KeymasterKeyBlob* output_key_blob,  //
                                    AuthorizationSet* hw_enforced,      //
                                    AuthorizationSet* sw_enforced,
@@ -136,6 +140,7 @@ OperationFactory* RsaKeymaster1KeyFactory::GetOperationFactory(keymaster_purpose
     case KM_PURPOSE_DERIVE_KEY:
     case KM_PURPOSE_WRAP:
     case KM_PURPOSE_AGREE_KEY:
+    case KM_PURPOSE_ATTEST_KEY:
         break;
     }
     return nullptr;
