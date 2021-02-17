@@ -361,8 +361,11 @@ keymaster_error_t SoftKeymasterContext::ParseKeymaster1HwBlob(
     return KM_ERROR_OK;
 }
 
-CertificateChain  //
-SoftKeymasterContext::GenerateAttestation(const Key& key, const AuthorizationSet& attest_params,
+CertificateChain
+SoftKeymasterContext::GenerateAttestation(const Key& key,  //
+                                          const AuthorizationSet& attest_params,
+                                          UniquePtr<Key> /* attest_key */,
+                                          const KeymasterBlob& /* issuer_subject */,  //
                                           keymaster_error_t* error) const {
     keymaster_algorithm_t key_algorithm;
     if (!key.authorizations().GetTagValue(TAG_ALGORITHM, &key_algorithm)) {
@@ -379,14 +382,7 @@ SoftKeymasterContext::GenerateAttestation(const Key& key, const AuthorizationSet
     // SoftKeymasterContext we can assume that the Key is an AsymmetricKey. So we can downcast.
     const AsymmetricKey& asymmetric_key = static_cast<const AsymmetricKey&>(key);
 
-    auto attestation_chain = GetAttestationChain(key_algorithm, error);
-    if (*error != KM_ERROR_OK) return {};
-
-    auto attestation_key = GetAttestationKey(key_algorithm, error);
-    if (*error != KM_ERROR_OK) return {};
-
-    return generate_attestation(asymmetric_key, attest_params, move(attestation_chain),
-                                attestation_key, *this, error);
+    return generate_attestation(asymmetric_key, attest_params, {} /* attest_key */, *this, error);
 }
 
 CertificateChain SoftKeymasterContext::GenerateSelfSignedCertificate(

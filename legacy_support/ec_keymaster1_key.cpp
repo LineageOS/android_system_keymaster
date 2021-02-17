@@ -63,6 +63,8 @@ static void UpdateToWorkAroundUnsupportedDigests(const AuthorizationSet& key_des
 }
 
 keymaster_error_t EcdsaKeymaster1KeyFactory::GenerateKey(const AuthorizationSet& key_description,
+                                                         UniquePtr<Key> /* attest_key */,
+                                                         const KeymasterBlob& /* issuer_subject */,
                                                          KeymasterKeyBlob* key_blob,
                                                          AuthorizationSet* hw_enforced,
                                                          AuthorizationSet* sw_enforced,
@@ -81,11 +83,16 @@ keymaster_error_t EcdsaKeymaster1KeyFactory::GenerateKey(const AuthorizationSet&
     return engine_->GenerateKey(key_params_copy, key_blob, hw_enforced, sw_enforced);
 }
 
-keymaster_error_t EcdsaKeymaster1KeyFactory::ImportKey(
-    const AuthorizationSet& key_description, keymaster_key_format_t input_key_material_format,
-    const KeymasterKeyBlob& input_key_material, KeymasterKeyBlob* output_key_blob,
-    AuthorizationSet* hw_enforced, AuthorizationSet* sw_enforced,
-    CertificateChain* /* cert_chain */) const {
+keymaster_error_t
+EcdsaKeymaster1KeyFactory::ImportKey(const AuthorizationSet& key_description,           //
+                                     keymaster_key_format_t input_key_material_format,  //
+                                     const KeymasterKeyBlob& input_key_material,        //
+                                     UniquePtr<Key> /* attest_key */,                   //
+                                     const KeymasterBlob& /* issuer_subject */,
+                                     KeymasterKeyBlob* output_key_blob,  //
+                                     AuthorizationSet* hw_enforced,      //
+                                     AuthorizationSet* sw_enforced,
+                                     CertificateChain* /* cert_chain */) const {
     AuthorizationSet key_params_copy;
     UpdateToWorkAroundUnsupportedDigests(key_description, &key_params_copy);
     return engine_->ImportKey(key_params_copy, input_key_material_format, input_key_material,

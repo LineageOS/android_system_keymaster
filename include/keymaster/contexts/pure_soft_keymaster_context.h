@@ -20,9 +20,9 @@
 #include <string>
 
 #include <keymaster/attestation_context.h>
-#include <keymaster/attestation_record.h>
 #include <keymaster/contexts/soft_attestation_context.h>
 #include <keymaster/keymaster_context.h>
+#include <keymaster/km_openssl/attestation_record.h>
 #include <keymaster/km_openssl/soft_keymaster_enforcement.h>
 #include <keymaster/km_openssl/software_random_source.h>
 #include <keymaster/random_source.h>
@@ -70,6 +70,8 @@ class PureSoftKeymasterContext : public KeymasterContext,
     keymaster_error_t DeleteAllKeys() const override;
     keymaster_error_t AddRngEntropy(const uint8_t* buf, size_t length) const override;
     CertificateChain GenerateAttestation(const Key& key, const AuthorizationSet& attest_params,
+                                         UniquePtr<Key> attest_key,
+                                         const KeymasterBlob& issuer_subject,
                                          keymaster_error_t* error) const override;
     CertificateChain GenerateSelfSignedCertificate(const Key& key,
                                                    const AuthorizationSet& cert_params,

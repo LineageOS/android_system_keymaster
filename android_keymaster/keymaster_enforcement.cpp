@@ -131,6 +131,7 @@ keymaster_error_t KeymasterEnforcement::AuthorizeOperation(const keymaster_purpo
         case KM_PURPOSE_DERIVE_KEY:
         case KM_PURPOSE_WRAP:
         case KM_PURPOSE_AGREE_KEY:
+        case KM_PURPOSE_ATTEST_KEY:
             break;
         };
     };
