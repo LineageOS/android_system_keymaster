@@ -375,8 +375,8 @@ cc_library {
     shared_libs: [
 	"libhidlbase",
         "android.hardware.security.keymint-V1-ndk_platform",
-        "android.hardware.security.sharedsecret-unstable-ndk_platform",
-        "android.hardware.security.secureclock-unstable-ndk_platform",
+        "android.hardware.security.sharedsecret-V1-ndk_platform",
+        "android.hardware.security.secureclock-V1-ndk_platform",
         "libbase",
         "libbinder_ndk",
         "libcppbor",
