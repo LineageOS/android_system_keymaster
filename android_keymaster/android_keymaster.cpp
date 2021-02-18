@@ -226,25 +226,49 @@ void AndroidKeymaster::AddRngEntropy(const AddEntropyRequest& request,
                                               request.random_data.available_read());
 }
 
+const KeyFactory* get_key_factory(const AuthorizationSet& key_description,
+                                  const KeymasterContext& context,  //
+                                  keymaster_error_t* error) {
+    keymaster_algorithm_t algorithm;
+    const KeyFactory* factory{};
+    if (!key_description.GetTagValue(TAG_ALGORITHM, &algorithm) ||
+        !(factory = context.GetKeyFactory(algorithm))) {
+        *error = KM_ERROR_UNSUPPORTED_ALGORITHM;
+    }
+    return factory;
+}
+
 void AndroidKeymaster::GenerateKey(const GenerateKeyRequest& request,
                                    GenerateKeyResponse* response) {
     if (response == nullptr) return;
 
-    keymaster_algorithm_t algorithm;
-    const KeyFactory* factory = nullptr;
-    UniquePtr<Key> key;
-    if (!request.key_description.GetTagValue(TAG_ALGORITHM, &algorithm) ||
-        !(factory = context_->GetKeyFactory(algorithm))) {
-        response->error = KM_ERROR_UNSUPPORTED_ALGORITHM;
-    } else {
-        KeymasterKeyBlob key_blob;
-        response->enforced.Clear();
-        response->unenforced.Clear();
-        response->error =
-            factory->GenerateKey(request.key_description, &key_blob, &response->enforced,
-                                 &response->unenforced, &response->certificate_chain);
-        if (response->error == KM_ERROR_OK) response->key_blob = move(key_blob);
+    const KeyFactory* factory =
+        get_key_factory(request.key_description, *context_, &response->error);
+    if (!factory) return;
+
+    if (context_->enforcement_policy() &&
+        request.key_description.GetTagValue(TAG_EARLY_BOOT_ONLY) &&
+        !context_->enforcement_policy()->in_early_boot()) {
+        response->error = KM_ERROR_EARLY_BOOT_ENDED;
+        return;
     }
+
+    UniquePtr<Key> attest_key;
+    if (request.attestation_signing_key_blob.key_material_size) {
+        attest_key = LoadKey(request.attestation_signing_key_blob, request.attest_key_params,
+                             &response->error);
+        if (response->error != KM_ERROR_OK) return;
+    }
+
+    response->enforced.Clear();
+    response->unenforced.Clear();
+    response->error = factory->GenerateKey(request.key_description,
+                                           move(attest_key),  //
+                                           request.issuer_subject,
+                                           &response->key_blob,  //
+                                           &response->enforced,
+                                           &response->unenforced,  //
+                                           &response->certificate_chain);
 }
 
 void AndroidKeymaster::GetKeyCharacteristics(const GetKeyCharacteristicsRequest& request,
@@ -268,17 +292,15 @@ void AndroidKeymaster::BeginOperation(const BeginOperationRequest& request,
     if (response == nullptr) return;
     response->op_handle = 0;
 
-    const KeyFactory* key_factory;
-    UniquePtr<Key> key;
-    response->error = LoadKey(request.key_blob, request.additional_params, &key_factory, &key);
-    if (response->error != KM_ERROR_OK) return;
+    UniquePtr<Key> key = LoadKey(request.key_blob, request.additional_params, &response->error);
+    if (!key) return;
 
     response->error = KM_ERROR_UNKNOWN_ERROR;
     keymaster_algorithm_t key_algorithm;
     if (!key->authorizations().GetTagValue(TAG_ALGORITHM, &key_algorithm)) return;
 
     response->error = KM_ERROR_UNSUPPORTED_PURPOSE;
-    OperationFactory* factory = key_factory->GetOperationFactory(request.purpose);
+    OperationFactory* factory = key->key_factory()->GetOperationFactory(request.purpose);
     if (!factory) return;
 
     OperationPtr operation(
@@ -388,10 +410,8 @@ void AndroidKeymaster::ExportKey(const ExportKeyRequest& request, ExportKeyRespo
 void AndroidKeymaster::AttestKey(const AttestKeyRequest& request, AttestKeyResponse* response) {
     if (!response) return;
 
-    const KeyFactory* key_factory;
-    UniquePtr<Key> key;
-    response->error = LoadKey(request.key_blob, request.attest_params, &key_factory, &key);
-    if (response->error != KM_ERROR_OK) return;
+    UniquePtr<Key> key = LoadKey(request.key_blob, request.attest_params, &response->error);
+    if (!key) return;
 
     keymaster_blob_t attestation_application_id;
     if (request.attest_params.GetTagValue(TAG_ATTESTATION_APPLICATION_ID,
@@ -400,7 +420,8 @@ void AndroidKeymaster::AttestKey(const AttestKeyRequest& request, AttestKeyRespo
     }
 
     response->certificate_chain =
-        context_->GenerateAttestation(*key, request.attest_params, &response->error);
+        context_->GenerateAttestation(*key, request.attest_params, {} /* attestation_signing_key */,
+                                      {} /* issuer_subject */, &response->error);
 }
 
 void AndroidKeymaster::UpgradeKey(const UpgradeKeyRequest& request, UpgradeKeyResponse* response) {
@@ -416,19 +437,27 @@ void AndroidKeymaster::UpgradeKey(const UpgradeKeyRequest& request, UpgradeKeyRe
 void AndroidKeymaster::ImportKey(const ImportKeyRequest& request, ImportKeyResponse* response) {
     if (response == nullptr) return;
 
-    keymaster_algorithm_t algorithm;
-    const KeyFactory* factory = nullptr;
-    UniquePtr<Key> key;
-    if (!request.key_description.GetTagValue(TAG_ALGORITHM, &algorithm) ||
-        !(factory = context_->GetKeyFactory(algorithm))) {
-        response->error = KM_ERROR_UNSUPPORTED_ALGORITHM;
-    } else {
-        KeymasterKeyBlob key_blob;
-        response->error = factory->ImportKey(request.key_description, request.key_format,
-                                             request.key_data, &key_blob, &response->enforced,
-                                             &response->unenforced, &response->certificate_chain);
-        if (response->error == KM_ERROR_OK) response->key_blob = move(key_blob);
+    const KeyFactory* factory =
+        get_key_factory(request.key_description, *context_, &response->error);
+    if (!factory) return;
+
+    UniquePtr<Key> attest_key;
+    if (request.attestation_signing_key_blob.key_material_size) {
+
+        attest_key =
+            LoadKey(request.attestation_signing_key_blob, {} /* params */, &response->error);
+        if (response->error != KM_ERROR_OK) return;
     }
+
+    response->error = factory->ImportKey(request.key_description,  //
+                                         request.key_format,       //
+                                         request.key_data,         //
+                                         move(attest_key),         //
+                                         request.issuer_subject,   //
+                                         &response->key_blob,      //
+                                         &response->enforced,      //
+                                         &response->unenforced,    //
+                                         &response->certificate_chain);
 }
 
 void AndroidKeymaster::DeleteKey(const DeleteKeyRequest& request, DeleteKeyResponse* response) {
@@ -450,15 +479,20 @@ bool AndroidKeymaster::has_operation(keymaster_operation_handle_t op_handle) con
     return operation_table_->Find(op_handle) != nullptr;
 }
 
-keymaster_error_t AndroidKeymaster::LoadKey(const keymaster_key_blob_t& key_blob,
-                                            const AuthorizationSet& additional_params,
-                                            const KeyFactory** factory, UniquePtr<Key>* key) {
+UniquePtr<Key> AndroidKeymaster::LoadKey(const keymaster_key_blob_t& key_blob,
+                                         const AuthorizationSet& additional_params,
+                                         keymaster_error_t* error) {
+    if (!error) return {};
+
+    UniquePtr<Key> key;
     KeymasterKeyBlob key_material;
-    keymaster_error_t error =
-        context_->ParseKeyBlob(KeymasterKeyBlob(key_blob), additional_params, key);
-    if (error != KM_ERROR_OK) return error;
-    if (factory) *factory = (*key)->key_factory();
-    return CheckVersionInfo((*key)->hw_enforced(), (*key)->sw_enforced(), *context_);
+    *error = context_->ParseKeyBlob(KeymasterKeyBlob(key_blob), additional_params, &key);
+    if (*error != KM_ERROR_OK) return {};
+
+    *error = CheckVersionInfo(key->hw_enforced(), key->sw_enforced(), *context_);
+    if (*error != KM_ERROR_OK) return {};
+
+    return key;
 }
 
 void AndroidKeymaster::ImportWrappedKey(const ImportWrappedKeyRequest& request,
@@ -492,22 +526,18 @@ void AndroidKeymaster::ImportWrappedKey(const ImportWrappedKeyRequest& request,
         }
     }
 
-    keymaster_algorithm_t algorithm;
-    const KeyFactory* factory = nullptr;
-    if (!key_description.GetTagValue(TAG_ALGORITHM, &algorithm) ||
-        !(factory = context_->GetKeyFactory(algorithm))) {
-        response->error = KM_ERROR_UNSUPPORTED_ALGORITHM;
-    } else {
-        KeymasterKeyBlob key_blob;
-        CertificateChain cert_chain;
-        response->error =
-            factory->ImportKey(key_description, key_format, KeymasterKeyBlob(secret_key), &key_blob,
-                               &response->enforced, &response->unenforced, &cert_chain);
-        if (response->error == KM_ERROR_OK) {
-            response->key_blob = move(key_blob);
-            response->certificate_chain = move(cert_chain);
-        }
-    }
+    const KeyFactory* factory = get_key_factory(key_description, *context_, &response->error);
+    if (!factory) return;
+
+    response->error = factory->ImportKey(key_description,          //
+                                         key_format,               //
+                                         secret_key,               //
+                                         {} /* attest_key */,      //
+                                         {} /* issuer_subject */,  //
+                                         &response->key_blob,      //
+                                         &response->enforced,      //
+                                         &response->unenforced,    //
+                                         &response->certificate_chain);
 }
 
 EarlyBootEndedResponse AndroidKeymaster::EarlyBootEnded() {

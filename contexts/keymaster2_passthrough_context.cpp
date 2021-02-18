@@ -127,7 +127,8 @@ KeymasterEnforcement* Keymaster2PassthroughContext::enforcement_policy() {
 }
 
 CertificateChain Keymaster2PassthroughContext::GenerateAttestation(
-    const Key& key, const AuthorizationSet& attest_params, keymaster_error_t* error) const {
+    const Key& key, const AuthorizationSet& attest_params, UniquePtr<Key> /* attest_key */,
+    const KeymasterBlob& /* issuer_subject */, keymaster_error_t* error) const {
     keymaster_cert_chain_t cchain{};
     auto rc = device_->attest_key(device_, &key.key_material(), &attest_params, &cchain);
     if (rc != KM_ERROR_OK) {
