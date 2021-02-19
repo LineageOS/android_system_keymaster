@@ -96,8 +96,10 @@ TEST(RoundTrip, GenerateKeyRequest) {
         req.key_description.Reinitialize(params, array_length(params));
         req.attestation_signing_key_blob =
             KeymasterKeyBlob(reinterpret_cast<const uint8_t*>("foo"), 3);
+        req.attest_key_params.Reinitialize(params, array_length(params));
+        req.issuer_subject = KeymasterBlob(reinterpret_cast<const uint8_t*>("bar"), 3);
 
-        UniquePtr<GenerateKeyRequest> deserialized(round_trip(ver, req, ver < 4 ? 78 : 85));
+        UniquePtr<GenerateKeyRequest> deserialized(round_trip(ver, req, ver < 4 ? 78 : 170));
         EXPECT_EQ(deserialized->key_description, req.key_description);
         if (ver < 4) {
             EXPECT_EQ(0U, deserialized->attestation_signing_key_blob.key_material_size);
@@ -106,6 +108,9 @@ TEST(RoundTrip, GenerateKeyRequest) {
             EXPECT_EQ(0, memcmp(req.attestation_signing_key_blob.key_material,
                                 deserialized->attestation_signing_key_blob.key_material,
                                 deserialized->attestation_signing_key_blob.key_material_size));
+            EXPECT_EQ(deserialized->attest_key_params, req.attest_key_params);
+            EXPECT_EQ(0, memcmp(req.issuer_subject.data, deserialized->issuer_subject.data,
+                                deserialized->issuer_subject.data_length));
         }
     }
 }
@@ -395,8 +400,10 @@ TEST(RoundTrip, ImportKeyRequest) {
         msg.key_data = KeymasterKeyBlob(reinterpret_cast<const uint8_t*>("foo"), 3);
         msg.attestation_signing_key_blob =
             KeymasterKeyBlob(reinterpret_cast<const uint8_t*>("bar"), 3);
+        msg.attest_key_params.Reinitialize(params, array_length(params));
+        msg.issuer_subject = KeymasterBlob(reinterpret_cast<const uint8_t*>("bar"), 3);
 
-        UniquePtr<ImportKeyRequest> deserialized(round_trip(ver, msg, ver < 4 ? 89 : 96));
+        UniquePtr<ImportKeyRequest> deserialized(round_trip(ver, msg, ver < 4 ? 89 : 181));
         EXPECT_EQ(msg.key_description, deserialized->key_description);
         EXPECT_EQ(msg.key_format, deserialized->key_format);
         EXPECT_EQ(msg.key_data.key_material_size, deserialized->key_data.key_material_size);
@@ -409,6 +416,9 @@ TEST(RoundTrip, ImportKeyRequest) {
             EXPECT_EQ(0, memcmp(msg.attestation_signing_key_blob.key_material,
                                 deserialized->attestation_signing_key_blob.key_material,
                                 msg.attestation_signing_key_blob.key_material_size));
+            EXPECT_EQ(deserialized->attest_key_params, msg.attest_key_params);
+            EXPECT_EQ(0, memcmp(msg.issuer_subject.data, deserialized->issuer_subject.data,
+                                deserialized->issuer_subject.data_length));
         }
     }
 }

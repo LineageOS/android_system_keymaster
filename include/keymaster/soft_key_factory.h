@@ -17,7 +17,6 @@
 #pragma once
 
 #include "key_factory.h"
-#include <keymaster/attestation_record.h>
 
 namespace keymaster {
 

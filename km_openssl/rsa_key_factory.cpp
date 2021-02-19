@@ -50,6 +50,8 @@ OperationFactory* RsaKeyFactory::GetOperationFactory(keymaster_purpose_t purpose
 }
 
 keymaster_error_t RsaKeyFactory::GenerateKey(const AuthorizationSet& key_description,
+                                             UniquePtr<Key> attest_key,  //
+                                             const KeymasterBlob& issuer_subject,
                                              KeymasterKeyBlob* key_blob,
                                              AuthorizationSet* hw_enforced,
                                              AuthorizationSet* sw_enforced,
@@ -102,7 +104,8 @@ keymaster_error_t RsaKeyFactory::GenerateKey(const AuthorizationSet& key_descrip
 
     RsaKey key(*hw_enforced, *sw_enforced, this, move(rsa_key));
     if (key_description.Contains(TAG_ATTESTATION_CHALLENGE)) {
-        *cert_chain = context_.GenerateAttestation(key, key_description, &error);
+        *cert_chain = context_.GenerateAttestation(key, key_description, move(attest_key),
+                                                   issuer_subject, &error);
     } else {
         bool fake_signature =
             key_size < 1024 || !key_description.Contains(TAG_PURPOSE, KM_PURPOSE_SIGN);
@@ -113,9 +116,11 @@ keymaster_error_t RsaKeyFactory::GenerateKey(const AuthorizationSet& key_descrip
     return error;
 }
 
-keymaster_error_t RsaKeyFactory::ImportKey(const AuthorizationSet& key_description,
+keymaster_error_t RsaKeyFactory::ImportKey(const AuthorizationSet& key_description,  //
                                            keymaster_key_format_t input_key_material_format,
                                            const KeymasterKeyBlob& input_key_material,
+                                           UniquePtr<Key> attest_key,  //
+                                           const KeymasterBlob& issuer_subject,
                                            KeymasterKeyBlob* output_key_blob,
                                            AuthorizationSet* hw_enforced,
                                            AuthorizationSet* sw_enforced,
@@ -145,7 +150,8 @@ keymaster_error_t RsaKeyFactory::ImportKey(const AuthorizationSet& key_descripti
 
     RsaKey key(*hw_enforced, *sw_enforced, this, move(rsa_key));
     if (key_description.Contains(KM_TAG_ATTESTATION_CHALLENGE)) {
-        *cert_chain = context_.GenerateAttestation(key, key_description, &error);
+        *cert_chain = context_.GenerateAttestation(key, key_description, move(attest_key),
+                                                   issuer_subject, &error);
     } else {
         bool fake_signature =
             key_size < 1024 || !key_description.Contains(TAG_PURPOSE, KM_PURPOSE_SIGN);
