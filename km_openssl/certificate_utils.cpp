@@ -35,10 +35,6 @@ constexpr int kKeyEnciphermentKeyUsageBit = 2;
 constexpr int kKeyAgreementKeyUsageBit = 4;
 constexpr int kMaxKeyUsageBit = 8;
 
-// Per RFC 5280 4.1.2.5, an undefined expiration (not-after) field should be set to GeneralizedTime
-// 999912312359559, which is 253402300799000 ms from Jan 1, 1970.
-constexpr uint64_t kUndefinedExpirationDateTime = 253402300799000;
-
 template <typename T> T&& min(T&& a, T&& b) {
     return (a < b) ? forward<T>(a) : forward<T>(b);
 }
