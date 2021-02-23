@@ -524,6 +524,11 @@ void AndroidKeymaster::ImportWrappedKey(const ImportWrappedKeyRequest& request,
         if (sids & HW_AUTH_FINGERPRINT) {
             key_description.push_back(TAG_USER_SECURE_ID, request.biometric_sid);
         }
+
+        if (context_->GetKmVersion() >= KmVersion::KEYMINT_1) {
+            key_description.push_back(TAG_CERTIFICATE_NOT_BEFORE, 0);
+            key_description.push_back(TAG_CERTIFICATE_NOT_AFTER, kUndefinedExpirationDateTime);
+        }
     }
 
     const KeyFactory* factory = get_key_factory(key_description, *context_, &response->error);
