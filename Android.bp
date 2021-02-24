@@ -111,6 +111,7 @@ cc_library {
         "android_keymaster/logger.cpp",
         "android_keymaster/operation.cpp",
         "android_keymaster/operation_table.cpp",
+        "android_keymaster/pure_soft_secure_key_storage.cpp",
         "android_keymaster/serializable.cpp",
         "key_blob_utils/auth_encrypted_key_blob.cpp",
         "key_blob_utils/integrity_assured_key_blob.cpp",
