@@ -106,6 +106,8 @@ class Operation {
     virtual keymaster_operation_handle_t operation_handle() const { return operation_handle_; }
 
     AuthProxy authorizations() const { return AuthProxy(hw_enforced_, sw_enforced_); }
+    AuthorizationSet hw_enforced() const { return hw_enforced_; }
+    AuthorizationSet sw_enforced() const { return sw_enforced_; }
 
     virtual keymaster_error_t Begin(const AuthorizationSet& input_params,
                                     AuthorizationSet* output_params) = 0;
