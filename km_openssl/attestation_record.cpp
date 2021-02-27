@@ -553,6 +553,7 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
         /* Tags ignored because they're not usable by app keys */
         case KM_TAG_BOOTLOADER_ONLY:
         case KM_TAG_INCLUDE_UNIQUE_ID:
+        case KM_TAG_MAX_BOOT_LEVEL:
         case KM_TAG_MAX_USES_PER_BOOT:
         case KM_TAG_MIN_SECONDS_BETWEEN_OPS:
         case KM_TAG_UNIQUE_ID:
