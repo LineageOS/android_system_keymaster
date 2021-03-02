@@ -341,6 +341,10 @@ PureSoftKeymasterContext::GenerateAttestation(const Key& key,                   
         return {};
     }
 
+    if (attest_params.GetTagValue(TAG_DEVICE_UNIQUE_ATTESTATION)) {
+        *error = KM_ERROR_UNIMPLEMENTED;
+        return {};
+    }
     // We have established that the given key has the correct algorithm, and because this is the
     // SoftKeymasterContext we can assume that the Key is an AsymmetricKey. So we can downcast.
     const AsymmetricKey& asymmetric_key = static_cast<const AsymmetricKey&>(key);
