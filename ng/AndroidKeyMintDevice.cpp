@@ -146,6 +146,7 @@ vector<KeyCharacteristics> convertKeyCharacteristics(SecurityLevel keyMintSecuri
         case KM_TAG_ACTIVE_DATETIME:
         case KM_TAG_ALL_APPLICATIONS:
         case KM_TAG_ALL_USERS:
+        case KM_TAG_MAX_BOOT_LEVEL:
         case KM_TAG_ORIGINATION_EXPIRE_DATETIME:
         case KM_TAG_USAGE_EXPIRE_DATETIME:
         case KM_TAG_USER_ID:

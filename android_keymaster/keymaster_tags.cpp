@@ -163,6 +163,8 @@ const char* StringifyTag(keymaster_tag_t tag) {
         return "KM_TAG_VENDOR_PATCHLEVEL";
     case KM_TAG_RSA_OAEP_MGF_DIGEST:
         return "KM_TAG_RSA_OAEP_MGF_DIGEST";
+    case KM_TAG_MAX_BOOT_LEVEL:
+        return "KM_TAG_MAX_BOOT_LEVEL";
     }
     return "<Unknown>";
 }
@@ -229,6 +231,7 @@ DEFINE_KEYMASTER_TAG(KM_DATE, TAG_CERTIFICATE_NOT_AFTER);
 DEFINE_KEYMASTER_TAG(KM_BOOL, TAG_STORAGE_KEY);
 DEFINE_KEYMASTER_TAG(KM_UINT, TAG_BOOT_PATCHLEVEL);
 DEFINE_KEYMASTER_TAG(KM_UINT, TAG_VENDOR_PATCHLEVEL);
+DEFINE_KEYMASTER_TAG(KM_UINT, TAG_MAX_BOOT_LEVEL);
 
 // DEFINE_KEYMASTER_ENUM_TAG is used to create TypedEnumTag instances for each enum keymaster tag.
 
