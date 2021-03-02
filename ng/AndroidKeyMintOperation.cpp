@@ -30,8 +30,10 @@ namespace aidl::android::hardware::security::keymint {
 
 using ::keymaster::AbortOperationRequest;
 using ::keymaster::AbortOperationResponse;
+using ::keymaster::Buffer;
 using ::keymaster::FinishOperationRequest;
 using ::keymaster::FinishOperationResponse;
+using ::keymaster::TAG_ASSOCIATED_DATA;
 using ::keymaster::UpdateOperationRequest;
 using ::keymaster::UpdateOperationResponse;
 using secureclock::TimeStampToken;
@@ -48,89 +50,69 @@ AndroidKeyMintOperation::~AndroidKeyMintOperation() {
     }
 }
 
-ScopedAStatus AndroidKeyMintOperation::update(const optional<KeyParameterArray>& params,
-                                              const optional<vector<uint8_t>>& input,
-                                              const optional<HardwareAuthToken>& /* authToken */,
-                                              const optional<TimeStampToken>&
-                                              /* verificationToken */,
-                                              optional<KeyParameterArray>* updatedParams,
-                                              optional<ByteArray>* output, int32_t* inputConsumed) {
-    if (!updatedParams || !output || !inputConsumed) {
-        return kmError2ScopedAStatus(KM_ERROR_OUTPUT_PARAMETER_NULL);
-    }
-
+ScopedAStatus
+AndroidKeyMintOperation::updateAad(const vector<uint8_t>& input,
+                                   const optional<HardwareAuthToken>& /* authToken */,
+                                   const optional<TimeStampToken>& /* timestampToken */) {
     UpdateOperationRequest request(impl_->message_version());
     request.op_handle = opHandle_;
-    if (input) {
-        request.input.Reinitialize(input->data(), input->size());
-    }
-
-    if (params) {
-        request.additional_params.Reinitialize(KmParamSet(params->params));
-    }
+    request.additional_params.push_back(TAG_ASSOCIATED_DATA, input.data(), input.size());
 
     UpdateOperationResponse response(impl_->message_version());
     impl_->UpdateOperation(request, &response);
 
-    *inputConsumed = 0;
-    if (response.error == KM_ERROR_OK) {
-        *inputConsumed = response.input_consumed;
-
-        updatedParams->emplace();
-        (*updatedParams)->params = kmParamSet2Aidl(response.output_params);
-
-        output->emplace();
-        (*output)->data = kmBuffer2vector(response.output);
-
-        return ScopedAStatus::ok();
-    }
-
-    opHandle_ = 0;
     return kmError2ScopedAStatus(response.error);
 }
 
-ScopedAStatus AndroidKeyMintOperation::finish(const optional<KeyParameterArray>& params,
-                                              const optional<vector<uint8_t>>& input,
-                                              const optional<vector<uint8_t>>& signature,
+ScopedAStatus AndroidKeyMintOperation::update(const vector<uint8_t>& input,
                                               const optional<HardwareAuthToken>& /* authToken */,
                                               const optional<TimeStampToken>&
-                                              /* verificationToken */,
-                                              optional<KeyParameterArray>* updatedParams,
+                                              /* timestampToken */,
                                               vector<uint8_t>* output) {
+    if (!output) return kmError2ScopedAStatus(KM_ERROR_OUTPUT_PARAMETER_NULL);
 
-    if (!updatedParams || !output) {
+    UpdateOperationRequest request(impl_->message_version());
+    request.op_handle = opHandle_;
+    request.input.Reinitialize(input.data(), input.size());
+
+    UpdateOperationResponse response(impl_->message_version());
+    impl_->UpdateOperation(request, &response);
+
+    if (response.error != KM_ERROR_OK) return kmError2ScopedAStatus(response.error);
+    if (response.input_consumed != request.input.buffer_size()) {
+        return kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);
+    }
+
+    *output = kmBuffer2vector(response.output);
+    return ScopedAStatus::ok();
+}
+
+ScopedAStatus
+AndroidKeyMintOperation::finish(const optional<vector<uint8_t>>& input,      //
+                                const optional<vector<uint8_t>>& signature,  //
+                                const optional<HardwareAuthToken>& /* authToken */,
+                                const optional<TimeStampToken>& /* timestampToken */,
+                                const optional<vector<uint8_t>>& /* confirmationToken */,
+                                vector<uint8_t>* output) {
+
+    if (!output) {
         return ScopedAStatus(AStatus_fromServiceSpecificError(
             static_cast<int32_t>(ErrorCode::OUTPUT_PARAMETER_NULL)));
     }
 
     FinishOperationRequest request(impl_->message_version());
     request.op_handle = opHandle_;
-
-    if (input) {
-        request.input.Reinitialize(input->data(), input->size());
-    }
-
-    if (signature) {
-        request.signature.Reinitialize(signature->data(), signature->size());
-    }
-
-    if (params) {
-        request.additional_params.Reinitialize(KmParamSet(params->params));
-    }
+    if (input) request.input.Reinitialize(input->data(), input->size());
+    if (signature) request.signature.Reinitialize(signature->data(), signature->size());
 
     FinishOperationResponse response(impl_->message_version());
     impl_->FinishOperation(request, &response);
     opHandle_ = 0;
 
-    if (response.error == KM_ERROR_OK) {
-        updatedParams->emplace();
-        (*updatedParams)->params = kmParamSet2Aidl(response.output_params);
+    if (response.error != KM_ERROR_OK) return kmError2ScopedAStatus(response.error);
 
-        *output = kmBuffer2vector(response.output);
-        return ScopedAStatus::ok();
-    }
-
-    return kmError2ScopedAStatus(response.error);
+    *output = kmBuffer2vector(response.output);
+    return ScopedAStatus::ok();
 }
 
 ScopedAStatus AndroidKeyMintOperation::abort() {
