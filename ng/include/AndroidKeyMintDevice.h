@@ -30,6 +30,8 @@ using std::optional;
 using std::shared_ptr;
 using std::vector;
 
+using secureclock::TimeStampToken;
+
 class AndroidKeyMintDevice : public BnKeyMintDevice {
   public:
     explicit AndroidKeyMintDevice(SecurityLevel securityLevel);
@@ -66,13 +68,15 @@ class AndroidKeyMintDevice : public BnKeyMintDevice {
     ScopedAStatus begin(KeyPurpose purpose, const vector<uint8_t>& keyBlob,
                         const vector<KeyParameter>& params, const HardwareAuthToken& authToken,
                         BeginResult* result) override;
-    ScopedAStatus deviceLocked(
-        bool in_passwordOnly,
-        const std::optional<::aidl::android::hardware::security::secureclock::TimeStampToken>&
-            in_timestampToken) override;
+
+    ScopedAStatus deviceLocked(bool passwordOnly,
+                               const optional<TimeStampToken>& timestampToken) override;
     ScopedAStatus earlyBootEnded() override;
 
-    std::shared_ptr<::keymaster::AndroidKeymaster>& getKeymasterImpl() { return impl_; }
+    ScopedAStatus performOperation(const vector<uint8_t>& request,
+                                   vector<uint8_t>* response) override;
+
+    shared_ptr<::keymaster::AndroidKeymaster>& getKeymasterImpl() { return impl_; }
 
   protected:
     std::shared_ptr<::keymaster::AndroidKeymaster> impl_;
