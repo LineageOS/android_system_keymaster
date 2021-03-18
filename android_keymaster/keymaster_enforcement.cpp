@@ -149,7 +149,6 @@ KeymasterEnforcement::AuthorizeUpdateOrFinish(const AuthProxy& auth_set,
                                               const AuthorizationSet& operation_params,
                                               keymaster_operation_handle_t op_handle) {
     int auth_type_index = -1;
-    int trusted_confirmation_index = -1;
     bool no_auth_required = false;
     for (size_t pos = 0; pos < auth_set.size(); ++pos) {
         switch (auth_set[pos].tag) {
@@ -157,9 +156,6 @@ KeymasterEnforcement::AuthorizeUpdateOrFinish(const AuthProxy& auth_set,
             auth_type_index = pos;
             break;
 
-        case KM_TAG_TRUSTED_CONFIRMATION_REQUIRED:
-            trusted_confirmation_index = pos;
-            break;
         case KM_TAG_NO_AUTH_REQUIRED:
         case KM_TAG_AUTH_TIMEOUT:
             // If no auth is required or if auth is timeout-based, we have nothing to check.
@@ -168,12 +164,6 @@ KeymasterEnforcement::AuthorizeUpdateOrFinish(const AuthProxy& auth_set,
         default:
             break;
         }
-    }
-
-    // TODO verify trusted confirmation mac once we have a shared secret established
-    // For now, since we do not have such a service, any token offered here must be invalid.
-    if (trusted_confirmation_index != -1) {
-        return KM_ERROR_NO_USER_CONFIRMATION;
     }
 
     // If NO_AUTH_REQUIRED or AUTH_TIMEOUT was set, we need not check an auth token.

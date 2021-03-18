@@ -109,6 +109,26 @@ class Operation {
     AuthorizationSet hw_enforced() const { return hw_enforced_; }
     AuthorizationSet sw_enforced() const { return sw_enforced_; }
 
+    // Creates and initializes |confirmation_verifier_buffer_| that can be retrieved with
+    // get_confirmation_verifier_buffer().
+    //
+    // Returns false on allocation failure.
+    bool create_confirmation_verifier_buffer() {
+        if (!confirmation_verifier_buffer_) {
+            Buffer* buffer = new (std::nothrow)
+                Buffer(kConfirmationTokenMessageTag, kConfirmationTokenMessageTagSize);
+            if (buffer == nullptr) {
+                return false;
+            }
+            confirmation_verifier_buffer_.reset(buffer);
+        }
+        return true;
+    }
+
+    // If a Buffer for ConfirmationUI verification was created with
+    // create_confirmation_verifier_buffer(), returns it. If not, returns |nullptr|.
+    Buffer* get_confirmation_verifier_buffer() { return confirmation_verifier_buffer_.get(); }
+
     virtual keymaster_error_t Begin(const AuthorizationSet& input_params,
                                     AuthorizationSet* output_params) = 0;
     virtual keymaster_error_t Update(const AuthorizationSet& input_params, const Buffer& input,
@@ -130,6 +150,7 @@ class Operation {
     AuthorizationSet hw_enforced_;
     AuthorizationSet sw_enforced_;
     uint64_t key_id_;
+    UniquePtr<Buffer> confirmation_verifier_buffer_;
 };
 
 }  // namespace keymaster
