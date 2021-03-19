@@ -185,6 +185,27 @@ class KeymasterContext {
      */
     virtual SecureKeyStorage* secure_key_storage() { return nullptr; }
 
+    /**
+     * Checks that the data in |input_data| of size |input_data_size| matches the
+     * confirmation token given by |confirmation_token|.
+     *
+     * Note that |input_data| will already contain the prefixed message tag
+     * "confirmation token" (not including NUL byte) so all the implementation
+     * of this method needs to do is to calculate HMAC-SHA256 over |input_data|
+     * and compare it with |confirmation_token|. To do this the implementation
+     * needs access to the secret key shared with the ConfirmationUI TA.
+     *
+     * Returns KM_ERROR_OK if |input_data| matches |confirmation_token|,
+     * KM_ERROR_NO_USER_CONFIRMATION if it doesn't, and if memory allocation
+     * fails KM_ERROR_MEMORY_ALLOCATION_FAILED. If not implemented then
+     * KM_ERROR_UNIMPLEMENTED is returned.
+     */
+    virtual keymaster_error_t
+    CheckConfirmationToken(const uint8_t* /*input_data*/, size_t /*input_data_size*/,
+                           const uint8_t /*confirmation_token*/[kConfirmationTokenSize]) const {
+        return KM_ERROR_UNIMPLEMENTED;
+    }
+
   private:
     // Uncopyable.
     KeymasterContext(const KeymasterContext&);

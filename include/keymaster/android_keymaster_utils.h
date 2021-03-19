@@ -352,4 +352,17 @@ struct CertificateChain : public keymaster_cert_chain_t {
 // 999912312359559, which is 253402300799000 ms from Jan 1, 1970.
 constexpr uint64_t kUndefinedExpirationDateTime = 253402300799000;
 
+// A confirmation token is the output of HMAC-SHA256. */
+constexpr size_t kConfirmationTokenSize = 32;
+
+// Defined in hardware/interfaces/confirmationui/1.0/IConfirmationResultCallback.hal
+constexpr const char kConfirmationTokenMessageTag[] = "confirmation token";
+
+constexpr size_t kConfirmationTokenMessageTagSize = sizeof(kConfirmationTokenMessageTag) - 1;
+
+// Maximum supported size for CBOR which includes prompt and
+// extra_data as returned by the ConfirmationUI. See
+// https://source.android.com/security/protected-confirmation/implementation
+constexpr size_t kConfirmationMessageMaxSize = 6144;
+
 }  // namespace keymaster
