@@ -29,6 +29,7 @@
 #include <keymaster/keymaster_context.h>
 #include <keymaster/km_date.h>
 #include <keymaster/km_openssl/openssl_err.h>
+#include <keymaster/logger.h>
 #include <keymaster/operation.h>
 #include <keymaster/operation_table.h>
 
@@ -307,6 +308,13 @@ void AndroidKeymaster::BeginOperation(const BeginOperationRequest& request,
         factory->CreateOperation(move(*key), request.additional_params, &response->error));
     if (operation.get() == nullptr) return;
 
+    if (operation->authorizations().Contains(TAG_TRUSTED_CONFIRMATION_REQUIRED)) {
+        if (!operation->create_confirmation_verifier_buffer()) {
+            response->error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+            return;
+        }
+    }
+
     if (context_->enforcement_policy()) {
         km_id_t key_id;
         response->error = KM_ERROR_UNKNOWN_ERROR;
@@ -333,6 +341,23 @@ void AndroidKeymaster::UpdateOperation(const UpdateOperationRequest& request,
     response->error = KM_ERROR_INVALID_OPERATION_HANDLE;
     Operation* operation = operation_table_->Find(request.op_handle);
     if (operation == nullptr) return;
+
+    Buffer* confirmation_verifier_buffer = operation->get_confirmation_verifier_buffer();
+    if (confirmation_verifier_buffer != nullptr) {
+        size_t input_num_bytes = request.input.available_read();
+        if (input_num_bytes + confirmation_verifier_buffer->available_read() >
+            kConfirmationMessageMaxSize + kConfirmationTokenMessageTagSize) {
+            response->error = KM_ERROR_INVALID_ARGUMENT;
+            operation_table_->Delete(request.op_handle);
+            return;
+        }
+        if (!confirmation_verifier_buffer->reserve(input_num_bytes)) {
+            response->error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+            operation_table_->Delete(request.op_handle);
+            return;
+        }
+        confirmation_verifier_buffer->write(request.input.peek_read(), input_num_bytes);
+    }
 
     if (context_->enforcement_policy()) {
         response->error = context_->enforcement_policy()->AuthorizeOperation(
@@ -361,6 +386,23 @@ void AndroidKeymaster::FinishOperation(const FinishOperationRequest& request,
     Operation* operation = operation_table_->Find(request.op_handle);
     if (operation == nullptr) return;
 
+    Buffer* confirmation_verifier_buffer = operation->get_confirmation_verifier_buffer();
+    if (confirmation_verifier_buffer != nullptr) {
+        size_t input_num_bytes = request.input.available_read();
+        if (input_num_bytes + confirmation_verifier_buffer->available_read() >
+            kConfirmationMessageMaxSize + kConfirmationTokenMessageTagSize) {
+            response->error = KM_ERROR_INVALID_ARGUMENT;
+            operation_table_->Delete(request.op_handle);
+            return;
+        }
+        if (!confirmation_verifier_buffer->reserve(input_num_bytes)) {
+            response->error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+            operation_table_->Delete(request.op_handle);
+            return;
+        }
+        confirmation_verifier_buffer->write(request.input.peek_read(), input_num_bytes);
+    }
+
     if (context_->enforcement_policy()) {
         response->error = context_->enforcement_policy()->AuthorizeOperation(
             operation->purpose(), operation->key_id(), operation->authorizations(),
@@ -383,6 +425,33 @@ void AndroidKeymaster::FinishOperation(const FinishOperationRequest& request,
         context_->secure_key_storage() != nullptr) {
         response->error = context_->secure_key_storage()->DeleteKey(operation->key_id());
     }
+
+    // If the operation succeeded and TAG_TRUSTED_CONFIRMATION_REQUIRED was
+    // set, the input must be checked against the confirmation token.
+    if (response->error == KM_ERROR_OK && confirmation_verifier_buffer != nullptr) {
+        keymaster_blob_t confirmation_token_blob;
+        if (!request.additional_params.GetTagValue(TAG_CONFIRMATION_TOKEN,
+                                                   &confirmation_token_blob)) {
+            response->error = KM_ERROR_NO_USER_CONFIRMATION;
+            response->output.Clear();
+        } else {
+            if (confirmation_token_blob.data_length != kConfirmationTokenSize) {
+                LOG_E("TAG_CONFIRMATION_TOKEN wrong size, was %zd expected %zd",
+                      confirmation_token_blob.data_length, kConfirmationTokenSize);
+                response->error = KM_ERROR_INVALID_ARGUMENT;
+                response->output.Clear();
+            } else {
+                keymaster_error_t verification_result = context_->CheckConfirmationToken(
+                    confirmation_verifier_buffer->begin(),
+                    confirmation_verifier_buffer->available_read(), confirmation_token_blob.data);
+                if (verification_result != KM_ERROR_OK) {
+                    response->error = verification_result;
+                    response->output.Clear();
+                }
+            }
+        }
+    }
+
     operation_table_->Delete(request.op_handle);
 }
 
