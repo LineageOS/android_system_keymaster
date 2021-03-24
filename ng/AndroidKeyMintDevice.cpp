@@ -403,6 +403,12 @@ ScopedAStatus AndroidKeyMintDevice::earlyBootEnded() {
     return kmError2ScopedAStatus(response.error);
 }
 
+ScopedAStatus
+AndroidKeyMintDevice::convertStorageKeyToEphemeral(const std::vector<uint8_t>& /* storageKeyBlob */,
+                                                   std::vector<uint8_t>* /* ephemeralKeyBlob */) {
+    return kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
+}
+
 ScopedAStatus AndroidKeyMintDevice::performOperation(const vector<uint8_t>& /* request */,
                                                      vector<uint8_t>* /* response */) {
     return kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
