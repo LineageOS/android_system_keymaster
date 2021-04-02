@@ -107,7 +107,7 @@ vector<uint8_t> authToken2AidlVec(const HardwareAuthToken& token) {
 
     vector<uint8_t> result;
 
-    if (token.mac.size() <= 32) return result;
+    if (token.mac.size() < 32) return result;
 
     result.resize(sizeof(hw_auth_token_t));
     auto pos = result.begin();
@@ -115,8 +115,8 @@ vector<uint8_t> authToken2AidlVec(const HardwareAuthToken& token) {
     pos = copy_bytes_to_iterator(token.challenge, pos);
     pos = copy_bytes_to_iterator(token.userId, pos);
     pos = copy_bytes_to_iterator(token.authenticatorId, pos);
-    pos = copy_bytes_to_iterator(token.authenticatorType, pos);
-    pos = copy_bytes_to_iterator(token.timestamp, pos);
+    pos = copy_bytes_to_iterator(hton(static_cast<uint32_t>(token.authenticatorType)), pos);
+    pos = copy_bytes_to_iterator(hton(token.timestamp.milliSeconds), pos);
     pos = std::copy(token.mac.data(), token.mac.data() + token.mac.size(), pos);
 
     return result;
