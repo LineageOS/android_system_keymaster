@@ -42,11 +42,11 @@ keymaster_error_t ParseOldSoftkeymasterBlob(const KeymasterKeyBlob& blob,
                                             AuthorizationSet* hw_enforced,
                                             AuthorizationSet* sw_enforced);
 
-keymaster_error_t ParseOcbAuthEncryptedBlob(const KeymasterKeyBlob& blob,
-                                            const AuthorizationSet& hidden,
-                                            KeymasterKeyBlob* key_material,
-                                            AuthorizationSet* hw_enforced,
-                                            AuthorizationSet* sw_enforced);
+keymaster_error_t ParseAuthEncryptedBlob(const KeymasterKeyBlob& blob,
+                                         const AuthorizationSet& hidden,
+                                         KeymasterKeyBlob* key_material,
+                                         AuthorizationSet* hw_enforced,
+                                         AuthorizationSet* sw_enforced);
 
 keymaster_error_t SetKeyBlobAuthorizations(const AuthorizationSet& key_description,
                                            keymaster_key_origin_t origin, uint32_t os_version,
