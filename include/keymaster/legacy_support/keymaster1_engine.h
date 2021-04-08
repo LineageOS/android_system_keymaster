@@ -94,7 +94,9 @@ class Keymaster1Engine {
                                        keymaster_blob_t* output);
 
     static int duplicate_key_data(CRYPTO_EX_DATA* to, const CRYPTO_EX_DATA* from, void** from_d,
+                                  // NOLINTNEXTLINE(google-runtime-int)
                                   int index, long argl, void* argp);
+    // NOLINTNEXTLINE(google-runtime-int)
     static void free_key_data(void* parent, void* ptr, CRYPTO_EX_DATA* data, int index, long argl,
                               void* argp);
 

@@ -27,10 +27,13 @@
 
 namespace aidl::android::hardware::security::secureclock {
 
-using namespace ::keymaster;
-using namespace ::aidl::android::hardware::security::keymint::km_utils;
+using keymaster::GenerateTimestampTokenRequest;
+using keymaster::GenerateTimestampTokenResponse;
+using keymint::km_utils::kmBlob2vector;
+using keymint::km_utils::kmError2ScopedAStatus;
 
-AndroidSecureClock::AndroidSecureClock(std::shared_ptr<keymint::AndroidKeyMintDevice> keymint)
+AndroidSecureClock::AndroidSecureClock(
+    const std::shared_ptr<keymint::AndroidKeyMintDevice>& keymint)
     : impl_(keymint->getKeymasterImpl()) {}
 
 AndroidSecureClock::~AndroidSecureClock() {}

@@ -166,8 +166,8 @@ keymaster_error_t ParseOldSoftkeymasterBlob(const KeymasterKeyBlob& blob,
                                             KeymasterKeyBlob* key_material,
                                             AuthorizationSet* hw_enforced,
                                             AuthorizationSet* sw_enforced) {
-    long publicLen = 0;
-    long privateLen = 0;
+    long publicLen = 0;   // NOLINT(google-runtime-int)
+    long privateLen = 0;  // NOLINT(google-runtime-int)
     const uint8_t* p = blob.key_material;
     const uint8_t* end = blob.key_material + blob.key_material_size;
 
@@ -182,11 +182,13 @@ keymaster_error_t ParseOldSoftkeymasterBlob(const KeymasterKeyBlob& blob,
     if (memcmp(p, SOFT_KEY_MAGIC, sizeof(SOFT_KEY_MAGIC)) != 0) return KM_ERROR_INVALID_KEY_BLOB;
     p += sizeof(SOFT_KEY_MAGIC);
 
-    for (size_t i = 0; i < sizeof(type); i++)
+    for (size_t i = 0; i < sizeof(type); i++) {
         type = (type << 8) | *p++;
+    }
 
-    for (size_t i = 0; i < sizeof(type); i++)
+    for (size_t i = 0; i < sizeof(type); i++) {
         publicLen = (publicLen << 8) | *p++;
+    }
 
     if (p + publicLen > end) {
         LOG_W("public key length encoding error: size=%ld, end=%td", publicLen, end - p);

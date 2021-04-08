@@ -19,6 +19,24 @@
 
 namespace keymaster {
 
+using cppcose::ALGORITHM;
+using cppcose::COSE_KEY;
+using cppcose::CoseKey;
+using cppcose::EC2;
+using cppcose::ECDH_ES_HKDF_256;
+using cppcose::ES256;
+using cppcose::generateCoseMac0Mac;
+using cppcose::HMAC_256;
+using cppcose::kCoseMac0EntryCount;
+using cppcose::kCoseMac0Payload;
+using cppcose::kCoseMac0ProtectedParams;
+using cppcose::kCoseMac0Tag;
+using cppcose::kCoseMac0UnprotectedParams;
+using cppcose::KEY_ID;
+using cppcose::OCTET_KEY_PAIR;
+using cppcose::P256;
+using cppcose::verifyAndParseCoseSign1;
+
 // Hard-coded set of acceptable public keys that can act as roots of EEK chains.
 inline const std::vector<std::vector<uint8_t>> kAuthorizedEekRoots = {
     {0x5c, 0xea, 0x4b, 0xd2, 0x31, 0x27, 0x15, 0x5e, 0x62, 0x94, 0x70,
@@ -39,8 +57,8 @@ validateAndExtractEekPubAndId(bool testMode, const KeymasterBlob& endpointEncryp
     const cppbor::Array* certArr = item->asArray();
     std::vector<uint8_t> lastPubKey;
     for (int i = 0; i < certArr->size(); ++i) {
-        auto cosePubKey = verifyAndParseCoseSign1(testMode, certArr->get(i)->asArray(),
-                                                  std::move(lastPubKey), {} /* AAD */);
+        auto cosePubKey =
+            verifyAndParseCoseSign1(testMode, certArr->get(i)->asArray(), lastPubKey, {} /* AAD */);
         if (!cosePubKey) {
             LOG_E("Failed to validate EEK chain: %s", cosePubKey.moveMessage().c_str());
             return kStatusInvalidEek;

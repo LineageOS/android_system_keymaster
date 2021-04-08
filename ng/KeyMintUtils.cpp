@@ -21,9 +21,9 @@
 
 namespace aidl::android::hardware::security::keymint::km_utils {
 
-using namespace ::keymaster;
-
 namespace {
+
+using keymaster::hton;
 
 KeyParameter kmEnumParam2Aidl(const keymaster_key_param_t& param) {
     switch (param.tag) {

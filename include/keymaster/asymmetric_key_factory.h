@@ -28,7 +28,7 @@ class KeymasterContext;
 class AsymmetricKey;
 class AsymmetricKeyFactory : public KeyFactory {
   public:
-    AsymmetricKeyFactory(const KeymasterContext& context) : context_(context) {}
+    explicit AsymmetricKeyFactory(const KeymasterContext& context) : context_(context) {}
     keymaster_error_t LoadKey(KeymasterKeyBlob&& key_material,
                               const AuthorizationSet& additional_params,
                               AuthorizationSet&& hw_enforced,  //
