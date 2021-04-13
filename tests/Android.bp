@@ -17,8 +17,11 @@ shared_test_libs = [
     "libkeymaster_portable",
     "liblog",
     "libsoft_attestation_cert",
-    "libsoftkeymasterdevice",
     "libutils",
+]
+
+static_test_libs = [
+    "libsoftkeymasterdevice",
 ]
 
 test_cflags = [
@@ -53,5 +56,6 @@ cc_test {
         "wrapped_key_test.cpp",
     ],
     shared_libs: shared_test_libs,
+    static_libs: static_test_libs,
     test_suites: ["general-tests"],
 }
