@@ -112,6 +112,7 @@ cc_library {
         "android_keymaster/operation.cpp",
         "android_keymaster/operation_table.cpp",
         "android_keymaster/pure_soft_secure_key_storage.cpp",
+        "android_keymaster/remote_provisioning_utils.cpp",
         "android_keymaster/serializable.cpp",
         "key_blob_utils/auth_encrypted_key_blob.cpp",
         "key_blob_utils/integrity_assured_key_blob.cpp",
@@ -154,6 +155,7 @@ cc_library {
     shared_libs: [
         "libcrypto",
         "libcppbor_external",
+        "libcppcose_rkp",
     ],
     export_shared_lib_headers: ["libcppbor_external"],
     header_libs: ["libhardware_headers"],
@@ -181,6 +183,7 @@ cc_library {
     srcs: [
         "android_keymaster/keymaster_configuration.cpp",
         "contexts/pure_soft_keymaster_context.cpp",
+        "contexts/pure_soft_remote_provisioning_context.cpp",
         "contexts/soft_attestation_context.cpp",
         "contexts/soft_keymaster_context.cpp",
         "contexts/soft_keymaster_device.cpp",
@@ -200,6 +203,8 @@ cc_library {
         "libsoft_attestation_cert",
         "liblog",
         "libbase",
+        "libcppbor_external",
+        "libcppcose_rkp",
         "libcrypto",
         "libcutils",
     ],
@@ -226,6 +231,7 @@ cc_library {
         "android_keymaster/keymaster_configuration.cpp",
         "contexts/soft_attestation_context.cpp",
         "contexts/pure_soft_keymaster_context.cpp",
+        "contexts/pure_soft_remote_provisioning_context.cpp",
         "contexts/soft_keymaster_logger.cpp",
         "km_openssl/soft_keymaster_enforcement.cpp",
     ],
@@ -235,6 +241,8 @@ cc_library {
         "libkeymaster_portable",
         "libsoft_attestation_cert",
         "liblog",
+        "libcppbor_external",
+        "libcppcose_rkp",
         "libcrypto",
         "libcutils",
         "libbase",
@@ -246,6 +254,7 @@ cc_library {
     name: "libpuresoftkeymasterdevice_host",
     srcs: [
         "contexts/pure_soft_keymaster_context.cpp",
+        "contexts/pure_soft_remote_provisioning_context.cpp",
         "contexts/soft_attestation_context.cpp",
         "contexts/soft_keymaster_logger.cpp",
         "km_openssl/soft_keymaster_enforcement.cpp",
@@ -258,6 +267,8 @@ cc_library {
         "libkeymaster_portable",
         "libsoft_attestation_cert",
         "liblog",
+        "libcppbor_external",
+        "libcppcose_rkp",
         "libcrypto",
         "libcutils",
         "libbase",
@@ -380,7 +391,7 @@ cc_library {
         "android.hardware.security.secureclock-V1-ndk_platform",
         "libbase",
         "libbinder_ndk",
-        "libcppbor",
+        "libcppbor_external",
         "libcrypto",
         "libcutils",
         "libkeymaster_messages",
@@ -391,6 +402,23 @@ cc_library {
         "libutils",
     ],
     export_include_dirs: ["include", "ng/include"],
+}
+
+cc_library {
+    name: "libcppcose_rkp",
+    vendor_available: true,
+    host_supported: true,
+    srcs: [
+        "cppcose/cppcose.cpp",
+    ],
+    export_include_dirs: [
+        "include",
+    ],
+    shared_libs: [
+        "libcppbor_external",
+        "libcrypto",
+        "liblog",
+    ],
 }
 
 // libkeymasterfiles is an empty library that exports all of the files in keymaster as includes.

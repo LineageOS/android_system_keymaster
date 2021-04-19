@@ -20,6 +20,7 @@
 #include <string>
 
 #include <keymaster/attestation_context.h>
+#include <keymaster/contexts/pure_soft_remote_provisioning_context.h>
 #include <keymaster/contexts/soft_attestation_context.h>
 #include <keymaster/keymaster_context.h>
 #include <keymaster/km_openssl/attestation_record.h>
@@ -85,6 +86,9 @@ class PureSoftKeymasterContext : public KeymasterContext,
 
     SecureKeyStorage* secure_key_storage() override { return pure_soft_secure_key_storage_.get(); }
 
+    RemoteProvisioningContext* GetRemoteProvisioningContext() override {
+        return pure_soft_remote_provisioning_context_.get();
+    }
     /*********************************************************************************************
      * Implement SoftwareKeyBlobMaker
      */
@@ -118,6 +122,7 @@ class PureSoftKeymasterContext : public KeymasterContext,
     SoftKeymasterEnforcement soft_keymaster_enforcement_;
     const keymaster_security_level_t security_level_;
     std::unique_ptr<SecureKeyStorage> pure_soft_secure_key_storage_;
+    std::unique_ptr<RemoteProvisioningContext> pure_soft_remote_provisioning_context_;
 };
 
 }  // namespace keymaster
