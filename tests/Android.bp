@@ -22,6 +22,7 @@ shared_test_libs = [
 
 static_test_libs = [
     "libsoftkeymasterdevice",
+    "libcppcose_rkp",
 ]
 
 test_cflags = [

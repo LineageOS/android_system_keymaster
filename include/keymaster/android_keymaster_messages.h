@@ -58,6 +58,8 @@ enum AndroidKeymasterCommand : uint32_t {
     EARLY_BOOT_ENDED = 26,
     DEVICE_LOCKED = 27,
     GET_VERSION_2 = 28,
+    GENERATE_RKP_KEY = 29,
+    GENERATE_CSR = 30,
 };
 
 /**
@@ -354,6 +356,62 @@ struct GenerateKeyResponse : public KeymasterResponse {
     AuthorizationSet enforced;
     AuthorizationSet unenforced;
     CertificateChain certificate_chain;
+};
+
+struct GenerateRkpKeyRequest : KeymasterMessage {
+    explicit GenerateRkpKeyRequest(int32_t ver) : KeymasterMessage(ver) {}
+
+    size_t SerializedSize() const override { return sizeof(uint8_t); }
+    uint8_t* Serialize(uint8_t* buf, const uint8_t* end) const override {
+        return append_to_buf(buf, end, &test_mode, sizeof(uint8_t));
+    }
+    bool Deserialize(const uint8_t** buf_ptr, const uint8_t* end) override {
+        return copy_from_buf(buf_ptr, end, &test_mode, sizeof(uint8_t));
+    }
+
+    bool test_mode = false;
+};
+
+struct GenerateRkpKeyResponse : public KeymasterResponse {
+    explicit GenerateRkpKeyResponse(int32_t ver) : KeymasterResponse(ver) {}
+
+    size_t NonErrorSerializedSize() const override;
+    uint8_t* NonErrorSerialize(uint8_t* buf, const uint8_t* end) const override;
+    bool NonErrorDeserialize(const uint8_t** buf_ptr, const uint8_t* end) override;
+
+    KeymasterKeyBlob key_blob;
+    KeymasterBlob maced_public_key;
+};
+
+struct GenerateCsrRequest : public KeymasterMessage {
+    explicit GenerateCsrRequest(int32_t ver) : KeymasterMessage(ver) {}
+
+    ~GenerateCsrRequest() override { delete[] keys_to_sign_array; }
+
+    size_t SerializedSize() const override;
+    uint8_t* Serialize(uint8_t* buf, const uint8_t* end) const override;
+    bool Deserialize(const uint8_t** buf_ptr, const uint8_t* end) override;
+    void SetKeyToSign(uint32_t index, const void* data, size_t length);
+    void SetEndpointEncCertChain(const void* data, size_t length);
+    void SetChallenge(const void* data, size_t length);
+
+    bool test_mode = false;
+    size_t num_keys = 0;
+    KeymasterBlob* keys_to_sign_array;
+    KeymasterBlob endpoint_enc_cert_chain;
+    KeymasterBlob challenge;
+};
+
+struct GenerateCsrResponse : public KeymasterResponse {
+    explicit GenerateCsrResponse(int32_t ver) : KeymasterResponse(ver) {}
+
+    size_t NonErrorSerializedSize() const override;
+    uint8_t* NonErrorSerialize(uint8_t* buf, const uint8_t* end) const override;
+    bool NonErrorDeserialize(const uint8_t** buf_ptr, const uint8_t* end) override;
+
+    KeymasterBlob keys_to_sign_mac;
+    KeymasterBlob device_info_blob;
+    KeymasterBlob protected_data_blob;
 };
 
 struct GetKeyCharacteristicsRequest : public KeymasterMessage {

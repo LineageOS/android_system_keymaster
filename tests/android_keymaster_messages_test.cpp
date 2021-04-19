@@ -171,6 +171,99 @@ TEST(RoundTrip, GenerateKeyResponseTestError) {
     }
 }
 
+TEST(RoundTrip, GenerateRkpKeyRequest) {
+    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        GenerateRkpKeyRequest req(ver);
+        req.test_mode = true;
+
+        UniquePtr<GenerateRkpKeyRequest> deserialized(round_trip(ver, req, 1));
+        EXPECT_EQ(deserialized->test_mode, req.test_mode);
+    }
+}
+
+TEST(RoundTrip, GenerateRkpKeyResponse) {
+    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        GenerateRkpKeyResponse rsp(ver);
+        rsp.error = KM_ERROR_OK;
+        rsp.key_blob.key_material = dup_array(TEST_DATA);
+        rsp.key_blob.key_material_size = array_length(TEST_DATA);
+        rsp.maced_public_key.data = dup_array(TEST_DATA);
+        rsp.maced_public_key.data_length = array_length(TEST_DATA);
+
+        UniquePtr<GenerateRkpKeyResponse> deserialized;
+        deserialized.reset(round_trip(ver, rsp, 34));
+
+        EXPECT_EQ(KM_ERROR_OK, deserialized->error);
+        EXPECT_EQ(deserialized->key_blob.key_material_size, rsp.key_blob.key_material_size);
+        EXPECT_EQ(0, std::memcmp(deserialized->key_blob.key_material, rsp.key_blob.key_material,
+                                 deserialized->key_blob.key_material_size));
+        EXPECT_EQ(deserialized->maced_public_key.data_length, rsp.maced_public_key.data_length);
+        EXPECT_EQ(0, std::memcmp(deserialized->maced_public_key.data, rsp.maced_public_key.data,
+                                 deserialized->maced_public_key.data_length));
+    }
+}
+
+TEST(RoundTrip, GenerateCsrRequest) {
+    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        GenerateCsrRequest req(ver);
+        req.test_mode = true;
+        req.num_keys = 2;
+        req.keys_to_sign_array = new KeymasterBlob[req.num_keys];
+        for (size_t i = 0; i < req.num_keys; i++) {
+            req.SetKeyToSign(i, dup_array(TEST_DATA), array_length(TEST_DATA));
+        }
+        req.SetEndpointEncCertChain(dup_array(TEST_DATA), array_length(TEST_DATA));
+        req.SetChallenge(dup_array(TEST_DATA), array_length(TEST_DATA));
+        UniquePtr<GenerateCsrRequest> deserialized(round_trip(ver, req, 65));
+        EXPECT_EQ(deserialized->test_mode, req.test_mode);
+        EXPECT_EQ(deserialized->num_keys, req.num_keys);
+        for (int i = 0; i < (int)req.num_keys; i++) {
+            EXPECT_EQ(deserialized->keys_to_sign_array[i].data_length,
+                      req.keys_to_sign_array[i].data_length);
+            EXPECT_EQ(0, std::memcmp(deserialized->keys_to_sign_array[i].data,
+                                     req.keys_to_sign_array[i].data,
+                                     req.keys_to_sign_array[i].data_length));
+        }
+        EXPECT_EQ(deserialized->endpoint_enc_cert_chain.data_length,
+                  req.endpoint_enc_cert_chain.data_length);
+        EXPECT_EQ(0, std::memcmp(deserialized->endpoint_enc_cert_chain.data,
+                                 req.endpoint_enc_cert_chain.data,
+                                 req.endpoint_enc_cert_chain.data_length));
+        EXPECT_EQ(deserialized->challenge.data_length, req.challenge.data_length);
+        EXPECT_EQ(0, std::memcmp(deserialized->challenge.data, req.challenge.data,
+                                 req.challenge.data_length));
+    }
+}
+
+TEST(RoundTrip, GenerateCsrResponse) {
+    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        GenerateCsrResponse rsp(ver);
+        rsp.error = KM_ERROR_OK;
+        rsp.keys_to_sign_mac.data = dup_array(TEST_DATA);
+        rsp.keys_to_sign_mac.data_length = array_length(TEST_DATA);
+        rsp.device_info_blob.data = dup_array(TEST_DATA);
+        rsp.device_info_blob.data_length = array_length(TEST_DATA);
+        rsp.protected_data_blob.data = dup_array(TEST_DATA);
+        rsp.protected_data_blob.data_length = array_length(TEST_DATA);
+
+        UniquePtr<GenerateCsrResponse> deserialized;
+        deserialized.reset(round_trip(ver, rsp, 49));
+
+        EXPECT_EQ(KM_ERROR_OK, deserialized->error);
+        EXPECT_EQ(deserialized->keys_to_sign_mac.data_length, rsp.keys_to_sign_mac.data_length);
+        EXPECT_EQ(0, std::memcmp(deserialized->keys_to_sign_mac.data, rsp.keys_to_sign_mac.data,
+                                 deserialized->keys_to_sign_mac.data_length));
+        EXPECT_EQ(deserialized->device_info_blob.data_length, rsp.device_info_blob.data_length);
+        EXPECT_EQ(0, std::memcmp(deserialized->device_info_blob.data, rsp.device_info_blob.data,
+                                 deserialized->device_info_blob.data_length));
+        EXPECT_EQ(deserialized->protected_data_blob.data_length,
+                  rsp.protected_data_blob.data_length);
+        EXPECT_EQ(0,
+                  std::memcmp(deserialized->protected_data_blob.data, rsp.protected_data_blob.data,
+                              deserialized->protected_data_blob.data_length));
+    }
+}
+
 TEST(RoundTrip, GetKeyCharacteristicsRequest) {
     for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
         GetKeyCharacteristicsRequest req(ver);
