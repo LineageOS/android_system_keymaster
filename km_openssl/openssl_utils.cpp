@@ -23,6 +23,8 @@
 
 namespace keymaster {
 
+constexpr uint32_t kAffinePointLength = 32;
+
 keymaster_error_t ec_get_group_size(const EC_GROUP* group, size_t* key_size_bits) {
     switch (EC_GROUP_get_curve_name(group)) {
     case NID_secp224r1:
@@ -114,6 +116,44 @@ keymaster_error_t EvpKeyToKeyMaterial(const EVP_PKEY* pkey, KeymasterKeyBlob* ke
     uint8_t* tmp = key_blob->writable_data();
     i2d_PrivateKey(pkey, &tmp);
 
+    return KM_ERROR_OK;
+}
+
+// Remote provisioning helper function
+keymaster_error_t GetEcdsa256KeyFromCert(const keymaster_blob_t* km_cert, uint8_t* x_coord,
+                                         size_t x_length, uint8_t* y_coord, size_t y_length) {
+    if (km_cert == nullptr || x_coord == nullptr || y_coord == nullptr) {
+        return KM_ERROR_UNEXPECTED_NULL_POINTER;
+    }
+    if (x_length != kAffinePointLength || y_length != kAffinePointLength) {
+        return KM_ERROR_INVALID_ARGUMENT;
+    }
+    const uint8_t* temp = km_cert->data;
+    X509* cert = d2i_X509(NULL, &temp, km_cert->data_length);
+    if (cert == nullptr) return TranslateLastOpenSslError();
+    EVP_PKEY* pubKey = X509_get_pubkey(cert);
+    if (pubKey == nullptr) return TranslateLastOpenSslError();
+    EC_KEY* ecKey = EVP_PKEY_get0_EC_KEY(pubKey);
+    if (ecKey == nullptr) return TranslateLastOpenSslError();
+    const EC_POINT* jacobian_coords = EC_KEY_get0_public_key(ecKey);
+    if (jacobian_coords == nullptr) return TranslateLastOpenSslError();
+    BIGNUM x;
+    BIGNUM y;
+    BN_CTX* ctx = BN_CTX_new();
+    if (ctx == nullptr) return TranslateLastOpenSslError();
+    if (!EC_POINT_get_affine_coordinates_GFp(EC_KEY_get0_group(ecKey), jacobian_coords, &x, &y,
+                                             ctx)) {
+        return TranslateLastOpenSslError();
+    }
+    uint8_t* tmp_x = x_coord;
+    if (BN_bn2binpad(&x, tmp_x, kAffinePointLength) != kAffinePointLength) {
+        return TranslateLastOpenSslError();
+    }
+    uint8_t* tmp_y = y_coord;
+    if (BN_bn2binpad(&y, tmp_y, kAffinePointLength) != kAffinePointLength) {
+        return TranslateLastOpenSslError();
+    }
+    BN_CTX_free(ctx);
     return KM_ERROR_OK;
 }
 

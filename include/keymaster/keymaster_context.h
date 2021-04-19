@@ -23,6 +23,7 @@
 #include <keymaster/android_keymaster_utils.h>
 #include <keymaster/keymaster_enforcement.h>
 #include <keymaster/km_version.h>
+#include <keymaster/remote_provisioning_context.h>
 #include <keymaster/secure_key_storage.h>
 
 namespace keymaster {
@@ -205,6 +206,12 @@ class KeymasterContext {
                            const uint8_t /*confirmation_token*/[kConfirmationTokenSize]) const {
         return KM_ERROR_UNIMPLEMENTED;
     }
+
+    /**
+     * Return the remote provisioning context object, or null if remote provisioning is not
+     * supported.
+     */
+    virtual RemoteProvisioningContext* GetRemoteProvisioningContext() { return nullptr; }
 
   private:
     // Uncopyable.
