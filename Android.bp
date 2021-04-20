@@ -379,6 +379,7 @@ cc_library {
         "legacy_support/keymaster_passthrough_operation.cpp",
         "ng/AndroidKeyMintDevice.cpp",
         "ng/AndroidKeyMintOperation.cpp",
+        "ng/AndroidRemotelyProvisionedComponentDevice.cpp",
         "ng/AndroidSharedSecret.cpp",
         "ng/AndroidSecureClock.cpp",
         "ng/KeyMintUtils.cpp",
