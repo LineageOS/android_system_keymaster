@@ -95,6 +95,9 @@ keymaster_error_t KeyMaterialToEvpKey(keymaster_key_format_t key_format,
 
 keymaster_error_t EvpKeyToKeyMaterial(const EVP_PKEY* evp_pkey, KeymasterKeyBlob* key_blob);
 
+keymaster_error_t GetEcdsa256KeyFromCert(const keymaster_blob_t* km_cert, uint8_t* x_coord,
+                                         size_t x_length, uint8_t* y_coord, size_t y_length);
+
 size_t ec_group_size_bits(EC_KEY* ec_key);
 
 keymaster_error_t GenerateRandom(uint8_t* buf, size_t length);
