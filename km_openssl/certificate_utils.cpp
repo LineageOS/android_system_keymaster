@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <openssl/asn1.h>
 #include <openssl/evp.h>
 #include <openssl/x509v3.h>
 
@@ -228,7 +229,7 @@ keymaster_error_t make_cert_rump(const X509_NAME* issuer,
     // Set the certificate serialNumber
     ASN1_INTEGER_Ptr serial_number(ASN1_INTEGER_new());
     if (!serial_number.get() ||  //
-        !ASN1_INTEGER_set(serial_number.get(), cert_params.serial) ||
+        !BN_to_ASN1_INTEGER(cert_params.serial.get(), serial_number.get()) ||
         !X509_set_serialNumber(certificate.get(),
                                serial_number.get() /* Don't release; copied */)) {
         return TranslateLastOpenSslError();
