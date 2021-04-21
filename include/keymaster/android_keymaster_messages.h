@@ -60,6 +60,7 @@ enum AndroidKeymasterCommand : uint32_t {
     GET_VERSION_2 = 28,
     GENERATE_RKP_KEY = 29,
     GENERATE_CSR = 30,
+    GENERATE_TIMESTAMP_TOKEN = 31,
 };
 
 /**
