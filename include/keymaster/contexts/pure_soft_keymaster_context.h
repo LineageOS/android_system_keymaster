@@ -86,7 +86,7 @@ class PureSoftKeymasterContext : public KeymasterContext,
 
     SecureKeyStorage* secure_key_storage() override { return pure_soft_secure_key_storage_.get(); }
 
-    RemoteProvisioningContext* GetRemoteProvisioningContext() override {
+    RemoteProvisioningContext* GetRemoteProvisioningContext() const override {
         return pure_soft_remote_provisioning_context_.get();
     }
     /*********************************************************************************************
