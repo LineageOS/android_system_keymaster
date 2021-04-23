@@ -211,7 +211,7 @@ class KeymasterContext {
      * Return the remote provisioning context object, or null if remote provisioning is not
      * supported.
      */
-    virtual RemoteProvisioningContext* GetRemoteProvisioningContext() { return nullptr; }
+    virtual RemoteProvisioningContext* GetRemoteProvisioningContext() const { return nullptr; }
 
   private:
     // Uncopyable.
