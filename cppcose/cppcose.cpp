@@ -55,6 +55,10 @@ ErrMsgOr<bssl::UniquePtr<EVP_CIPHER_CTX>> aesGcmInitAndProcessAad(const bytevec&
 
 ErrMsgOr<bytevec> generateCoseMac0Mac(const bytevec& macKey, const bytevec& externalAad,
                                       const bytevec& payload) {
+    if (macKey.empty()) {
+        return "Empty MAC key";
+    }
+
     auto macStructure = cppbor::Array()
                             .add("MAC0")
                             .add(cppbor::Map().add(ALGORITHM, HMAC_256).canonicalize().encode())
@@ -170,10 +174,9 @@ ErrMsgOr<bytevec> verifyAndParseCoseSign1(bool ignoreSignature, const cppbor::Ar
     const cppbor::Bstr* protectedParams = coseSign1->get(kCoseSign1ProtectedParams)->asBstr();
     const cppbor::Map* unprotectedParams = coseSign1->get(kCoseSign1UnprotectedParams)->asMap();
     const cppbor::Bstr* payload = coseSign1->get(kCoseSign1Payload)->asBstr();
-    const cppbor::Bstr* signature = coseSign1->get(kCoseSign1Signature)->asBstr();
 
-    if (!protectedParams || !unprotectedParams || !payload || !signature) {
-        return "Invalid COSE_Sign1";
+    if (!protectedParams || !unprotectedParams || !payload) {
+        return "Missing input parameters";
     }
 
     auto [parsedProtParams, _, errMsg] = cppbor::parse(protectedParams);
@@ -190,9 +193,16 @@ ErrMsgOr<bytevec> verifyAndParseCoseSign1(bool ignoreSignature, const cppbor::Ar
     }
 
     if (!ignoreSignature) {
+        const cppbor::Bstr* signature = coseSign1->get(kCoseSign1Signature)->asBstr();
+        if (!signature || signature->value().empty()) {
+            return "Missing signature input";
+        }
+
         bool selfSigned = signingCoseKey.empty();
         auto key = CoseKey::parseEd25519(selfSigned ? payload->value() : signingCoseKey);
-        if (!key) return "Bad signing key: " + key.moveMessage();
+        if (!key || key->getBstrValue(CoseKey::PUBKEY_X)->empty()) {
+            return "Bad signing key: " + key.moveMessage();
+        }
 
         bytevec signatureInput =
             cppbor::Array().add("Signature1").add(*protectedParams).add(aad).add(*payload).encode();
@@ -356,6 +366,10 @@ ErrMsgOr<bytevec> decryptCoseEncrypt(const bytevec& key, const cppbor::Item* cos
 
 ErrMsgOr<bytevec> x25519_HKDF_DeriveKey(const bytevec& pubKeyA, const bytevec& privKeyA,
                                         const bytevec& pubKeyB, bool senderIsA) {
+    if (privKeyA.empty() || pubKeyA.empty() || pubKeyB.empty()) {
+        return "Missing input key parameters";
+    }
+
     bytevec rawSharedKey(X25519_SHARED_KEY_LEN);
     if (!::X25519(rawSharedKey.data(), privKeyA.data(), pubKeyB.data())) {
         return "ECDH operation failed";
