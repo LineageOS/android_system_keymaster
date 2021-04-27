@@ -98,26 +98,27 @@ keymaster_key_param_t aidlEnumParam2Km(const KeyParameter& param) {
 
 }  // namespace
 
-vector<uint8_t> authToken2AidlVec(const HardwareAuthToken& token) {
-    static_assert(1 /* version size */ + sizeof(token.challenge) + sizeof(token.userId) +
-                          sizeof(token.authenticatorId) + sizeof(token.authenticatorType) +
-                          sizeof(token.timestamp) + 32 /* HMAC size */
+vector<uint8_t> authToken2AidlVec(const std::optional<HardwareAuthToken>& token) {
+    static_assert(1 /* version size */ + sizeof(token->challenge) + sizeof(token->userId) +
+                          sizeof(token->authenticatorId) + sizeof(token->authenticatorType) +
+                          sizeof(token->timestamp) + 32 /* HMAC size */
                       == sizeof(hw_auth_token_t),
                   "HardwareAuthToken content size does not match hw_auth_token_t size");
 
     vector<uint8_t> result;
 
-    if (token.mac.size() < 32) return result;
+    if (!token.has_value()) return result;
+    if (token->mac.size() < 32) return result;
 
     result.resize(sizeof(hw_auth_token_t));
     auto pos = result.begin();
     *pos++ = 0;  // Version byte
-    pos = copy_bytes_to_iterator(token.challenge, pos);
-    pos = copy_bytes_to_iterator(token.userId, pos);
-    pos = copy_bytes_to_iterator(token.authenticatorId, pos);
-    pos = copy_bytes_to_iterator(hton(static_cast<uint32_t>(token.authenticatorType)), pos);
-    pos = copy_bytes_to_iterator(hton(token.timestamp.milliSeconds), pos);
-    pos = std::copy(token.mac.data(), token.mac.data() + token.mac.size(), pos);
+    pos = copy_bytes_to_iterator(token->challenge, pos);
+    pos = copy_bytes_to_iterator(token->userId, pos);
+    pos = copy_bytes_to_iterator(token->authenticatorId, pos);
+    pos = copy_bytes_to_iterator(hton(static_cast<uint32_t>(token->authenticatorType)), pos);
+    pos = copy_bytes_to_iterator(hton(token->timestamp.milliSeconds), pos);
+    pos = std::copy(token->mac.data(), token->mac.data() + token->mac.size(), pos);
 
     return result;
 }
