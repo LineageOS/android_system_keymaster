@@ -85,7 +85,7 @@ enum AndroidKeymasterCommand : uint32_t {
  *
  * Assuming both client and server support GetVersion2, the approach is as follows:
  *
- * 1.  Client send GetVersion2Request, containing its maximum message version, c_max.
+ * 1.  Client sends GetVersion2Request, containing its maximum message version, c_max.
  * 2.  Server replies with GetVersion2Response, containing its maximum message version, s_max.
  * 3.  Both sides proceed to create all messages with version min(c_max, s_max).
  *
@@ -105,10 +105,11 @@ constexpr int32_t kMaxMessageVersion = 4;
 constexpr int32_t kDefaultMessageVersion = 3;
 
 /**
- * MessageVersion returns the message version for a specified KM version and, possibly KM release
- * date (it's not recommended to change message formats within a KM version, but it could happen).
+ * MessageVersion returns the message version for a specified KM version and, possibly, KM release
+ * date in YYYYMMDD format (it's not recommended to change message formats within a KM version, but
+ * it could happen).
  */
-inline int32_t MessageVersion(KmVersion version, uint32_t /* km_date */) {
+inline int32_t MessageVersion(KmVersion version, uint32_t /* km_date */ = 0) {
     switch (version) {
     case KmVersion::KEYMASTER_1:
         return 1;
@@ -1021,7 +1022,7 @@ struct GetVersion2Request : public KeymasterMessage {
         return copy_uint32_from_buf(buf_ptr, end, &max_message_version);
     }
 
-    uint32_t max_message_version;
+    uint32_t max_message_version = kDefaultMessageVersion;
 };
 
 struct GetVersion2Response : public KeymasterResponse {
