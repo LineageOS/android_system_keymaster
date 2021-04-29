@@ -94,12 +94,11 @@ PureSoftRemoteProvisioningContext::GenerateBcc() const {
                        .add(CoseKey::CURVE, ED25519)
                        .add(CoseKey::KEY_OPS, VERIFY)
                        .add(CoseKey::PUBKEY_X, pubKey)
-                       .canonicalize()
-                       .encode();
+                       .canonicalize();
     auto sign1Payload = cppbor::Map()
                             .add(1 /* Issuer */, "Issuer")
                             .add(2 /* Subject */, "Subject")
-                            .add(-4670552 /* Subject Pub Key */, coseKey)
+                            .add(-4670552 /* Subject Pub Key */, coseKey.encode())
                             .add(-4670553 /* Key Usage (little-endian order) */,
                                  std::vector<uint8_t>{0x20} /* keyCertSign = 1<<5 */)
                             .canonicalize()
@@ -109,7 +108,7 @@ PureSoftRemoteProvisioningContext::GenerateBcc() const {
                                         sign1Payload, {} /* AAD */);
     assert(coseSign1);
 
-    return {privKey, cppbor::Array().add(coseKey).add(coseSign1.moveValue())};
+    return {privKey, cppbor::Array().add(std::move(coseKey)).add(coseSign1.moveValue())};
 }
 
 }  // namespace keymaster
