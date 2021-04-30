@@ -16,11 +16,14 @@
 
 #pragma once
 
+#include <array>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <vector>
 
 #include <cppbor.h>
+#include <keymaster/cppcose/cppcose.h>
 
 namespace keymaster {
 
@@ -33,7 +36,11 @@ class RemoteProvisioningContext {
     virtual std::unique_ptr<cppbor::Map> CreateDeviceInfo() const = 0;
     virtual std::pair<std::vector<uint8_t>, cppbor::Array> GenerateBcc() const = 0;
 
-    std::vector<uint8_t> macKey_;
+    // Generate an HMAC-SHA256 over the given input. This is used to verify a given
+    // input hasn't changed across multiple calls to the remote provisioning HAL.
+    virtual std::optional<cppcose::HmacSha256>
+    GenerateHmacSha256(const cppcose::bytevec& input) const = 0;
+
     std::vector<uint8_t> devicePrivKey_;
     cppbor::Array bcc_;
 

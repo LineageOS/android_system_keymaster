@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "keymaster/cppcose/cppcose.h"
 #include <keymaster/logger.h>
 #include <keymaster/remote_provisioning_utils.h>
 
@@ -86,7 +87,7 @@ validateAndExtractEekPubAndId(bool testMode, const KeymasterBlob& endpointEncryp
 
 StatusOr<std::vector<uint8_t> /* pubkeys */>
 validateAndExtractPubkeys(bool testMode, uint32_t numKeys, KeymasterBlob* keysToSign,
-                          const std::vector<uint8_t>& macKey) {
+                          cppcose::HmacSha256Function macFunction) {
     auto pubKeysToMac = cppbor::Array();
     for (int i = 0; i < numKeys; i++) {
         auto [macedKeyItem, _, coseMacErrMsg] =
@@ -132,7 +133,7 @@ validateAndExtractPubkeys(bool testMode, uint32_t numKeys, KeymasterBlob* keysTo
             return kStatusTestKeyInProductionRequest;
         }
 
-        auto macTag = generateCoseMac0Mac(macKey, {} /* external_aad */, payload->value());
+        auto macTag = generateCoseMac0Mac(macFunction, {} /* external_aad */, payload->value());
         if (!macTag) {
             LOG_E("%s", macTag.moveMessage().c_str());
             return kStatusInvalidMac;
