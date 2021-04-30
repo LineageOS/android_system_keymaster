@@ -410,6 +410,13 @@ AndroidKeyMintDevice::convertStorageKeyToEphemeral(const std::vector<uint8_t>& /
     return kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
 }
 
+ScopedAStatus AndroidKeyMintDevice::getKeyCharacteristics(
+    const std::vector<uint8_t>& /* storageKeyBlob */, const std::vector<uint8_t>& /* appId */,
+    const std::vector<uint8_t>& /* appData */,
+    std::vector<KeyCharacteristics>* /* keyCharacteristics */) {
+    return kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
+}
+
 IKeyMintDevice* CreateKeyMintDevice(SecurityLevel securityLevel) {
     return ::new AndroidKeyMintDevice(securityLevel);
 }
