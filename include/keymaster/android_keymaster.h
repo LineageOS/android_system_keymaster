@@ -46,7 +46,8 @@ class OperationTable;
  */
 class AndroidKeymaster {
   public:
-    AndroidKeymaster(KeymasterContext* context, size_t operation_table_size);
+    AndroidKeymaster(KeymasterContext* context, size_t operation_table_size,
+                     uint32_t message_version = kDefaultMessageVersion);
     virtual ~AndroidKeymaster();
     AndroidKeymaster(AndroidKeymaster&&);
 
@@ -113,7 +114,7 @@ class AndroidKeymaster {
     // If the caller doesn't bother to use GetVersion2 or GetVersion to configure the message
     // version, assume kDefaultVersion, i.e. assume the client and server always support the
     // latest default, which is the latest, except when experimental features are being added.
-    uint32_t message_version_ = kDefaultMessageVersion;
+    uint32_t message_version_;
 };
 
 }  // namespace keymaster
