@@ -101,6 +101,7 @@ enum AndroidKeymasterCommand : uint32_t {
  * GetVersion.  If it received GetVersion, it must assume that the client does not support
  * GetVersion2 and reply that it is version 2.0.0 and use the corresponding message version (3).
  */
+constexpr int32_t kInvalidMessageVersion = -1;
 constexpr int32_t kMaxMessageVersion = 4;
 constexpr int32_t kDefaultMessageVersion = 3;
 
@@ -109,7 +110,7 @@ constexpr int32_t kDefaultMessageVersion = 3;
  * date in YYYYMMDD format (it's not recommended to change message formats within a KM version, but
  * it could happen).
  */
-inline int32_t MessageVersion(KmVersion version, uint32_t /* km_date */ = 0) {
+inline constexpr int32_t MessageVersion(KmVersion version, uint32_t /* km_date */ = 0) {
     switch (version) {
     case KmVersion::KEYMASTER_1:
         return 1;
@@ -123,6 +124,7 @@ inline int32_t MessageVersion(KmVersion version, uint32_t /* km_date */ = 0) {
     case KmVersion::KEYMINT_1:
         return 4;
     }
+    return kInvalidMessageVersion;
 }
 
 /**
