@@ -829,17 +829,27 @@ void AndroidKeymaster::ImportWrappedKey(const ImportWrappedKeyRequest& request,
 }
 
 EarlyBootEndedResponse AndroidKeymaster::EarlyBootEnded() {
+    EarlyBootEndedResponse response(message_version());
+    response.error = KM_ERROR_UNIMPLEMENTED;
+
     if (context_->enforcement_policy()) {
         context_->enforcement_policy()->early_boot_ended();
+        response.error = KM_ERROR_OK;
     }
-    return EarlyBootEndedResponse(message_version());
+
+    return response;
 }
 
 DeviceLockedResponse AndroidKeymaster::DeviceLocked(const DeviceLockedRequest& request) {
+    DeviceLockedResponse response(message_version());
+    response.error = KM_ERROR_UNIMPLEMENTED;
+
     if (context_->enforcement_policy()) {
         context_->enforcement_policy()->device_locked(request.passwordOnly);
+        response.error = KM_ERROR_OK;
     }
-    return DeviceLockedResponse(message_version());
+
+    return response;
 }
 
 }  // namespace keymaster
