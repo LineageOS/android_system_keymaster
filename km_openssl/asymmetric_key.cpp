@@ -16,8 +16,6 @@
 
 #include <keymaster/km_openssl/asymmetric_key.h>
 
-#include <keymaster/new.h>
-
 #include <openssl/asn1.h>
 #include <openssl/stack.h>
 #include <openssl/x509.h>
