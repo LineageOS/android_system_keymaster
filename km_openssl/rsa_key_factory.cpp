@@ -21,7 +21,6 @@
 #include <keymaster/km_openssl/openssl_utils.h>
 #include <keymaster/km_openssl/rsa_key.h>
 #include <keymaster/km_openssl/rsa_operation.h>
-#include <keymaster/new.h>
 
 namespace keymaster {
 

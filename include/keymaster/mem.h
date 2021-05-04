@@ -16,24 +16,10 @@
 
 #pragma once
 
-#include <keymaster/new.h>
-
 namespace keymaster {
 
-template <typename T> struct remove_reference { typedef T type; };
-template <typename T> struct remove_reference<T&> { typedef T type; };
-template <typename T> struct remove_reference<T&&> { typedef T type; };
-template <typename T> using remove_reference_t = typename remove_reference<T>::type;
-template <typename T> remove_reference_t<T>&& move(T&& x) {
-    return static_cast<remove_reference_t<T>&&>(x);
-}
-
-template <typename T> constexpr T&& forward(remove_reference_t<T>& x) {
-    return static_cast<T&&>(x);
-}
-template <typename T> constexpr T&& forward(remove_reference_t<T>&& x) {
-    return static_cast<T&&>(x);
-}
+using std::forward;
+using std::move;
 
 /*
  * Array Manipulation functions.  This set of templated inline functions provides some nice tools

@@ -18,8 +18,6 @@
 #include <keymaster/operation.h>
 #include <keymaster/operation_table.h>
 
-#include <keymaster/new.h>
-
 namespace keymaster {
 
 keymaster_error_t OperationTable::Add(OperationPtr&& operation) {

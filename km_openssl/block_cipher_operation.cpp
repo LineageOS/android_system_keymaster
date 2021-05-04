@@ -18,8 +18,6 @@
 
 #include <stdio.h>
 
-#include <keymaster/new.h>
-
 #include <keymaster/UniquePtr.h>
 
 #include <openssl/aes.h>
