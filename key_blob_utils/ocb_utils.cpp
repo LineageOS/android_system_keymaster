@@ -26,7 +26,6 @@
 #include <keymaster/android_keymaster_utils.h>
 #include <keymaster/authorization_set.h>
 #include <keymaster/km_openssl/openssl_err.h>
-#include <keymaster/new.h>
 
 namespace keymaster {
 
