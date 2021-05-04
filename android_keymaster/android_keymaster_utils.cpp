@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-#include <keymaster/android_keymaster_utils.h>
+#include <new>
 
-#include <keymaster/new.h>
+#include <keymaster/android_keymaster_utils.h>
 
 namespace keymaster {
 
