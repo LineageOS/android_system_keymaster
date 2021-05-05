@@ -38,7 +38,7 @@ CertificateChain make_cert_chain(X509* certificate, CertificateChain chain,
     *error = encode_certificate(certificate, &blob);
     if (*error != KM_ERROR_OK) return {};
 
-    if (!chain.push_front(move(blob))) {
+    if (!chain.push_front(blob)) {
         *error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
         return {};
     }

@@ -30,7 +30,7 @@ using std::vector;
 
 class AndroidSharedSecret : public BnSharedSecret {
   public:
-    explicit AndroidSharedSecret(std::shared_ptr<keymint::AndroidKeyMintDevice> keymint);
+    explicit AndroidSharedSecret(const std::shared_ptr<keymint::AndroidKeyMintDevice>& keymint);
     virtual ~AndroidSharedSecret();
     ScopedAStatus getSharedSecretParameters(SharedSecretParameters* params) override;
     ScopedAStatus computeSharedSecret(const vector<SharedSecretParameters>& params,

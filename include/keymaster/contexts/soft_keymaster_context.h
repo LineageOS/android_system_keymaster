@@ -46,7 +46,7 @@ class SoftKeymasterContext : public KeymasterContext,
                              SoftwareRandomSource,
                              public SoftAttestationContext {
   public:
-    SoftKeymasterContext(KmVersion version, const std::string& root_of_trust = "SW");
+    explicit SoftKeymasterContext(KmVersion version, const std::string& root_of_trust = "SW");
     ~SoftKeymasterContext() override;
 
     KmVersion GetKmVersion() const override { return AttestationContext::GetKmVersion(); }
