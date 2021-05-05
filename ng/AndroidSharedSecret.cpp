@@ -24,10 +24,12 @@
 
 namespace aidl::android::hardware::security::sharedsecret {
 
-using namespace ::keymaster;
-using namespace ::aidl::android::hardware::security::keymint::km_utils;
+using keymaster::ComputeSharedHmacRequest;
+using keymint::km_utils::kmBlob2vector;
+using keymint::km_utils::kmError2ScopedAStatus;
 
-AndroidSharedSecret::AndroidSharedSecret(std::shared_ptr<keymint::AndroidKeyMintDevice> keymint)
+AndroidSharedSecret::AndroidSharedSecret(
+    const std::shared_ptr<keymint::AndroidKeyMintDevice>& keymint)
     : impl_(keymint->getKeymasterImpl()) {}
 
 AndroidSharedSecret::~AndroidSharedSecret() {}

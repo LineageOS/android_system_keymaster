@@ -98,6 +98,7 @@ class AuthorizationSet : public Serializable, public keymaster_key_param_set_t {
 
     // Copy assignment.
     AuthorizationSet& operator=(const AuthorizationSet& set) {
+        if (&set == this) return *this;
         Reinitialize(set.elems_, set.elems_size_);
         error_ = set.error_;
         return *this;
@@ -669,7 +670,7 @@ class AuthProxyIterator {
             return (*auth_set2_)[pos_ - auth_set1_->size()];
         }
     }
-    AuthProxyIterator operator++(int) {
+    const AuthProxyIterator operator++(int) {
         AuthProxyIterator dummy(*this);
         ++(*this);
         return dummy;

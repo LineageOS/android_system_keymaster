@@ -50,11 +50,11 @@ using ::android::hardware::keymaster::V4_1::Tag;
 
 using V41ErrorCode = ::android::hardware::keymaster::V4_1::ErrorCode;
 
-V41ErrorCode convert(ErrorCode error_code) {
+inline V41ErrorCode convert(ErrorCode error_code) {
     return static_cast<V41ErrorCode>(error_code);
 }
 
-ErrorCode convert(V41ErrorCode error_code) {
+inline ErrorCode convert(V41ErrorCode error_code) {
     return static_cast<ErrorCode>(error_code);
 }
 

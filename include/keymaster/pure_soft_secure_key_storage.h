@@ -27,7 +27,7 @@ class PureSoftSecureStorageMap;
  */
 class PureSoftSecureKeyStorage : public SecureKeyStorage {
   public:
-    PureSoftSecureKeyStorage(uint32_t max_slot);
+    explicit PureSoftSecureKeyStorage(uint32_t max_slot);
     ~PureSoftSecureKeyStorage() override;
 
     /**
