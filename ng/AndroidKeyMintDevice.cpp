@@ -30,8 +30,15 @@
 
 namespace aidl::android::hardware::security::keymint {
 
-using namespace ::keymaster;
-using namespace km_utils;
+using namespace keymaster;  // NOLINT(google-build-using-namespace)
+
+using km_utils::authToken2AidlVec;
+using km_utils::kmBlob2vector;
+using km_utils::kmError2ScopedAStatus;
+using km_utils::kmParam2Aidl;
+using km_utils::KmParamSet;
+using km_utils::kmParamSet2Aidl;
+using km_utils::legacy_enum_conversion;
 using secureclock::TimeStampToken;
 
 namespace {

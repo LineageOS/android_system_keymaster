@@ -30,18 +30,16 @@ namespace aidl::android::hardware::security::keymint {
 
 using ::keymaster::AbortOperationRequest;
 using ::keymaster::AbortOperationResponse;
-using ::keymaster::Buffer;
 using ::keymaster::FinishOperationRequest;
 using ::keymaster::FinishOperationResponse;
 using ::keymaster::TAG_ASSOCIATED_DATA;
 using ::keymaster::UpdateOperationRequest;
 using ::keymaster::UpdateOperationResponse;
 using secureclock::TimeStampToken;
-using namespace km_utils;
+using namespace km_utils;  // NOLINT(google-build-using-namespace)
 
 AndroidKeyMintOperation::AndroidKeyMintOperation(
-    const shared_ptr<::keymaster::AndroidKeymaster> implementation,
-    keymaster_operation_handle_t opHandle)
+    shared_ptr<::keymaster::AndroidKeymaster> implementation, keymaster_operation_handle_t opHandle)
     : impl_(std::move(implementation)), opHandle_(opHandle) {}
 
 AndroidKeyMintOperation::~AndroidKeyMintOperation() {

@@ -46,6 +46,7 @@ class AuthorizationSet {
 
     // Copy assignment.
     AuthorizationSet& operator=(const AuthorizationSet& other) {
+        if (this == &other) return *this;
         data_ = other.data_;
         return *this;
     }
