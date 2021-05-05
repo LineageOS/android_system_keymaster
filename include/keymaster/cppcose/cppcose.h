@@ -80,11 +80,14 @@ constexpr int kAesGcmKeySizeBits = 256;
 
 template <typename T> class ErrMsgOr {
   public:
-    ErrMsgOr(std::string errMsg) : errMsg_(std::move(errMsg)) {}
-    ErrMsgOr(const char* errMsg) : errMsg_(errMsg) {}
-    ErrMsgOr(T val) : value_(std::move(val)) {}
+    ErrMsgOr(std::string errMsg)  // NOLINT(google-explicit-constructor)
+        : errMsg_(std::move(errMsg)) {}
+    ErrMsgOr(const char* errMsg)  // NOLINT(google-explicit-constructor)
+        : errMsg_(errMsg) {}
+    ErrMsgOr(T val)  // NOLINT(google-explicit-constructor)
+        : value_(std::move(val)) {}
 
-    operator bool() const { return value_.has_value(); }
+    explicit operator bool() const { return value_.has_value(); }
 
     T* operator->() & {
         assert(value_);
@@ -222,7 +225,7 @@ class CoseKey {
     bytevec encode() { return key_->canonicalize().encode(); }
 
   private:
-    CoseKey(cppbor::Map* parsedKey) : key_(parsedKey) {}
+    explicit CoseKey(cppbor::Map* parsedKey) : key_(parsedKey) {}
 
     // This is the full parsed key structure.
     std::unique_ptr<cppbor::Map> key_;

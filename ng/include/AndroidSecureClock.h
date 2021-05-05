@@ -32,7 +32,7 @@ using std::vector;
 
 class AndroidSecureClock : public BnSecureClock {
   public:
-    explicit AndroidSecureClock(std::shared_ptr<keymint::AndroidKeyMintDevice> keymint);
+    explicit AndroidSecureClock(const std::shared_ptr<keymint::AndroidKeyMintDevice>& keymint);
     virtual ~AndroidSecureClock();
     ScopedAStatus generateTimeStamp(int64_t challenge, TimeStampToken* token) override;
 

@@ -1424,16 +1424,11 @@ keymaster_error_t SoftKeymasterDevice::finish(const keymaster2_device_t* dev,
             return KM_ERROR_OUTPUT_PARAMETER_NULL;
         }
 
-        if (out_params) {
-            *out_params = finish_out_params;
-        }
+        *out_params = finish_out_params;
+        *output = finish_output;
 
-        if (output) {
-            *output = finish_output;
-        }
-
-        finish_out_params_deleter.release();
-        finish_output_deleter.release();
+        finish_out_params_deleter.release();  // NOLINT(bugprone-unused-return-value)
+        finish_output_deleter.release();      // NOLINT(bugprone-unused-return-value)
 
         return KM_ERROR_OK;
     }

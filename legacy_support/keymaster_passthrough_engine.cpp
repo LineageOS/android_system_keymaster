@@ -30,7 +30,6 @@
 #define LOG_TAG "Keymaster2Engine"
 #include <android/log.h>
 
-using std::shared_ptr;
 using std::unique_ptr;
 
 namespace keymaster {
