@@ -25,8 +25,6 @@
 
 namespace keymaster {
 
-using ::std::vector;
-
 keymaster_error_t EcdhOperation::Begin(const AuthorizationSet& /*input_params*/,
                                        AuthorizationSet* /*output_params*/) {
     auto rc = GenerateRandom(reinterpret_cast<uint8_t*>(&operation_handle_),

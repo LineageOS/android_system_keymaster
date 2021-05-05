@@ -48,8 +48,6 @@
 
 #include <keymaster/contexts/soft_attestation_cert.h>
 
-using std::unique_ptr;
-
 namespace keymaster {
 
 PureSoftKeymasterContext::PureSoftKeymasterContext(KmVersion version,
@@ -515,7 +513,7 @@ keymaster_error_t PureSoftKeymasterContext::UnwrapKey(
                                             wrapped_key_description.data_length)
                              .build();
     if (update_params.is_valid() != AuthorizationSet::Error::OK) {
-        return TranslateAuthorizationSetError(transit_key_authorizations.is_valid());
+        return TranslateAuthorizationSetError(update_params.is_valid());
     }
 
     error = aes_operation->Update(update_params, encrypted_key, &update_outparams, &plaintext,
