@@ -16,9 +16,9 @@
 
 #include <keymaster/pure_soft_secure_key_storage.h>
 
-#include <keymaster/logger.h>
-#include <keymaster/new.h>
 #include <vector>
+
+#include <keymaster/logger.h>
 
 namespace keymaster {
 
