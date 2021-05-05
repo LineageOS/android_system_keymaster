@@ -32,7 +32,6 @@
 #include <openssl/ec_key.h>
 #include <openssl/ecdsa.h>
 
-using std::shared_ptr;
 using std::unique_ptr;
 
 namespace keymaster {
@@ -232,6 +231,7 @@ Keymaster1Engine::KeyData* Keymaster1Engine::GetData(const EC_KEY* ec_key) const
 
 /* static */
 int Keymaster1Engine::duplicate_key_data(CRYPTO_EX_DATA* /* to */, const CRYPTO_EX_DATA* /* from */,
+                                         // NOLINTNEXTLINE(google-runtime-int)
                                          void** from_d, int /* index */, long /* argl */,
                                          void* /* argp */) {
     KeyData* data = reinterpret_cast<KeyData*>(*from_d);
@@ -245,6 +245,7 @@ int Keymaster1Engine::duplicate_key_data(CRYPTO_EX_DATA* /* to */, const CRYPTO_
 
 /* static */
 void Keymaster1Engine::free_key_data(void* /* parent */, void* ptr, CRYPTO_EX_DATA* /* data */,
+                                     // NOLINTNEXTLINE(google-runtime-int)
                                      int /* index*/, long /* argl */, void* /* argp */) {
     delete reinterpret_cast<KeyData*>(ptr);
 }

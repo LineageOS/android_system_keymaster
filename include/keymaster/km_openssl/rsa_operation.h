@@ -202,7 +202,7 @@ class RsaOperationFactory : public OperationFactory {
     const keymaster_digest_t* SupportedDigests(size_t* digest_count) const override;
 
   protected:
-    static EVP_PKEY* GetRsaKey(Key&& key, keymaster_error_t* error);
+    static EVP_PKEY* GetRsaKey(const Key& key, keymaster_error_t* error);
     virtual RsaOperation* CreateRsaOperation(Key&& key, const AuthorizationSet& begin_params,
                                              keymaster_error_t* error);
 
