@@ -33,15 +33,15 @@
 
 namespace aidl::android::hardware::security::keymint {
 
+using keymaster::GenerateCsrRequest;
+using keymaster::GenerateCsrResponse;
+using keymaster::GenerateRkpKeyRequest;
+using keymaster::GenerateRkpKeyResponse;
+using keymaster::KeymasterBlob;
 using ::std::string;
-using ::std::tuple;
 using ::std::unique_ptr;
-using ::std::variant;
 using ::std::vector;
 using bytevec = ::std::vector<uint8_t>;
-
-using namespace cppcose;
-using namespace keymaster;
 
 namespace {
 
@@ -63,7 +63,9 @@ class Status {
     Status(Status&&) = default;
     Status(const Status&) = delete;
 
-    operator ::ndk::ScopedAStatus() && { return ndk::ScopedAStatus(status_.release()); }
+    operator ::ndk::ScopedAStatus() && {  // NOLINT(google-explicit-constructor)
+        return ndk::ScopedAStatus(status_.release());
+    }
 
     bool isOk() const { return AStatus_isOk(status_.get()); }
 
