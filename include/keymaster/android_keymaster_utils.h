@@ -303,7 +303,7 @@ struct CertificateChain : public keymaster_cert_chain_t {
         return retval;
     }
 
-    operator bool() { return entries; }
+    explicit operator bool() { return entries; }
 
     keymaster_blob_t* begin() { return entries; }
     const keymaster_blob_t* begin() const { return entries; }
@@ -312,12 +312,11 @@ struct CertificateChain : public keymaster_cert_chain_t {
 
     // Insert the provided blob at the front of the chain.  CertificateChain takes ownership of the
     // contents of `new_entry`.
-    bool push_front(keymaster_blob_t&& new_entry) {
+    bool push_front(const keymaster_blob_t& new_entry) {
         keymaster_blob_t* new_entries = new keymaster_blob_t[entry_count + 1];
         if (!new_entries) return false;
 
         new_entries[0] = new_entry;
-        new_entry = {};
         for (size_t i = 1; i < entry_count + 1; ++i) {
             new_entries[i] = entries[i - 1];
         }

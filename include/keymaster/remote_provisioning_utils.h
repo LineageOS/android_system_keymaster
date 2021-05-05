@@ -24,8 +24,6 @@
 
 namespace keymaster {
 
-using namespace cppcose;
-
 // These are the negations of the actual error codes
 constexpr keymaster_error_t kStatusFailed = static_cast<keymaster_error_t>(-1);
 constexpr keymaster_error_t kStatusInvalidMac = static_cast<keymaster_error_t>(-2);
@@ -35,8 +33,9 @@ constexpr keymaster_error_t kStatusInvalidEek = static_cast<keymaster_error_t>(-
 
 template <typename T> class StatusOr {
   public:
-    StatusOr(uint32_t status_code) : status_code_(std::move(status_code)) {}
-    StatusOr(T val) : value_(std::move(val)) {}
+    StatusOr(uint32_t status_code)  // NOLINT(google-explicit-constructor)
+        : status_code_(status_code) {}
+    StatusOr(T val) : value_(std::move(val)) {}  // NOLINT(google-explicit-constructor)
 
     bool isOk() { return status_code_ == 0; }
 
@@ -55,7 +54,7 @@ template <typename T> class StatusOr {
 
     uint32_t moveError() {
         assert(!isOk());
-        return std::move(status_code_);
+        return status_code_;
     }
 
     T moveValue() { return std::move(value_).value(); }
