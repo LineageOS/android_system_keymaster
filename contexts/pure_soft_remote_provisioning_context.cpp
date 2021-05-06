@@ -27,7 +27,12 @@
 
 namespace keymaster {
 
-using namespace cppcose;
+using cppcose::constructCoseSign1;
+using cppcose::CoseKey;
+using cppcose::ED25519;
+using cppcose::EDDSA;
+using cppcose::OCTET_KEY_PAIR;
+using cppcose::VERIFY;
 
 constexpr uint32_t kMacKeyLength = 32;
 

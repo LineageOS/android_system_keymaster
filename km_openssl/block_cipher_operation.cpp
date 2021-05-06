@@ -160,7 +160,9 @@ keymaster_error_t BlockCipherEvpOperation::Begin(const AuthorizationSet& /* inpu
                              (size_t)sizeof(operation_handle_));
     if (rc != KM_ERROR_OK) return rc;
 
-    return InitializeCipher(move(key_));
+    auto retval = InitializeCipher(key_);
+    key_ = {};
+    return retval;
 }
 
 keymaster_error_t BlockCipherEvpOperation::Update(const AuthorizationSet& additional_params,
@@ -175,6 +177,7 @@ keymaster_error_t BlockCipherEvpOperation::Update(const AuthorizationSet& additi
     return KM_ERROR_OK;
 }
 
+// NOLINTNEXTLINE(google-runtime-int)
 inline bool is_bad_decrypt(unsigned long error) {
     return (ERR_GET_LIB(error) == ERR_LIB_CIPHER &&  //
             ERR_GET_REASON(error) == CIPHER_R_BAD_DECRYPT);
@@ -222,7 +225,7 @@ bool BlockCipherEvpOperation::need_iv() const {
     }
 }
 
-keymaster_error_t BlockCipherEvpOperation::InitializeCipher(KeymasterKeyBlob key) {
+keymaster_error_t BlockCipherEvpOperation::InitializeCipher(const KeymasterKeyBlob& key) {
     keymaster_error_t error;
     const EVP_CIPHER* cipher =
         cipher_description_.GetCipherInstance(key.key_material_size, block_mode_, &error);

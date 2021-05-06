@@ -26,7 +26,7 @@
 
 #include <vector>
 
-#define remove_type_mask(tag) (tag & 0x0FFFFFFF)
+#define remove_type_mask(tag) ((tag)&0x0FFFFFFF)
 
 namespace keymaster {
 
