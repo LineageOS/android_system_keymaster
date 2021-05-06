@@ -62,6 +62,10 @@ cc_defaults {
         // Currently, if enabled, these flags will cause an internal error in Clang.
         "-fno-sanitize-coverage=edge,indirect-calls,8bit-counters,trace-cmp"
     ],
+    tidy: true,
+    tidy_checks: [
+        "-performance-noexcept-move-constructor",
+    ],
     sanitize: {
         integer_overflow: false,
     },

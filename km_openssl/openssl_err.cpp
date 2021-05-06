@@ -41,7 +41,7 @@ static keymaster_error_t TranslateRsaError(int reason);
 #endif
 
 keymaster_error_t TranslateLastOpenSslError(bool log_message) {
-    unsigned long error = ERR_peek_last_error();
+    uint32_t error = ERR_peek_last_error();
 
     if (log_message) {
         char buf[128];

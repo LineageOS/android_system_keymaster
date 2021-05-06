@@ -55,10 +55,11 @@ keymaster_error_t AsymmetricKeyFactory::LoadKey(KeymasterKeyBlob&& key_material,
     if (!pkey) return TranslateLastOpenSslError();
     UniquePtr<EVP_PKEY, EVP_PKEY_Delete> pkey_deleter(pkey);
 
-    if (!asym_key->EvpToInternal(pkey))
+    if (!asym_key->EvpToInternal(pkey)) {
         error = TranslateLastOpenSslError();
-    else
-        key->reset(asym_key.release());
+    } else {
+        *key = std::move(asym_key);
+    }
 
     return error;
 }

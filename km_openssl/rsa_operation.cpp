@@ -34,8 +34,8 @@ const size_t kPssOverhead = 2;
 const size_t kPkcs1UndigestedSignaturePaddingOverhead = 11;
 
 /* static */
-EVP_PKEY* RsaOperationFactory::GetRsaKey(Key&& key, keymaster_error_t* error) {
-    const RsaKey& rsa_key = static_cast<RsaKey&>(key);
+EVP_PKEY* RsaOperationFactory::GetRsaKey(const Key& key, keymaster_error_t* error) {
+    const RsaKey& rsa_key = static_cast<const RsaKey&>(key);
     if (!rsa_key.key()) {
         *error = KM_ERROR_UNKNOWN_ERROR;
         return nullptr;
@@ -73,7 +73,7 @@ RsaOperation* RsaOperationFactory::CreateRsaOperation(Key&& key,
         return nullptr;
     }
 
-    UniquePtr<EVP_PKEY, EVP_PKEY_Delete> rsa(GetRsaKey(move(key), error));
+    UniquePtr<EVP_PKEY, EVP_PKEY_Delete> rsa(GetRsaKey(key, error));
     if (!rsa.get()) return nullptr;
 
     RsaOperation* op = InstantiateOperation(key.hw_enforced_move(), key.sw_enforced_move(), digest,

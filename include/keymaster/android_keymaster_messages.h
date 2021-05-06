@@ -175,7 +175,7 @@ struct KeymasterResponse : public KeymasterMessage {
 
 // Abstract base for empty requests.
 struct EmptyKeymasterRequest : public KeymasterMessage {
-    EmptyKeymasterRequest(int32_t ver) : KeymasterMessage(ver) {}
+    explicit EmptyKeymasterRequest(int32_t ver) : KeymasterMessage(ver) {}
 
     size_t SerializedSize() const override { return 0; }
     uint8_t* Serialize(uint8_t* buf, const uint8_t*) const override { return buf; }
@@ -184,7 +184,7 @@ struct EmptyKeymasterRequest : public KeymasterMessage {
 
 // Empty response.
 struct EmptyKeymasterResponse : public KeymasterResponse {
-    EmptyKeymasterResponse(int32_t ver) : KeymasterResponse(ver) {}
+    explicit EmptyKeymasterResponse(int32_t ver) : KeymasterResponse(ver) {}
 
     size_t NonErrorSerializedSize() const override { return 0; }
     uint8_t* NonErrorSerialize(uint8_t* buf, const uint8_t*) const override { return buf; }
@@ -658,13 +658,14 @@ using DeleteAllKeysResponse = EmptyKeymasterResponse;
 struct GetVersionRequest : public EmptyKeymasterRequest {
     // GetVersionRequest ctor takes a version arg so it has the same signature as others, but the
     // value is ignored because it is not not versionable.
-    GetVersionRequest(uint32_t /* ver */ = 0) : EmptyKeymasterRequest(0 /* not versionable */) {}
+    explicit GetVersionRequest(uint32_t /* ver */ = 0)
+        : EmptyKeymasterRequest(0 /* not versionable */) {}
 };
 
 struct GetVersionResponse : public KeymasterResponse {
     // GetVersionResponse ctor takes a version arg so it has the same signature as others, but the
     // value is ignored because it is not not versionable.
-    GetVersionResponse(uint32_t /* ver */ = 0)
+    explicit GetVersionResponse(uint32_t /* ver */ = 0)
         : KeymasterResponse(0 /* not versionable */), major_ver(0), minor_ver(0), subminor_ver(0) {}
 
     size_t NonErrorSerializedSize() const override;
