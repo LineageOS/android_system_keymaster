@@ -179,6 +179,8 @@ template <typename BlobType> struct TKeymasterBlob : public BlobType {
     const uint8_t* begin() const { return accessBlobData(this); }
     const uint8_t* end() const { return accessBlobData(this) + accessBlobSize(this); }
 
+    size_t size() const { return accessBlobSize(this); }
+
     void Clear() {
         if (accessBlobSize(this)) {
             memset_s(const_cast<uint8_t*>(accessBlobData(this)), 0, accessBlobSize(this));
