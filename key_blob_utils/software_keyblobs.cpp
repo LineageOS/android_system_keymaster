@@ -233,22 +233,19 @@ keymaster_error_t ParseOldSoftkeymasterBlob(const KeymasterKeyBlob& blob,
 static uint8_t master_key_bytes[AES_BLOCK_SIZE] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 const KeymasterKeyBlob MASTER_KEY(master_key_bytes, array_length(master_key_bytes));
 
-keymaster_error_t ParseOcbAuthEncryptedBlob(const KeymasterKeyBlob& blob,
-                                            const AuthorizationSet& hidden,
-                                            KeymasterKeyBlob* key_material,
-                                            AuthorizationSet* hw_enforced,
-                                            AuthorizationSet* sw_enforced) {
-    Buffer nonce, tag;
-    KeymasterKeyBlob encrypted_key_material;
-    keymaster_error_t error = DeserializeAuthEncryptedBlob(blob, &encrypted_key_material,
-                                                           hw_enforced, sw_enforced, &nonce, &tag);
+keymaster_error_t ParseAuthEncryptedBlob(const KeymasterKeyBlob& blob,
+                                         const AuthorizationSet& hidden,
+                                         KeymasterKeyBlob* key_material,
+                                         AuthorizationSet* hw_enforced,
+                                         AuthorizationSet* sw_enforced) {
+    keymaster_error_t error;
+    DeserializedKey key = DeserializeAuthEncryptedBlob(blob, &error);
     if (error != KM_ERROR_OK) return error;
 
-    if (nonce.available_read() != OCB_NONCE_LENGTH || tag.available_read() != OCB_TAG_LENGTH)
-        return KM_ERROR_INVALID_KEY_BLOB;
-
-    return OcbDecryptKey(*hw_enforced, *sw_enforced, hidden, MASTER_KEY, encrypted_key_material,
-                         nonce, tag, key_material);
+    *key_material = DecryptKey(key, hidden, MASTER_KEY, &error);
+    *hw_enforced = move(key.hw_enforced);
+    *sw_enforced = move(key.sw_enforced);
+    return error;
 }
 
 keymaster_error_t SetKeyBlobAuthorizations(const AuthorizationSet& key_description,
