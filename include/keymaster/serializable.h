@@ -203,6 +203,8 @@ class Buffer : public Serializable {
     Buffer(Buffer&& b) { *this = move(b); }
     Buffer(const Buffer&) = delete;
 
+    ~Buffer() { Clear(); }
+
     Buffer& operator=(Buffer&& other) {
         if (this == &other) return *this;
         buffer_ = move(other.buffer_);
