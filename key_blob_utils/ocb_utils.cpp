@@ -117,6 +117,7 @@ keymaster_error_t OcbEncryptKey(const AuthorizationSet& hw_enforced,
     assert(ciphertext && tag);
 
     if (nonce.available_read() != OCB_NONCE_LENGTH) return KM_ERROR_INVALID_ARGUMENT;
+    if (tag->available_write() != OCB_TAG_LENGTH) return KM_ERROR_INVALID_ARGUMENT;
 
     AeCtx ctx;
     if (!ctx.get()) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
