@@ -304,11 +304,11 @@ CertificateChain getAttestationChain(keymaster_algorithm_t algorithm, keymaster_
     switch (algorithm) {
     case KM_ALGORITHM_RSA:
         retval = CertificateChain::clone(kRsaAttestChain);
-        if (!retval.entries) *error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+        if (!retval.entries && error) *error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
         break;
     case KM_ALGORITHM_EC:
         retval = CertificateChain::clone(kEcAttestChain);
-        if (!retval.entries) *error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+        if (!retval.entries && error) *error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
         break;
     default:
         if (error) *error = KM_ERROR_UNSUPPORTED_ALGORITHM;
