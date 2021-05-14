@@ -56,6 +56,22 @@ using cppcose::kAesGcmNonceLength;
 using cppcose::P256;
 using cppcose::x25519_HKDF_DeriveKey;
 
+template <keymaster_tag_t T>
+keymaster_error_t CheckPatchLevel(const AuthorizationSet& tee_enforced,
+                                  const AuthorizationSet& sw_enforced, TypedTag<KM_UINT, T> tag,
+                                  uint32_t current_patchlevel) {
+    uint32_t key_patchlevel;
+    if (tee_enforced.GetTagValue(tag, &key_patchlevel) ||
+        sw_enforced.GetTagValue(tag, &key_patchlevel)) {
+        if (key_patchlevel < current_patchlevel) {
+            return KM_ERROR_KEY_REQUIRES_UPGRADE;
+        } else if (key_patchlevel > current_patchlevel) {
+            return KM_ERROR_INVALID_KEY_BLOB;
+        }
+    }
+    return KM_ERROR_OK;
+}
+
 keymaster_error_t CheckVersionInfo(const AuthorizationSet& tee_enforced,
                                    const AuthorizationSet& sw_enforced,
                                    const KeymasterContext& context) {
@@ -63,13 +79,22 @@ keymaster_error_t CheckVersionInfo(const AuthorizationSet& tee_enforced,
     uint32_t os_patchlevel;
     context.GetSystemVersion(&os_version, &os_patchlevel);
 
-    uint32_t key_os_patchlevel;
-    if (tee_enforced.GetTagValue(TAG_OS_PATCHLEVEL, &key_os_patchlevel) ||
-        sw_enforced.GetTagValue(TAG_OS_PATCHLEVEL, &key_os_patchlevel)) {
-        if (key_os_patchlevel < os_patchlevel)
-            return KM_ERROR_KEY_REQUIRES_UPGRADE;
-        else if (key_os_patchlevel > os_patchlevel)
-            return KM_ERROR_INVALID_KEY_BLOB;
+    keymaster_error_t err =
+        CheckPatchLevel(tee_enforced, sw_enforced, TAG_OS_PATCHLEVEL, os_patchlevel);
+    if (err != KM_ERROR_OK) return err;
+
+    // Also check the vendor and boot patchlevels if available.
+    auto vendor_patchlevel = context.GetVendorPatchlevel();
+    if (vendor_patchlevel.has_value()) {
+        err = CheckPatchLevel(tee_enforced, sw_enforced, TAG_VENDOR_PATCHLEVEL,
+                              vendor_patchlevel.value());
+        if (err != KM_ERROR_OK) return err;
+    }
+    auto boot_patchlevel = context.GetBootPatchlevel();
+    if (boot_patchlevel.has_value()) {
+        err = CheckPatchLevel(tee_enforced, sw_enforced, TAG_BOOT_PATCHLEVEL,
+                              boot_patchlevel.value());
+        if (err != KM_ERROR_OK) return err;
     }
 
     return KM_ERROR_OK;
@@ -780,6 +805,20 @@ void AndroidKeymaster::DeleteAllKeys(const DeleteAllKeysRequest&, DeleteAllKeysR
 void AndroidKeymaster::Configure(const ConfigureRequest& request, ConfigureResponse* response) {
     if (!response) return;
     response->error = context_->SetSystemVersion(request.os_version, request.os_patchlevel);
+}
+
+ConfigureVendorPatchlevelResponse
+AndroidKeymaster::ConfigureVendorPatchlevel(const ConfigureVendorPatchlevelRequest& request) {
+    ConfigureVendorPatchlevelResponse rsp(message_version());
+    rsp.error = context_->SetVendorPatchlevel(request.vendor_patchlevel);
+    return rsp;
+}
+
+ConfigureBootPatchlevelResponse
+AndroidKeymaster::ConfigureBootPatchlevel(const ConfigureBootPatchlevelRequest& request) {
+    ConfigureBootPatchlevelResponse rsp(message_version());
+    rsp.error = context_->SetBootPatchlevel(request.boot_patchlevel);
+    return rsp;
 }
 
 bool AndroidKeymaster::has_operation(keymaster_operation_handle_t op_handle) const {
