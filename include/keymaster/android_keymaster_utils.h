@@ -350,7 +350,7 @@ struct CertificateChain : public keymaster_cert_chain_t {
 
 // Per RFC 5280 4.1.2.5, an undefined expiration (not-after) field should be set to GeneralizedTime
 // 999912312359559, which is 253402300799000 ms from Jan 1, 1970.
-constexpr uint64_t kUndefinedExpirationDateTime = 253402300799000;
+constexpr int64_t kUndefinedExpirationDateTime = 253402300799000;
 
 // A confirmation token is the output of HMAC-SHA256. */
 constexpr size_t kConfirmationTokenSize = 32;
