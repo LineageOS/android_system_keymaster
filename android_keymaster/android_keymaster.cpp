@@ -285,13 +285,6 @@ void AndroidKeymaster::GenerateKey(const GenerateKeyRequest& request,
         get_key_factory(request.key_description, *context_, &response->error);
     if (!factory) return;
 
-    if (context_->enforcement_policy() &&
-        request.key_description.GetTagValue(TAG_EARLY_BOOT_ONLY) &&
-        !context_->enforcement_policy()->in_early_boot()) {
-        response->error = KM_ERROR_EARLY_BOOT_ENDED;
-        return;
-    }
-
     UniquePtr<Key> attest_key;
     if (request.attestation_signing_key_blob.key_material_size) {
         attest_key = LoadKey(request.attestation_signing_key_blob, request.attest_key_params,
@@ -723,6 +716,13 @@ void AndroidKeymaster::ImportKey(const ImportKeyRequest& request, ImportKeyRespo
     const KeyFactory* factory =
         get_key_factory(request.key_description, *context_, &response->error);
     if (!factory) return;
+
+    if (context_->enforcement_policy() &&
+        request.key_description.GetTagValue(TAG_EARLY_BOOT_ONLY) &&
+        !context_->enforcement_policy()->in_early_boot()) {
+        response->error = KM_ERROR_EARLY_BOOT_ENDED;
+        return;
+    }
 
     UniquePtr<Key> attest_key;
     if (request.attestation_signing_key_blob.key_material_size) {
