@@ -135,6 +135,8 @@ keymaster_error_t EcKeyFactory::GenerateKey(const AuthorizationSet& key_descript
     if (key_description.Contains(TAG_ATTESTATION_CHALLENGE)) {
         *cert_chain = context_.GenerateAttestation(key, key_description, move(attest_key),
                                                    issuer_subject, &error);
+    } else if (attest_key.get() != nullptr) {
+        return KM_ERROR_ATTESTATION_CHALLENGE_MISSING;
     } else {
         *cert_chain = context_.GenerateSelfSignedCertificate(
             key, key_description,
@@ -179,6 +181,8 @@ keymaster_error_t EcKeyFactory::ImportKey(const AuthorizationSet& key_descriptio
     if (key_description.Contains(KM_TAG_ATTESTATION_CHALLENGE)) {
         *cert_chain = context_.GenerateAttestation(key, key_description, move(attest_key),
                                                    issuer_subject, &error);
+    } else if (attest_key.get() != nullptr) {
+        return KM_ERROR_ATTESTATION_CHALLENGE_MISSING;
     } else {
         *cert_chain = context_.GenerateSelfSignedCertificate(
             key, key_description,

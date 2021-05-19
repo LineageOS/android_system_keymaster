@@ -314,6 +314,10 @@ keymaster_error_t PureSoftKeymasterContext::DeleteAllKeys() const {
 }
 
 keymaster_error_t PureSoftKeymasterContext::AddRngEntropy(const uint8_t* buf, size_t length) const {
+    if (length > 2 * 1024) {
+        // At most 2KiB is allowed to be added at once.
+        return KM_ERROR_INVALID_INPUT_LENGTH;
+    }
     // XXX TODO according to boringssl openssl/rand.h RAND_add is deprecated and does
     // nothing
     RAND_add(buf, length, 0 /* Don't assume any entropy is added to the pool. */);
