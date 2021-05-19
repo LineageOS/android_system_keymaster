@@ -369,6 +369,24 @@ cc_library_shared {
 }
 
 cc_library {
+    name: "lib_android_keymaster_keymint_utils",
+    vendor_available: true,
+    srcs: [
+        "ng/KeyMintUtils.cpp",
+    ],
+    defaults: ["keymaster_defaults"],
+    shared_libs: [
+        "android.hardware.security.keymint-V1-ndk_platform",
+        "libbase",
+        "libhardware",
+    ],
+    export_include_dirs: [
+        "ng/include",
+        "include",
+    ],
+}
+
+cc_library {
     name: "libkeymint",
     vendor_available: true,
     srcs: [
@@ -381,20 +399,19 @@ cc_library {
         "ng/AndroidRemotelyProvisionedComponentDevice.cpp",
         "ng/AndroidSharedSecret.cpp",
         "ng/AndroidSecureClock.cpp",
-        "ng/KeyMintUtils.cpp",
     ],
     defaults: ["keymaster_defaults"],
     shared_libs: [
 	"libhidlbase",
         "android.hardware.security.keymint-V1-ndk_platform",
-        "android.hardware.security.sharedsecret-V1-ndk_platform",
         "android.hardware.security.secureclock-V1-ndk_platform",
+        "android.hardware.security.sharedsecret-V1-ndk_platform",
+        "lib_android_keymaster_keymint_utils",
         "libbase",
         "libbinder_ndk",
         "libcppbor_external",
         "libcrypto",
         "libcutils",
-        "libkeymaster_messages",
         "libkeymaster_messages",
         "libkeymaster_portable",
         "liblog",
@@ -418,15 +435,6 @@ cc_library {
         "libcppbor_external",
         "libcrypto",
         "liblog",
-    ],
-}
-
-// libkeymasterfiles is an empty library that exports all of the files in keymaster as includes.
-cc_library_static {
-    name: "libkeymasterfiles",
-    export_include_dirs: [
-        ".",
-        "include",
     ],
 }
 
