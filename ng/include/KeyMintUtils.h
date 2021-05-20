@@ -16,8 +16,6 @@
 
 #pragma once
 
-#include <log/log.h>
-
 #include <aidl/android/hardware/security/keymint/Certificate.h>
 #include <aidl/android/hardware/security/keymint/HardwareAuthToken.h>
 #include <aidl/android/hardware/security/keymint/HardwareAuthenticatorType.h>

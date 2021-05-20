@@ -39,8 +39,8 @@ keymaster_error_t get_common_name(X509_NAME* name, UniquePtr<const char[]>* name
 struct CertificateCallerParams {
     BIGNUM_Ptr serial;
     X509_NAME_Ptr subject_name;
-    uint64_t active_date_time;
-    uint64_t expire_date_time;
+    int64_t active_date_time;  // Time since epoch in ms
+    int64_t expire_date_time;  // Time since epoch in ms
     bool is_signing_key = false;
     bool is_encryption_key = false;
     bool is_agreement_key = false;

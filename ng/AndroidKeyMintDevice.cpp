@@ -44,6 +44,7 @@ using secureclock::TimeStampToken;
 namespace {
 
 vector<KeyCharacteristics> convertKeyCharacteristics(SecurityLevel keyMintSecurityLevel,
+                                                     const AuthorizationSet& requestParams,
                                                      const AuthorizationSet& sw_enforced,
                                                      const AuthorizationSet& hw_enforced) {
     KeyCharacteristics keyMintEnforced{keyMintSecurityLevel, {}};
@@ -83,8 +84,14 @@ vector<KeyCharacteristics> convertKeyCharacteristics(SecurityLevel keyMintSecuri
         case KM_TAG_TRUSTED_USER_PRESENCE_REQUIRED:
             break;
 
-        /* Unenforceable */
+        /* Keystore-enforced if not locally generated. */
         case KM_TAG_CREATION_DATETIME:
+            // A KeyMaster implementation is required to add this tag to generated/imported keys.
+            // A KeyMint implementation is not required to create this tag, only to echo it back if
+            // it was included in the key generation/import request.
+            if (requestParams.Contains(KM_TAG_CREATION_DATETIME)) {
+                keystoreEnforced.authorizations.push_back(kmParam2Aidl(entry));
+            }
             break;
 
         /* Disallowed in KeyCharacteristics */
@@ -254,8 +261,8 @@ ScopedAStatus AndroidKeyMintDevice::generateKey(const vector<KeyParameter>& keyP
     }
 
     creationResult->keyBlob = kmBlob2vector(response.key_blob);
-    creationResult->keyCharacteristics =
-        convertKeyCharacteristics(securityLevel_, response.unenforced, response.enforced);
+    creationResult->keyCharacteristics = convertKeyCharacteristics(
+        securityLevel_, request.key_description, response.unenforced, response.enforced);
     creationResult->certificateChain = convertCertificateChain(response.certificate_chain);
     return ScopedAStatus::ok();
 }
@@ -285,8 +292,8 @@ ScopedAStatus AndroidKeyMintDevice::importKey(const vector<KeyParameter>& keyPar
     }
 
     creationResult->keyBlob = kmBlob2vector(response.key_blob);
-    creationResult->keyCharacteristics =
-        convertKeyCharacteristics(securityLevel_, response.unenforced, response.enforced);
+    creationResult->keyCharacteristics = convertKeyCharacteristics(
+        securityLevel_, request.key_description, response.unenforced, response.enforced);
     creationResult->certificateChain = convertCertificateChain(response.certificate_chain);
 
     return ScopedAStatus::ok();
@@ -316,8 +323,8 @@ AndroidKeyMintDevice::importWrappedKey(const vector<uint8_t>& wrappedKeyData,   
     }
 
     creationResult->keyBlob = kmBlob2vector(response.key_blob);
-    creationResult->keyCharacteristics =
-        convertKeyCharacteristics(securityLevel_, response.unenforced, response.enforced);
+    creationResult->keyCharacteristics = convertKeyCharacteristics(
+        securityLevel_, request.additional_params, response.unenforced, response.enforced);
     creationResult->certificateChain = convertCertificateChain(response.certificate_chain);
 
     return ScopedAStatus::ok();

@@ -285,13 +285,6 @@ void AndroidKeymaster::GenerateKey(const GenerateKeyRequest& request,
         get_key_factory(request.key_description, *context_, &response->error);
     if (!factory) return;
 
-    if (context_->enforcement_policy() &&
-        request.key_description.GetTagValue(TAG_EARLY_BOOT_ONLY) &&
-        !context_->enforcement_policy()->in_early_boot()) {
-        response->error = KM_ERROR_EARLY_BOOT_ENDED;
-        return;
-    }
-
     UniquePtr<Key> attest_key;
     if (request.attestation_signing_key_blob.key_material_size) {
         attest_key = LoadKey(request.attestation_signing_key_blob, request.attest_key_params,
@@ -724,6 +717,13 @@ void AndroidKeymaster::ImportKey(const ImportKeyRequest& request, ImportKeyRespo
         get_key_factory(request.key_description, *context_, &response->error);
     if (!factory) return;
 
+    if (context_->enforcement_policy() &&
+        request.key_description.GetTagValue(TAG_EARLY_BOOT_ONLY) &&
+        !context_->enforcement_policy()->in_early_boot()) {
+        response->error = KM_ERROR_EARLY_BOOT_ENDED;
+        return;
+    }
+
     UniquePtr<Key> attest_key;
     if (request.attestation_signing_key_blob.key_material_size) {
 
@@ -829,17 +829,27 @@ void AndroidKeymaster::ImportWrappedKey(const ImportWrappedKeyRequest& request,
 }
 
 EarlyBootEndedResponse AndroidKeymaster::EarlyBootEnded() {
+    EarlyBootEndedResponse response(message_version());
+    response.error = KM_ERROR_UNIMPLEMENTED;
+
     if (context_->enforcement_policy()) {
         context_->enforcement_policy()->early_boot_ended();
+        response.error = KM_ERROR_OK;
     }
-    return EarlyBootEndedResponse(message_version());
+
+    return response;
 }
 
 DeviceLockedResponse AndroidKeymaster::DeviceLocked(const DeviceLockedRequest& request) {
+    DeviceLockedResponse response(message_version());
+    response.error = KM_ERROR_UNIMPLEMENTED;
+
     if (context_->enforcement_policy()) {
         context_->enforcement_policy()->device_locked(request.passwordOnly);
+        response.error = KM_ERROR_OK;
     }
-    return DeviceLockedResponse(message_version());
+
+    return response;
 }
 
 }  // namespace keymaster

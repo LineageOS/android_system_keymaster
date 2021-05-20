@@ -48,6 +48,11 @@ OperationPtr HmacOperationFactory::CreateOperation(Key&& key, const Authorizatio
             *error = KM_ERROR_INVALID_ARGUMENT;
             return nullptr;
         }
+        if ((mac_length_bits % 8) != 0) {
+            LOG_E("MAC length must be a multiple of 8", mac_length_bits);
+            *error = KM_ERROR_UNSUPPORTED_MAC_LENGTH;
+            return nullptr;
+        }
     } else {
         if (purpose() == KM_PURPOSE_SIGN) {
             *error = KM_ERROR_MISSING_MAC_LENGTH;
