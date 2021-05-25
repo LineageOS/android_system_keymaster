@@ -20,6 +20,7 @@
 #include <assert.h>
 
 #include <keymaster/cppcose/cppcose.h>
+#include <keymaster/logger.h>
 
 #include <openssl/bn.h>
 #include <openssl/ec.h>
@@ -37,7 +38,6 @@ using cppcose::VERIFY;
 constexpr uint32_t kMacKeyLength = 32;
 
 PureSoftRemoteProvisioningContext::PureSoftRemoteProvisioningContext() {
-    macKey_ = DeriveBytesFromHbk("Key to MAC public keys", kMacKeyLength);
     std::tie(devicePrivKey_, bcc_) = GenerateBcc();
 }
 
@@ -114,6 +114,17 @@ PureSoftRemoteProvisioningContext::GenerateBcc() const {
     assert(coseSign1);
 
     return {privKey, cppbor::Array().add(std::move(coseKey)).add(coseSign1.moveValue())};
+}
+
+std::optional<cppcose::HmacSha256>
+PureSoftRemoteProvisioningContext::GenerateHmacSha256(const cppcose::bytevec& input) const {
+    auto key = DeriveBytesFromHbk("Key to MAC public keys", kMacKeyLength);
+    auto result = cppcose::generateHmacSha256(key, input);
+    if (!result) {
+        LOG_E("Error signing MAC: %s", result.message().c_str());
+        return std::nullopt;
+    }
+    return *result;
 }
 
 }  // namespace keymaster

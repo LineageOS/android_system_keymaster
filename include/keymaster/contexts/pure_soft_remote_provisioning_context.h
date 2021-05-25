@@ -33,6 +33,8 @@ class PureSoftRemoteProvisioningContext : public RemoteProvisioningContext {
                                             size_t numBytes) const override;
     std::unique_ptr<cppbor::Map> CreateDeviceInfo() const override;
     std::pair<std::vector<uint8_t>, cppbor::Array> GenerateBcc() const override;
+    std::optional<cppcose::HmacSha256>
+    GenerateHmacSha256(const cppcose::bytevec& input) const override;
 };
 
 }  // namespace keymaster
