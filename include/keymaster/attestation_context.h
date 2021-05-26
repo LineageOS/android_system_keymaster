@@ -98,8 +98,8 @@ class AttestationContext {
     virtual CertificateChain GetAttestationChain(keymaster_algorithm_t algorithm,
                                                  keymaster_error_t* error) const = 0;
 
-  private:
-    const KmVersion version_;
+  protected:
+    KmVersion version_;
 };
 
 }  // namespace keymaster
