@@ -42,18 +42,16 @@ template <typename T> T&& min(T&& a, T&& b) {
 }
 
 keymaster_error_t fake_sign_cert(X509* cert) {
-    // Set algorithm in TBSCertificate
-    X509_ALGOR_set0(cert->cert_info->signature, OBJ_nid2obj(NID_sha256WithRSAEncryption),
-                    V_ASN1_NULL, nullptr);
-
-    // Set algorithm in Certificate
-    X509_ALGOR_set0(cert->sig_alg, OBJ_nid2obj(NID_sha256WithRSAEncryption), V_ASN1_NULL, nullptr);
+    X509_ALGOR_Ptr algor(X509_ALGOR_new());
+    if (!algor.get()) {
+        return TranslateLastOpenSslError();
+    }
+    X509_ALGOR_set0(algor.get(), OBJ_nid2obj(NID_sha256WithRSAEncryption), V_ASN1_NULL, nullptr);
 
     // Set signature to a bit string containing a single byte, value 0.
     uint8_t fake_sig = 0;
-    if (!cert->signature) cert->signature = ASN1_BIT_STRING_new();
-    if (!cert->signature) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-    if (!ASN1_STRING_set(cert->signature, &fake_sig, sizeof(fake_sig))) {
+    if (!X509_set1_signature_algo(cert, algor.get()) ||
+        !X509_set1_signature_value(cert, &fake_sig, sizeof(fake_sig))) {
         return TranslateLastOpenSslError();
     }
 
