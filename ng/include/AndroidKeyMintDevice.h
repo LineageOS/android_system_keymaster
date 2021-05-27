@@ -77,8 +77,8 @@ class AndroidKeyMintDevice : public BnKeyMintDevice {
                                                std::vector<uint8_t>* ephemeralKeyBlob) override;
 
     ScopedAStatus
-    getKeyCharacteristics(const std::vector<uint8_t>& storageKeyBlob,
-                          const std::vector<uint8_t>& appId, const std::vector<uint8_t>& appData,
+    getKeyCharacteristics(const std::vector<uint8_t>& keyBlob, const std::vector<uint8_t>& appId,
+                          const std::vector<uint8_t>& appData,
                           std::vector<KeyCharacteristics>* keyCharacteristics) override;
 
     shared_ptr<::keymaster::AndroidKeymaster>& getKeymasterImpl() { return impl_; }
