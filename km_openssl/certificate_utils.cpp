@@ -42,18 +42,16 @@ template <typename T> T&& min(T&& a, T&& b) {
 }
 
 keymaster_error_t fake_sign_cert(X509* cert) {
-    // Set algorithm in TBSCertificate
-    X509_ALGOR_set0(cert->cert_info->signature, OBJ_nid2obj(NID_sha256WithRSAEncryption),
-                    V_ASN1_NULL, nullptr);
-
-    // Set algorithm in Certificate
-    X509_ALGOR_set0(cert->sig_alg, OBJ_nid2obj(NID_sha256WithRSAEncryption), V_ASN1_NULL, nullptr);
+    X509_ALGOR_Ptr algor(X509_ALGOR_new());
+    if (!algor.get()) {
+        return TranslateLastOpenSslError();
+    }
+    X509_ALGOR_set0(algor.get(), OBJ_nid2obj(NID_sha256WithRSAEncryption), V_ASN1_NULL, nullptr);
 
     // Set signature to a bit string containing a single byte, value 0.
     uint8_t fake_sig = 0;
-    if (!cert->signature) cert->signature = ASN1_BIT_STRING_new();
-    if (!cert->signature) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-    if (!ASN1_STRING_set(cert->signature, &fake_sig, sizeof(fake_sig))) {
+    if (!X509_set1_signature_algo(cert, algor.get()) ||
+        !X509_set1_signature_value(cert, &fake_sig, sizeof(fake_sig))) {
         return TranslateLastOpenSslError();
     }
 
@@ -126,18 +124,40 @@ keymaster_error_t get_certificate_params(const AuthorizationSet& caller_params,
     }
     cert_params->serial = move(serial);
 
-    uint64_t tmp;
-    if (!caller_params.GetTagValue(TAG_CERTIFICATE_NOT_BEFORE, &tmp)) {
-        if (kmVersion >= KmVersion::KEYMINT_1) return KM_ERROR_MISSING_NOT_BEFORE;
-        cert_params->active_date_time = 0;
-    }
-    cert_params->active_date_time = static_cast<int64_t>(tmp);
+    cert_params->active_date_time = 0;
+    cert_params->expire_date_time = kUndefinedExpirationDateTime;
 
-    if (!caller_params.GetTagValue(TAG_CERTIFICATE_NOT_AFTER, &tmp)) {
-        if (kmVersion >= KmVersion::KEYMINT_1) return KM_ERROR_MISSING_NOT_AFTER;
-        cert_params->expire_date_time = kUndefinedExpirationDateTime;
+    uint64_t tmp;
+    switch (kmVersion) {
+    case KmVersion::KEYMASTER_1:
+    case KmVersion::KEYMASTER_1_1:
+    case KmVersion::KEYMASTER_2:
+    case KmVersion::KEYMASTER_3:
+    case KmVersion::KEYMASTER_4:
+    case KmVersion::KEYMASTER_4_1:
+        if (caller_params.GetTagValue(TAG_ACTIVE_DATETIME, &tmp)) {
+            LOG_D("Using TAG_ACTIVE_DATETIME: %lu", tmp);
+            cert_params->active_date_time = static_cast<int64_t>(tmp);
+        }
+        if (caller_params.GetTagValue(TAG_ORIGINATION_EXPIRE_DATETIME, &tmp)) {
+            LOG_D("Using TAG_ORIGINATION_EXPIRE_DATETIME: %lu", tmp);
+            cert_params->expire_date_time = static_cast<int64_t>(tmp);
+        }
+        break;
+
+    case KmVersion::KEYMINT_1:
+        if (!caller_params.GetTagValue(TAG_CERTIFICATE_NOT_BEFORE, &tmp)) {
+            return KM_ERROR_MISSING_NOT_BEFORE;
+        }
+        LOG_D("Using TAG_CERTIFICATE_NOT_BEFORE: %lu", tmp);
+        cert_params->active_date_time = static_cast<int64_t>(tmp);
+
+        if (!caller_params.GetTagValue(TAG_CERTIFICATE_NOT_AFTER, &tmp)) {
+            return KM_ERROR_MISSING_NOT_AFTER;
+        }
+        LOG_D("Using TAG_CERTIFICATE_NOT_AFTER: %lu", tmp);
+        cert_params->expire_date_time = static_cast<int64_t>(tmp);
     }
-    cert_params->expire_date_time = static_cast<int64_t>(tmp);
 
     LOG_D("Got certificate date params:  NotBefore = %ld, NotAfter = %ld",
           cert_params->active_date_time, cert_params->expire_date_time);
