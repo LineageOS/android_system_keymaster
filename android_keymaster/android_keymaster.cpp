@@ -87,7 +87,7 @@ cppcose::HmacSha256Function getMacFunction(bool test_mode,
                                            RemoteProvisioningContext* rem_prov_ctx) {
     if (test_mode) {
         return [](const cppcose::bytevec& input) {
-            const cppcose::bytevec macKey{32};
+            const cppcose::bytevec macKey(32);
             return cppcose::generateHmacSha256(macKey, input);
         };
     }
@@ -436,6 +436,7 @@ void AndroidKeymaster::GenerateCsr(const GenerateCsrRequest& request,
                                .add(std::pair(request.challenge.begin(),
                                               request.challenge.end() - request.challenge.begin()))
                                .add(std::move(device_info_map))
+                               .add(std::pair(pubKeysToSignMac->data(), pubKeysToSignMac->size()))
                                .encode());
     if (!signedMac) {
         LOG_E("Failed to construct COSE_Sign1 over the ephemeral mac key.", 0);
