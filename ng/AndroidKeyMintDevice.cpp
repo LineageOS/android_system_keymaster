@@ -83,11 +83,8 @@ vector<KeyCharacteristics> convertKeyCharacteristics(SecurityLevel keyMintSecuri
         /* Unimplemented */
         case KM_TAG_ALLOW_WHILE_ON_BODY:
         case KM_TAG_BOOTLOADER_ONLY:
-        case KM_TAG_EARLY_BOOT_ONLY:
         case KM_TAG_ROLLBACK_RESISTANT:
         case KM_TAG_STORAGE_KEY:
-        case KM_TAG_TRUSTED_CONFIRMATION_REQUIRED:
-        case KM_TAG_TRUSTED_USER_PRESENCE_REQUIRED:
             break;
 
         /* Keystore-enforced if not locally generated. */
@@ -140,6 +137,7 @@ vector<KeyCharacteristics> convertKeyCharacteristics(SecurityLevel keyMintSecuri
         case KM_TAG_BOOT_PATCHLEVEL:
         case KM_TAG_CALLER_NONCE:
         case KM_TAG_DIGEST:
+        case KM_TAG_EARLY_BOOT_ONLY:
         case KM_TAG_EC_CURVE:
         case KM_TAG_EXPORTABLE:
         case KM_TAG_INCLUDE_UNIQUE_ID:
@@ -155,6 +153,8 @@ vector<KeyCharacteristics> convertKeyCharacteristics(SecurityLevel keyMintSecuri
         case KM_TAG_PURPOSE:
         case KM_TAG_RSA_OAEP_MGF_DIGEST:
         case KM_TAG_RSA_PUBLIC_EXPONENT:
+        case KM_TAG_TRUSTED_CONFIRMATION_REQUIRED:
+        case KM_TAG_TRUSTED_USER_PRESENCE_REQUIRED:
         case KM_TAG_UNLOCKED_DEVICE_REQUIRED:
         case KM_TAG_USER_AUTH_TYPE:
         case KM_TAG_USER_SECURE_ID:
