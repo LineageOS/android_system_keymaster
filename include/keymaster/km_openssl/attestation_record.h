@@ -70,6 +70,7 @@ ASN1_SEQUENCE(KM_ROOT_OF_TRUST) = {
 } ASN1_SEQUENCE_END(KM_ROOT_OF_TRUST);
 DECLARE_ASN1_FUNCTIONS(KM_ROOT_OF_TRUST);
 
+// Fields ordered in tag order.
 typedef struct km_auth_list {
     ASN1_INTEGER_SET* purpose;
     ASN1_INTEGER* algorithm;
@@ -77,26 +78,29 @@ typedef struct km_auth_list {
     ASN1_INTEGER_SET* block_mode;
     ASN1_INTEGER_SET* digest;
     ASN1_INTEGER_SET* padding;
-    ASN1_INTEGER_SET* mgf_digest;
     ASN1_NULL* caller_nonce;
     ASN1_INTEGER* min_mac_length;
     ASN1_INTEGER_SET* kdf;
     ASN1_INTEGER* ec_curve;
     ASN1_INTEGER* rsa_public_exponent;
+    ASN1_INTEGER_SET* mgf_digest;
+    ASN1_NULL* rollback_resistance;
+    ASN1_NULL* early_boot_only;
     ASN1_INTEGER* active_date_time;
     ASN1_INTEGER* origination_expire_date_time;
     ASN1_INTEGER* usage_expire_date_time;
+    ASN1_INTEGER* usage_count_limit;
     ASN1_NULL* no_auth_required;
     ASN1_INTEGER* user_auth_type;
     ASN1_INTEGER* auth_timeout;
     ASN1_NULL* allow_while_on_body;
+    ASN1_NULL* trusted_user_presence_required;
     ASN1_NULL* trusted_confirmation_required;
     ASN1_NULL* unlocked_device_required;
     ASN1_NULL* all_applications;
     ASN1_OCTET_STRING* application_id;
     ASN1_INTEGER* creation_date_time;
     ASN1_INTEGER* origin;
-    ASN1_NULL* rollback_resistance;
     ASN1_NULL* rollback_resistant;
     KM_ROOT_OF_TRUST* root_of_trust;
     ASN1_INTEGER* os_version;
@@ -110,15 +114,10 @@ typedef struct km_auth_list {
     ASN1_OCTET_STRING* attestation_id_meid;
     ASN1_OCTET_STRING* attestation_id_manufacturer;
     ASN1_OCTET_STRING* attestation_id_model;
-    ASN1_NULL* early_boot_only;
+    ASN1_INTEGER* vendor_patchlevel;
+    ASN1_INTEGER* boot_patch_level;
     ASN1_NULL* device_unique_attestation;
     ASN1_NULL* identity_credential_key;
-    ASN1_NULL* trusted_user_presence_required;
-    ASN1_NULL* storage_key;
-    ASN1_INTEGER* boot_patch_level;
-    ASN1_INTEGER* vendor_patchlevel;
-    ASN1_OCTET_STRING* confirmation_token;
-    ASN1_INTEGER* usage_count_limit;
 } KM_AUTH_LIST;
 
 ASN1_SEQUENCE(KM_AUTH_LIST) = {
@@ -128,24 +127,32 @@ ASN1_SEQUENCE(KM_AUTH_LIST) = {
     ASN1_EXP_SET_OF_OPT(KM_AUTH_LIST, block_mode, ASN1_INTEGER, TAG_BLOCK_MODE.masked_tag()),
     ASN1_EXP_SET_OF_OPT(KM_AUTH_LIST, digest, ASN1_INTEGER, TAG_DIGEST.masked_tag()),
     ASN1_EXP_SET_OF_OPT(KM_AUTH_LIST, padding, ASN1_INTEGER, TAG_PADDING.masked_tag()),
-    ASN1_EXP_SET_OF_OPT(KM_AUTH_LIST, mgf_digest, ASN1_INTEGER,
-                        TAG_RSA_OAEP_MGF_DIGEST.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, caller_nonce, ASN1_NULL, TAG_CALLER_NONCE.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, min_mac_length, ASN1_INTEGER, TAG_MIN_MAC_LENGTH.masked_tag()),
     ASN1_EXP_SET_OF_OPT(KM_AUTH_LIST, kdf, ASN1_INTEGER, TAG_KDF.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, ec_curve, ASN1_INTEGER, TAG_EC_CURVE.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, rsa_public_exponent, ASN1_INTEGER,
                  TAG_RSA_PUBLIC_EXPONENT.masked_tag()),
+    ASN1_EXP_SET_OF_OPT(KM_AUTH_LIST, mgf_digest, ASN1_INTEGER,
+                        TAG_RSA_OAEP_MGF_DIGEST.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, rollback_resistance, ASN1_NULL,
+                 TAG_ROLLBACK_RESISTANCE.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, early_boot_only, ASN1_NULL, TAG_EARLY_BOOT_ONLY.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, active_date_time, ASN1_INTEGER, TAG_ACTIVE_DATETIME.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, origination_expire_date_time, ASN1_INTEGER,
                  TAG_ORIGINATION_EXPIRE_DATETIME.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, usage_expire_date_time, ASN1_INTEGER,
                  TAG_USAGE_EXPIRE_DATETIME.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, usage_count_limit, ASN1_INTEGER, TAG_USAGE_COUNT_LIMIT.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, no_auth_required, ASN1_NULL, TAG_NO_AUTH_REQUIRED.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, user_auth_type, ASN1_INTEGER, TAG_USER_AUTH_TYPE.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, auth_timeout, ASN1_INTEGER, TAG_AUTH_TIMEOUT.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, allow_while_on_body, ASN1_NULL,
                  TAG_ALLOW_WHILE_ON_BODY.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, trusted_user_presence_required, ASN1_NULL,
+                 TAG_TRUSTED_USER_PRESENCE_REQUIRED.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, trusted_confirmation_required, ASN1_NULL,
+                 TAG_TRUSTED_CONFIRMATION_REQUIRED.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, unlocked_device_required, ASN1_NULL,
                  TAG_UNLOCKED_DEVICE_REQUIRED.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, all_applications, ASN1_NULL, TAG_ALL_APPLICATIONS.masked_tag()),
@@ -153,8 +160,6 @@ ASN1_SEQUENCE(KM_AUTH_LIST) = {
     ASN1_EXP_OPT(KM_AUTH_LIST, creation_date_time, ASN1_INTEGER,
                  TAG_CREATION_DATETIME.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, origin, ASN1_INTEGER, TAG_ORIGIN.masked_tag()),
-    ASN1_EXP_OPT(KM_AUTH_LIST, rollback_resistance, ASN1_NULL,
-                 TAG_ROLLBACK_RESISTANCE.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, rollback_resistant, ASN1_NULL, TAG_ROLLBACK_RESISTANT.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, root_of_trust, KM_ROOT_OF_TRUST, TAG_ROOT_OF_TRUST.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, os_version, ASN1_INTEGER, TAG_OS_VERSION.masked_tag()),
@@ -177,21 +182,12 @@ ASN1_SEQUENCE(KM_AUTH_LIST) = {
                  TAG_ATTESTATION_ID_MANUFACTURER.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, attestation_id_model, ASN1_OCTET_STRING,
                  TAG_ATTESTATION_ID_MODEL.masked_tag()),
-    ASN1_EXP_OPT(KM_AUTH_LIST, early_boot_only, ASN1_NULL, TAG_EARLY_BOOT_ONLY.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, vendor_patchlevel, ASN1_INTEGER, TAG_VENDOR_PATCHLEVEL.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, boot_patch_level, ASN1_INTEGER, TAG_BOOT_PATCHLEVEL.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, device_unique_attestation, ASN1_NULL,
                  TAG_DEVICE_UNIQUE_ATTESTATION.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, identity_credential_key, ASN1_NULL,
                  TAG_IDENTITY_CREDENTIAL_KEY.masked_tag()),
-    ASN1_EXP_OPT(KM_AUTH_LIST, trusted_user_presence_required, ASN1_NULL,
-                 TAG_TRUSTED_USER_PRESENCE_REQUIRED.masked_tag()),
-    ASN1_EXP_OPT(KM_AUTH_LIST, storage_key, ASN1_NULL, TAG_STORAGE_KEY.masked_tag()),
-    ASN1_EXP_OPT(KM_AUTH_LIST, trusted_confirmation_required, ASN1_NULL,
-                 TAG_TRUSTED_CONFIRMATION_REQUIRED.masked_tag()),
-    ASN1_EXP_OPT(KM_AUTH_LIST, boot_patch_level, ASN1_INTEGER, TAG_BOOT_PATCHLEVEL.masked_tag()),
-    ASN1_EXP_OPT(KM_AUTH_LIST, vendor_patchlevel, ASN1_INTEGER, TAG_VENDOR_PATCHLEVEL.masked_tag()),
-    ASN1_EXP_OPT(KM_AUTH_LIST, confirmation_token, ASN1_OCTET_STRING,
-                 TAG_CONFIRMATION_TOKEN.masked_tag()),
-    ASN1_EXP_OPT(KM_AUTH_LIST, usage_count_limit, ASN1_INTEGER, TAG_USAGE_COUNT_LIMIT.masked_tag()),
 } ASN1_SEQUENCE_END(KM_AUTH_LIST);
 DECLARE_ASN1_FUNCTIONS(KM_AUTH_LIST);
 
