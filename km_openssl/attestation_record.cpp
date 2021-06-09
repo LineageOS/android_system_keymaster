@@ -536,6 +536,7 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
         case KM_TAG_AUTH_TOKEN:
         case KM_TAG_MAC_LENGTH:
         case KM_TAG_ATTESTATION_CHALLENGE:
+        case KM_TAG_DEVICE_UNIQUE_ATTESTATION:
         case KM_TAG_RESET_SINCE_ID_ROTATION:
         case KM_TAG_KDF:
 
@@ -556,11 +557,13 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
         case KM_TAG_MAX_BOOT_LEVEL:
         case KM_TAG_MAX_USES_PER_BOOT:
         case KM_TAG_MIN_SECONDS_BETWEEN_OPS:
+        case KM_TAG_STORAGE_KEY:
         case KM_TAG_UNIQUE_ID:
 
         /* Tags ignored because they contain data that should not be exported */
         case KM_TAG_APPLICATION_DATA:
         case KM_TAG_APPLICATION_ID:
+        case KM_TAG_CONFIRMATION_TOKEN:
         case KM_TAG_ROOT_OF_TRUST:
             continue;
 
@@ -668,17 +671,11 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
         case KM_TAG_EARLY_BOOT_ONLY:
             bool_ptr = &record->early_boot_only;
             break;
-        case KM_TAG_DEVICE_UNIQUE_ATTESTATION:
-            bool_ptr = &record->device_unique_attestation;
-            break;
         case KM_TAG_IDENTITY_CREDENTIAL_KEY:
             bool_ptr = &record->identity_credential_key;
             break;
         case KM_TAG_TRUSTED_USER_PRESENCE_REQUIRED:
             bool_ptr = &record->trusted_user_presence_required;
-            break;
-        case KM_TAG_STORAGE_KEY:
-            bool_ptr = &record->storage_key;
             break;
 
         /* Byte arrays*/
@@ -708,9 +705,6 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
             break;
         case KM_TAG_ATTESTATION_ID_MODEL:
             string_ptr = &record->attestation_id_model;
-            break;
-        case KM_TAG_CONFIRMATION_TOKEN:
-            string_ptr = &record->confirmation_token;
             break;
         }
 
@@ -1165,11 +1159,6 @@ keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
-    // Rsa Oaep Mgf Digest
-    if (!get_repeated_enums(record->mgf_digest, TAG_RSA_OAEP_MGF_DIGEST, auth_list)) {
-        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-    }
-
     // Caller nonce
     if (record->caller_nonce && !auth_list->push_back(TAG_CALLER_NONCE)) {
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
@@ -1190,6 +1179,21 @@ keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
+    // Rsa Oaep Mgf Digest
+    if (!get_repeated_enums(record->mgf_digest, TAG_RSA_OAEP_MGF_DIGEST, auth_list)) {
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    }
+
+    // Rollback resistance
+    if (record->rollback_resistance && !auth_list->push_back(TAG_ROLLBACK_RESISTANCE)) {
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    }
+
+    // Early boot only
+    if (record->early_boot_only && !auth_list->push_back(TAG_EARLY_BOOT_ONLY)) {
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    }
+
     // Active date time
     if (!get_ulong(record->active_date_time, TAG_ACTIVE_DATETIME, auth_list)) {
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
@@ -1203,6 +1207,12 @@ keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet
 
     // Usage Expire date time
     if (!get_ulong(record->usage_expire_date_time, TAG_USAGE_EXPIRE_DATETIME, auth_list)) {
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    }
+
+    // Usage count limit
+    if (record->usage_count_limit &&
+        !auth_list->push_back(TAG_USAGE_COUNT_LIMIT, ASN1_INTEGER_get(record->usage_count_limit))) {
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
@@ -1222,33 +1232,8 @@ keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
-    // All applications
-    if (record->all_applications && !auth_list->push_back(TAG_ALL_APPLICATIONS)) {
-        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-    }
-
-    // Application ID
-    if (record->application_id &&
-        !auth_list->push_back(TAG_APPLICATION_ID, record->application_id->data,
-                              record->application_id->length)) {
-        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-    }
-
-    // Attestation application ID
-    if (record->attestation_application_id &&
-        !auth_list->push_back(TAG_ATTESTATION_APPLICATION_ID,
-                              record->attestation_application_id->data,
-                              record->attestation_application_id->length)) {
-        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-    }
-
-    // identity credential key
-    if (record->identity_credential_key && !auth_list->push_back(TAG_IDENTITY_CREDENTIAL_KEY)) {
-        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-    }
-
-    // storage key
-    if (record->storage_key && !auth_list->push_back(TAG_STORAGE_KEY)) {
+    // Allow while on body
+    if (record->allow_while_on_body && !auth_list->push_back(TAG_ALLOW_WHILE_ON_BODY)) {
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
@@ -1264,22 +1249,20 @@ keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
-    // boot patch level
-    if (record->boot_patch_level &&
-        !auth_list->push_back(TAG_BOOT_PATCHLEVEL, ASN1_INTEGER_get(record->boot_patch_level))) {
+    // Unlocked device required
+    if (record->unlocked_device_required && !auth_list->push_back(TAG_UNLOCKED_DEVICE_REQUIRED)) {
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
-    // vendor patch level
-    if (record->vendor_patchlevel &&
-        !auth_list->push_back(TAG_VENDOR_PATCHLEVEL, ASN1_INTEGER_get(record->vendor_patchlevel))) {
+    // All applications
+    if (record->all_applications && !auth_list->push_back(TAG_ALL_APPLICATIONS)) {
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
-    // confirmation token
-    if (record->confirmation_token &&
-        !auth_list->push_back(TAG_CONFIRMATION_TOKEN, record->confirmation_token->data,
-                              record->confirmation_token->length)) {
+    // Application ID
+    if (record->application_id &&
+        !auth_list->push_back(TAG_APPLICATION_ID, record->application_id->data,
+                              record->application_id->length)) {
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
@@ -1315,6 +1298,14 @@ keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet
     // OS Patch level
     if (record->os_patchlevel &&
         !auth_list->push_back(TAG_OS_PATCHLEVEL, ASN1_INTEGER_get(record->os_patchlevel))) {
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    }
+
+    // attestation application Id
+    if (record->attestation_application_id &&
+        !auth_list->push_back(TAG_ATTESTATION_APPLICATION_ID,
+                              record->attestation_application_id->data,
+                              record->attestation_application_id->length)) {
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
@@ -1375,18 +1366,26 @@ keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
-    // Trusted confirmation required
-    if (record->trusted_confirmation_required) {
-        if (!auth_list->push_back(TAG_NO_AUTH_REQUIRED)) {
-            return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-        }
+    // vendor patch level
+    if (record->vendor_patchlevel &&
+        !auth_list->push_back(TAG_VENDOR_PATCHLEVEL, ASN1_INTEGER_get(record->vendor_patchlevel))) {
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
-    // Early boot only
-    if (record->early_boot_only) {
-        if (!auth_list->push_back(TAG_EARLY_BOOT_ONLY)) {
-            return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-        }
+    // boot patch level
+    if (record->boot_patch_level &&
+        !auth_list->push_back(TAG_BOOT_PATCHLEVEL, ASN1_INTEGER_get(record->boot_patch_level))) {
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    }
+
+    // device unique attestation
+    if (record->device_unique_attestation && !auth_list->push_back(TAG_DEVICE_UNIQUE_ATTESTATION)) {
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    }
+
+    // identity credential key
+    if (record->identity_credential_key && !auth_list->push_back(TAG_IDENTITY_CREDENTIAL_KEY)) {
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
     return KM_ERROR_OK;
