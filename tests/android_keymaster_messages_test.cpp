@@ -46,27 +46,12 @@ Message* round_trip(int32_t ver, const Message& message, size_t expected_size) {
     return deserialized;
 }
 
-struct EmptyKeymasterResponse : public KeymasterResponse {
-    explicit EmptyKeymasterResponse(int32_t ver) : KeymasterResponse(ver) {}
-    size_t NonErrorSerializedSize() const { return 1; }
-    uint8_t* NonErrorSerialize(uint8_t* buf, const uint8_t* /* end */) const {
-        *buf++ = 0;
-        return buf;
-    }
-    bool NonErrorDeserialize(const uint8_t** buf_ptr, const uint8_t* end) {
-        if (*buf_ptr >= end) return false;
-        EXPECT_EQ(0, **buf_ptr);
-        (*buf_ptr)++;
-        return true;
-    }
-};
-
 TEST(RoundTrip, EmptyKeymasterResponse) {
     for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
         EmptyKeymasterResponse msg(ver);
         msg.error = KM_ERROR_OK;
 
-        UniquePtr<EmptyKeymasterResponse> deserialized(round_trip(ver, msg, 5));
+        UniquePtr<EmptyKeymasterResponse> deserialized(round_trip(ver, msg, 4));
     }
 }
 
@@ -597,24 +582,10 @@ TEST(RoundTrip, DeleteKeyRequest) {
     }
 }
 
-TEST(RoundTrip, DeleteKeyResponse) {
-    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
-        DeleteKeyResponse msg(ver);
-        UniquePtr<DeleteKeyResponse> deserialized(round_trip(ver, msg, 4));
-    }
-}
-
 TEST(RoundTrip, DeleteAllKeysRequest) {
     for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
         DeleteAllKeysRequest msg(ver);
         UniquePtr<DeleteAllKeysRequest> deserialized(round_trip(ver, msg, 0));
-    }
-}
-
-TEST(RoundTrip, DeleteAllKeysResponse) {
-    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
-        DeleteAllKeysResponse msg(ver);
-        UniquePtr<DeleteAllKeysResponse> deserialized(round_trip(ver, msg, 4));
     }
 }
 
@@ -704,13 +675,6 @@ TEST(RoundTrip, ConfigureRequest) {
     }
 }
 
-TEST(RoundTrip, ConfigureResponse) {
-    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
-        ConfigureResponse rsp(ver);
-        UniquePtr<ConfigureResponse> deserialized(round_trip(ver, rsp, 4));
-    }
-}
-
 TEST(RoundTrip, AddEntropyRequest) {
     for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
         AddEntropyRequest msg(ver);
@@ -722,24 +686,10 @@ TEST(RoundTrip, AddEntropyRequest) {
     }
 }
 
-TEST(RoundTrip, AddEntropyResponse) {
-    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
-        AddEntropyResponse msg(ver);
-        UniquePtr<AddEntropyResponse> deserialized(round_trip(ver, msg, 4));
-    }
-}
-
 TEST(RoundTrip, AbortOperationRequest) {
     for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
         AbortOperationRequest msg(ver);
         UniquePtr<AbortOperationRequest> deserialized(round_trip(ver, msg, 8));
-    }
-}
-
-TEST(RoundTrip, AbortOperationResponse) {
-    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
-        AbortOperationResponse msg(ver);
-        UniquePtr<AbortOperationResponse> deserialized(round_trip(ver, msg, 4));
     }
 }
 
@@ -836,6 +786,39 @@ TEST(RoundTrip, GenerateTimestampTokenResponse) {
     }
 }
 
+#define SET_ATTESTATION_ID(x) msg.x.Reinitialize(#x, strlen(#x))
+
+void check_id(const Buffer& id, const char* value) {
+    auto len = strlen(value);
+    EXPECT_EQ(id.available_read(), len) << "On " << value;
+    EXPECT_TRUE(memcmp(id.peek_read(), value, len) == 0) << "On " << value;
+}
+
+#define CHECK_ID(x) check_id(deserialized->x, #x);
+
+TEST(RoundTrip, SetAttestationIdsRequest) {
+    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        SetAttestationIdsRequest msg(ver);
+        SET_ATTESTATION_ID(brand);
+        SET_ATTESTATION_ID(device);
+        SET_ATTESTATION_ID(product);
+        SET_ATTESTATION_ID(serial);
+        SET_ATTESTATION_ID(imei);
+        SET_ATTESTATION_ID(meid);
+        SET_ATTESTATION_ID(manufacturer);
+        SET_ATTESTATION_ID(model);
+
+        UniquePtr<SetAttestationIdsRequest> deserialized(round_trip(ver, msg, 81));
+        ASSERT_TRUE(deserialized);
+        CHECK_ID(brand);
+        CHECK_ID(device);
+        CHECK_ID(product);
+        CHECK_ID(serial);
+        CHECK_ID(imei);
+        CHECK_ID(model);
+    }
+}
+
 uint8_t msgbuf[] = {
     220, 88,  183, 255, 71,  1,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
     0,   173, 0,   0,   0,   228, 174, 98,  187, 191, 135, 253, 200, 51,  230, 114, 247, 151, 109,
@@ -905,15 +888,12 @@ template <typename Message> void parse_garbage() {
     TEST(GarbageTest, Message) { parse_garbage<Message>(); }
 
 GARBAGE_TEST(AbortOperationRequest);
-GARBAGE_TEST(AbortOperationResponse);
+GARBAGE_TEST(EmptyKeymasterResponse);
 GARBAGE_TEST(AddEntropyRequest);
-GARBAGE_TEST(AddEntropyResponse);
 GARBAGE_TEST(BeginOperationRequest);
 GARBAGE_TEST(BeginOperationResponse);
 GARBAGE_TEST(DeleteAllKeysRequest);
-GARBAGE_TEST(DeleteAllKeysResponse);
 GARBAGE_TEST(DeleteKeyRequest);
-GARBAGE_TEST(DeleteKeyResponse);
 GARBAGE_TEST(ExportKeyRequest);
 GARBAGE_TEST(ExportKeyResponse);
 GARBAGE_TEST(FinishOperationRequest);
@@ -932,6 +912,7 @@ GARBAGE_TEST(UpgradeKeyRequest);
 GARBAGE_TEST(UpgradeKeyResponse);
 GARBAGE_TEST(GenerateTimestampTokenRequest);
 GARBAGE_TEST(GenerateTimestampTokenResponse);
+GARBAGE_TEST(SetAttestationIdsRequest);
 
 }  // namespace test
 
