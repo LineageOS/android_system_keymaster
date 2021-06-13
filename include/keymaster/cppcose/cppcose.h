@@ -255,17 +255,13 @@ ErrMsgOr<cppbor::Array> constructCoseSign1(const bytevec& key, cppbor::Map extra
 /**
  * Verify and parse a COSE_Sign1 message, returning the payload.
  *
- * @param ignoreSignature indicates whether signature verification should be skipped.  If true, no
- *        verification of the signature will be done.
- *
  * @param coseSign1 is the COSE_Sign1 to verify and parse.
  *
  * @param signingCoseKey is a CBOR-encoded COSE_Key to use to verify the signature.  The bytevec may
  *        be empty, in which case the function assumes that coseSign1's payload is the COSE_Key to
  *        use, i.e. that coseSign1 is a self-signed "certificate".
  */
-ErrMsgOr<bytevec /* payload */> verifyAndParseCoseSign1(bool ignoreSignature,
-                                                        const cppbor::Array* coseSign1,
+ErrMsgOr<bytevec /* payload */> verifyAndParseCoseSign1(const cppbor::Array* coseSign1,
                                                         const bytevec& signingCoseKey,
                                                         const bytevec& aad);
 
