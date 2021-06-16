@@ -536,7 +536,6 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
         case KM_TAG_AUTH_TOKEN:
         case KM_TAG_MAC_LENGTH:
         case KM_TAG_ATTESTATION_CHALLENGE:
-        case KM_TAG_DEVICE_UNIQUE_ATTESTATION:
         case KM_TAG_RESET_SINCE_ID_ROTATION:
         case KM_TAG_KDF:
 
@@ -670,6 +669,9 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
             break;
         case KM_TAG_EARLY_BOOT_ONLY:
             bool_ptr = &record->early_boot_only;
+            break;
+        case KM_TAG_DEVICE_UNIQUE_ATTESTATION:
+            bool_ptr = &record->device_unique_attestation;
             break;
         case KM_TAG_IDENTITY_CREDENTIAL_KEY:
             bool_ptr = &record->identity_credential_key;
