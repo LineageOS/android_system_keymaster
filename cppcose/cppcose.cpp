@@ -419,7 +419,7 @@ ErrMsgOr<bytevec> aesGcmEncrypt(const bytevec& key, const bytevec& nonce, const 
                           plaintext.size())) {
         return "Failed to encrypt plaintext";
     }
-    assert(plaintext.size() == outlen);
+    assert(plaintext.size() == static_cast<uint64_t>(outlen));
 
     if (!EVP_CipherFinal_ex(ctx->get(), ciphertext.data() + outlen, &outlen)) {
         return "Failed to finalize encryption";
@@ -447,7 +447,7 @@ ErrMsgOr<bytevec> aesGcmDecrypt(const bytevec& key, const bytevec& nonce, const 
                           ciphertextWithTag.size() - kAesGcmTagSize)) {
         return "Failed to decrypt plaintext";
     }
-    assert(plaintext.size() == outlen);
+    assert(plaintext.size() == static_cast<uint64_t>(outlen));
 
     bytevec tag(ciphertextWithTag.end() - kAesGcmTagSize, ciphertextWithTag.end());
     if (!EVP_CIPHER_CTX_ctrl(ctx->get(), EVP_CTRL_GCM_SET_TAG, kAesGcmTagSize, tag.data())) {
