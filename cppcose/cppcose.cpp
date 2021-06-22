@@ -170,7 +170,7 @@ ErrMsgOr<cppbor::Array> constructCoseSign1(const bytevec& key, const bytevec& pa
     return constructCoseSign1(key, {} /* protectedParams */, payload, aad);
 }
 
-ErrMsgOr<bytevec> verifyAndParseCoseSign1(bool ignoreSignature, const cppbor::Array* coseSign1,
+ErrMsgOr<bytevec> verifyAndParseCoseSign1(const cppbor::Array* coseSign1,
                                           const bytevec& signingCoseKey, const bytevec& aad) {
     if (!coseSign1 || coseSign1->size() != kCoseSign1EntryCount) {
         return "Invalid COSE_Sign1";
@@ -197,25 +197,23 @@ ErrMsgOr<bytevec> verifyAndParseCoseSign1(bool ignoreSignature, const cppbor::Ar
         return "Unsupported signature algorithm";
     }
 
-    if (!ignoreSignature) {
-        const cppbor::Bstr* signature = coseSign1->get(kCoseSign1Signature)->asBstr();
-        if (!signature || signature->value().empty()) {
-            return "Missing signature input";
-        }
+    const cppbor::Bstr* signature = coseSign1->get(kCoseSign1Signature)->asBstr();
+    if (!signature || signature->value().empty()) {
+        return "Missing signature input";
+    }
 
-        bool selfSigned = signingCoseKey.empty();
-        auto key = CoseKey::parseEd25519(selfSigned ? payload->value() : signingCoseKey);
-        if (!key || key->getBstrValue(CoseKey::PUBKEY_X)->empty()) {
-            return "Bad signing key: " + key.moveMessage();
-        }
+    bool selfSigned = signingCoseKey.empty();
+    auto key = CoseKey::parseEd25519(selfSigned ? payload->value() : signingCoseKey);
+    if (!key || key->getBstrValue(CoseKey::PUBKEY_X)->empty()) {
+        return "Bad signing key: " + key.moveMessage();
+    }
 
-        bytevec signatureInput =
-            cppbor::Array().add("Signature1").add(*protectedParams).add(aad).add(*payload).encode();
+    bytevec signatureInput =
+        cppbor::Array().add("Signature1").add(*protectedParams).add(aad).add(*payload).encode();
 
-        if (!ED25519_verify(signatureInput.data(), signatureInput.size(), signature->value().data(),
-                            key->getBstrValue(CoseKey::PUBKEY_X)->data())) {
-            return "Signature verification failed";
-        }
+    if (!ED25519_verify(signatureInput.data(), signatureInput.size(), signature->value().data(),
+                        key->getBstrValue(CoseKey::PUBKEY_X)->data())) {
+        return "Signature verification failed";
     }
 
     return payload->value();

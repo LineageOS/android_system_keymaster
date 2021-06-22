@@ -59,7 +59,7 @@ validateAndExtractEekPubAndId(bool testMode, const KeymasterBlob& endpointEncryp
     std::vector<uint8_t> lastPubKey;
     for (size_t i = 0; i < certArr->size(); ++i) {
         auto cosePubKey =
-            verifyAndParseCoseSign1(testMode, certArr->get(i)->asArray(), lastPubKey, {} /* AAD */);
+            verifyAndParseCoseSign1(certArr->get(i)->asArray(), lastPubKey, {} /* AAD */);
         if (!cosePubKey) {
             LOG_E("Failed to validate EEK chain: %s", cosePubKey.moveMessage().c_str());
             return kStatusInvalidEek;
