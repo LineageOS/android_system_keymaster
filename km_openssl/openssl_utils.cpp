@@ -129,31 +129,30 @@ keymaster_error_t GetEcdsa256KeyFromCert(const keymaster_blob_t* km_cert, uint8_
         return KM_ERROR_INVALID_ARGUMENT;
     }
     const uint8_t* temp = km_cert->data;
-    X509* cert = d2i_X509(NULL, &temp, km_cert->data_length);
-    if (cert == nullptr) return TranslateLastOpenSslError();
-    EVP_PKEY* pubKey = X509_get_pubkey(cert);
-    if (pubKey == nullptr) return TranslateLastOpenSslError();
-    EC_KEY* ecKey = EVP_PKEY_get0_EC_KEY(pubKey);
-    if (ecKey == nullptr) return TranslateLastOpenSslError();
+    X509_Ptr cert(d2i_X509(NULL, &temp, km_cert->data_length));
+    if (!cert.get()) return TranslateLastOpenSslError();
+    EVP_PKEY_Ptr pubKey(X509_get_pubkey(cert.get()));
+    if (!pubKey.get()) return TranslateLastOpenSslError();
+    EC_KEY* ecKey = EVP_PKEY_get0_EC_KEY(pubKey.get());
+    if (!ecKey) return TranslateLastOpenSslError();
     const EC_POINT* jacobian_coords = EC_KEY_get0_public_key(ecKey);
-    if (jacobian_coords == nullptr) return TranslateLastOpenSslError();
-    BIGNUM x;
-    BIGNUM y;
-    BN_CTX* ctx = BN_CTX_new();
-    if (ctx == nullptr) return TranslateLastOpenSslError();
-    if (!EC_POINT_get_affine_coordinates_GFp(EC_KEY_get0_group(ecKey), jacobian_coords, &x, &y,
-                                             ctx)) {
+    if (!jacobian_coords) return TranslateLastOpenSslError();
+    bssl::UniquePtr<BIGNUM> x(BN_new());
+    bssl::UniquePtr<BIGNUM> y(BN_new());
+    BN_CTX_Ptr ctx(BN_CTX_new());
+    if (!ctx.get()) return TranslateLastOpenSslError();
+    if (!EC_POINT_get_affine_coordinates_GFp(EC_KEY_get0_group(ecKey), jacobian_coords, x.get(),
+                                             y.get(), ctx.get())) {
         return TranslateLastOpenSslError();
     }
     uint8_t* tmp_x = x_coord;
-    if (BN_bn2binpad(&x, tmp_x, kAffinePointLength) != kAffinePointLength) {
+    if (BN_bn2binpad(x.get(), tmp_x, kAffinePointLength) != kAffinePointLength) {
         return TranslateLastOpenSslError();
     }
     uint8_t* tmp_y = y_coord;
-    if (BN_bn2binpad(&y, tmp_y, kAffinePointLength) != kAffinePointLength) {
+    if (BN_bn2binpad(y.get(), tmp_y, kAffinePointLength) != kAffinePointLength) {
         return TranslateLastOpenSslError();
     }
-    BN_CTX_free(ctx);
     return KM_ERROR_OK;
 }
 
