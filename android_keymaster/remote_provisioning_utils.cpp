@@ -17,12 +17,14 @@
 #include "keymaster/cppcose/cppcose.h"
 #include <keymaster/logger.h>
 #include <keymaster/remote_provisioning_utils.h>
+#include <string_view>
 
 namespace keymaster {
 
 using cppcose::ALGORITHM;
 using cppcose::COSE_KEY;
 using cppcose::CoseKey;
+using cppcose::CoseKeyCurve;
 using cppcose::EC2;
 using cppcose::ECDH_ES_HKDF_256;
 using cppcose::ES256;
@@ -38,11 +40,27 @@ using cppcose::OCTET_KEY_PAIR;
 using cppcose::P256;
 using cppcose::verifyAndParseCoseSign1;
 
-// Hard-coded set of acceptable public keys that can act as roots of EEK chains.
-inline const std::vector<std::vector<uint8_t>> kAuthorizedEekRoots = {
-    {0x5c, 0xea, 0x4b, 0xd2, 0x31, 0x27, 0x15, 0x5e, 0x62, 0x94, 0x70,
-     0x53, 0x94, 0x43, 0x0f, 0x9a, 0x89, 0xd5, 0xc5, 0x0f, 0x82, 0x9b,
-     0xcd, 0x10, 0xe0, 0x79, 0xef, 0xf3, 0xfa, 0x40, 0xeb, 0x0a},
+using byte_view = std::basic_string_view<uint8_t>;
+
+struct KeyInfo {
+    CoseKeyCurve curve;
+    byte_view pubkey;
+    // Note: There's no need to include algorithm here, since it is assumed
+    //       that all root keys are EDDSA.
+
+    bool operator==(const KeyInfo& other) const {
+        return curve == other.curve && pubkey == other.pubkey;
+    }
+};
+
+// The production root signing key for Google Endpoint Encryption Key cert chains.
+inline constexpr uint8_t kGeekRoot[] = {
+    0x99, 0xB9, 0xEE, 0xDD, 0x5E, 0xE4, 0x52, 0xF6, 0x85, 0xC6, 0x4C, 0x62, 0xDC, 0x3E, 0x61, 0xAB,
+    0x57, 0x48, 0x7D, 0x75, 0x37, 0x29, 0xAD, 0x76, 0x80, 0x32, 0xD2, 0xB3, 0xCB, 0x63, 0x58, 0xD9};
+
+// Hard-coded set of acceptable public COSE_Keys that can act as roots of EEK chains.
+inline constexpr KeyInfo kAuthorizedEekRoots[] = {
+    {CoseKeyCurve::ED25519, byte_view(kGeekRoot, sizeof(kGeekRoot))},
 };
 
 StatusOr<std::pair<std::vector<uint8_t> /* EEK pub */, std::vector<uint8_t> /* EEK ID */>>
@@ -67,11 +85,32 @@ validateAndExtractEekPubAndId(bool testMode, const KeymasterBlob& endpointEncryp
         lastPubKey = *std::move(cosePubKey);
 
         // In prod mode the first pubkey should match a well-known Google public key.
-        if (!testMode && i == 0 &&
-            std::find(kAuthorizedEekRoots.begin(), kAuthorizedEekRoots.end(), lastPubKey) ==
-                kAuthorizedEekRoots.end()) {
-            LOG_E("Unrecognized root of EEK chain", 0);
-            return kStatusInvalidEek;
+        if (!testMode && i == 0) {
+            auto parsedPubKey = CoseKey::parse(lastPubKey);
+            if (!parsedPubKey) {
+                LOG_E("%s", parsedPubKey.moveMessage().c_str());
+                return kStatusFailed;
+            }
+
+            auto curve = parsedPubKey->getIntValue(CoseKey::CURVE);
+            if (!curve) {
+                LOG_E("Key is missing required label 'CURVE'", 0);
+                return kStatusInvalidEek;
+            }
+
+            auto rawPubKey = parsedPubKey->getBstrValue(CoseKey::PUBKEY_X);
+            if (!rawPubKey) {
+                LOG_E("Key is missing required label 'PUBKEY_X'", 0);
+                return kStatusInvalidEek;
+            }
+
+            KeyInfo matcher = {static_cast<CoseKeyCurve>(*curve),
+                               byte_view(rawPubKey->data(), rawPubKey->size())};
+            if (std::find(std::begin(kAuthorizedEekRoots), std::end(kAuthorizedEekRoots),
+                          matcher) == std::end(kAuthorizedEekRoots)) {
+                LOG_E("Unrecognized root of EEK chain", 0);
+                return kStatusInvalidEek;
+            }
         }
     }
 
