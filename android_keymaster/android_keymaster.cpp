@@ -421,7 +421,7 @@ void AndroidKeymaster::GenerateCsr(const GenerateCsrRequest& request,
     std::vector<uint8_t> devicePrivKey;
     cppbor::Array bcc;
     if (request.test_mode) {
-        std::tie(devicePrivKey, bcc) = rem_prov_ctx->GenerateBcc();
+        std::tie(devicePrivKey, bcc) = rem_prov_ctx->GenerateBcc(/*testMode=*/true);
     } else {
         devicePrivKey = rem_prov_ctx->devicePrivKey_;
         auto clone = rem_prov_ctx->bcc_.clone();
