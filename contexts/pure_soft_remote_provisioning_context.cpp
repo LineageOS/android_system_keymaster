@@ -25,6 +25,7 @@
 #include <openssl/bn.h>
 #include <openssl/ec.h>
 #include <openssl/hkdf.h>
+#include <openssl/rand.h>
 
 namespace keymaster {
 
@@ -38,7 +39,7 @@ using cppcose::VERIFY;
 constexpr uint32_t kMacKeyLength = 32;
 
 PureSoftRemoteProvisioningContext::PureSoftRemoteProvisioningContext() {
-    std::tie(devicePrivKey_, bcc_) = GenerateBcc();
+    std::tie(devicePrivKey_, bcc_) = GenerateBcc(/*testMode=*/false);
 }
 
 PureSoftRemoteProvisioningContext::~PureSoftRemoteProvisioningContext() {}
@@ -84,13 +85,17 @@ std::unique_ptr<cppbor::Map> PureSoftRemoteProvisioningContext::CreateDeviceInfo
 }
 
 std::pair<std::vector<uint8_t> /* privKey */, cppbor::Array /* BCC */>
-PureSoftRemoteProvisioningContext::GenerateBcc() const {
+PureSoftRemoteProvisioningContext::GenerateBcc(bool testMode) const {
     std::vector<uint8_t> privKey(ED25519_PRIVATE_KEY_LEN);
     std::vector<uint8_t> pubKey(ED25519_PUBLIC_KEY_LEN);
 
     uint8_t seed[32];  // Length is hard-coded in the BoringCrypto API
-    auto seed_vector = DeriveBytesFromHbk("Device Key Seed", sizeof(seed));
-    std::copy(seed_vector.begin(), seed_vector.end(), seed);
+    if (testMode) {
+        RAND_bytes(seed, sizeof(seed));
+    } else {
+        auto seed_vector = DeriveBytesFromHbk("Device Key Seed", sizeof(seed));
+        std::copy(seed_vector.begin(), seed_vector.end(), seed);
+    }
     ED25519_keypair_from_seed(pubKey.data(), privKey.data(), seed);
 
     auto coseKey = cppbor::Map()
