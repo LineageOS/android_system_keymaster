@@ -266,8 +266,12 @@ keymaster_error_t SetKeyBlobAuthorizations(const AuthorizationSet& key_descripti
             LOG_E("Root of trust and origin tags may not be specified", 0);
             return KM_ERROR_INVALID_TAG;
 
-        // These aren't supported by SoftKeymaster.
         case KM_TAG_ALLOW_WHILE_ON_BODY:
+            // Not supported, but is specified to noop in that case (vs error).
+            LOG_W("No on-body detection supported, skipping tag %d", entry.tag);
+            break;
+
+        // These aren't supported by SoftKeymaster.
         case KM_TAG_DEVICE_UNIQUE_ATTESTATION:
         case KM_TAG_ECIES_SINGLE_HASH_MODE:
         case KM_TAG_EXPORTABLE:
