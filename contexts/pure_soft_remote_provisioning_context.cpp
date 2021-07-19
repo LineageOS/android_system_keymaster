@@ -17,6 +17,7 @@
 #include <keymaster/contexts/pure_soft_remote_provisioning_context.h>
 
 #include <algorithm>
+#include <android-base/logging.h>
 #include <assert.h>
 
 #include <keymaster/cppcose/cppcose.h>
@@ -28,6 +29,7 @@
 #include <openssl/rand.h>
 
 namespace keymaster {
+namespace {
 
 using cppcose::constructCoseSign1;
 using cppcose::CoseKey;
@@ -38,6 +40,17 @@ using cppcose::VERIFY;
 
 constexpr uint32_t kMacKeyLength = 32;
 
+std::array<uint8_t, 32> GetRandomBytes() {
+    std::array<uint8_t, 32> bytes;
+    // This is used in code paths that cannot fail, so CHECK. If it turns
+    // out that we can actually run out of entropy during thes code paths,
+    // we'll need to refactor the interfaces to allow errors to propagate.
+    CHECK_EQ(RAND_bytes(bytes.data(), bytes.size()), 1) << "Unable to get random bytes";
+    return bytes;
+}
+
+}  // namespace
+
 PureSoftRemoteProvisioningContext::PureSoftRemoteProvisioningContext() {
     std::tie(devicePrivKey_, bcc_) = GenerateBcc(/*testMode=*/false);
 }
@@ -47,10 +60,7 @@ PureSoftRemoteProvisioningContext::~PureSoftRemoteProvisioningContext() {}
 std::vector<uint8_t>
 PureSoftRemoteProvisioningContext::DeriveBytesFromHbk(const std::string& context,
                                                       size_t num_bytes) const {
-    // bytevec fakeHbk(32, 0);
-    // bytevec result(numBytes);
-    // is it safe to revert the call below back to the call above?
-    std::vector<uint8_t> fakeHbk(32);
+    static const std::array<uint8_t, 32> fakeHbk = GetRandomBytes();
     std::vector<uint8_t> result(num_bytes);
 
     // TODO: Figure out if HKDF can fail.  It doesn't seem like it should be able to,
@@ -89,14 +99,14 @@ PureSoftRemoteProvisioningContext::GenerateBcc(bool testMode) const {
     std::vector<uint8_t> privKey(ED25519_PRIVATE_KEY_LEN);
     std::vector<uint8_t> pubKey(ED25519_PUBLIC_KEY_LEN);
 
-    uint8_t seed[32];  // Length is hard-coded in the BoringCrypto API
+    std::array<uint8_t, 32> seed;  // Length is hard-coded in the BoringCrypto API
     if (testMode) {
-        RAND_bytes(seed, sizeof(seed));
+        seed = GetRandomBytes();
     } else {
         auto seed_vector = DeriveBytesFromHbk("Device Key Seed", sizeof(seed));
-        std::copy(seed_vector.begin(), seed_vector.end(), seed);
+        std::copy(seed_vector.begin(), seed_vector.end(), seed.begin());
     }
-    ED25519_keypair_from_seed(pubKey.data(), privKey.data(), seed);
+    ED25519_keypair_from_seed(pubKey.data(), privKey.data(), seed.data());
 
     auto coseKey = cppbor::Map()
                        .add(CoseKey::KEY_TYPE, OCTET_KEY_PAIR)
