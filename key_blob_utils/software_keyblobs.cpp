@@ -381,10 +381,37 @@ keymaster_error_t SetKeyBlobAuthorizations(const AuthorizationSet& key_descripti
     return TranslateAuthorizationSetError(sw_enforced->is_valid());
 }
 
+keymaster_error_t ExtendKeyBlobAuthorizations(AuthorizationSet* hw_enforced,
+                                              AuthorizationSet* sw_enforced,
+                                              std::optional<uint32_t> vendor_patchlevel,
+                                              std::optional<uint32_t> boot_patchlevel) {
+    // If hw_enforced is non-empty, we're pretending to be some sort of secure hardware.
+    AuthorizationSet* pseudo_hw_enforced = (hw_enforced->empty()) ? sw_enforced : hw_enforced;
+    if (vendor_patchlevel.has_value()) {
+        pseudo_hw_enforced->push_back(TAG_VENDOR_PATCHLEVEL, vendor_patchlevel.value());
+    }
+    if (boot_patchlevel.has_value()) {
+        pseudo_hw_enforced->push_back(TAG_BOOT_PATCHLEVEL, boot_patchlevel.value());
+    }
+    return TranslateAuthorizationSetError(sw_enforced->is_valid());
+}
+
 keymaster_error_t UpgradeSoftKeyBlob(const UniquePtr<Key>& key, const uint32_t os_version,
                                      const uint32_t os_patchlevel,
                                      const AuthorizationSet& upgrade_params,
                                      KeymasterKeyBlob* upgraded_key) {
+    return FullUpgradeSoftKeyBlob(key, os_version, os_patchlevel,
+                                  /* vendor_patchlevel= */ std::nullopt,
+                                  /* boot_patchlevel= */ std::nullopt,  //
+                                  upgrade_params, upgraded_key);
+}
+
+keymaster_error_t FullUpgradeSoftKeyBlob(const UniquePtr<Key>& key, const uint32_t os_version,
+                                         uint32_t os_patchlevel,
+                                         std::optional<uint32_t> vendor_patchlevel,
+                                         std::optional<uint32_t> boot_patchlevel,
+                                         const AuthorizationSet& upgrade_params,
+                                         KeymasterKeyBlob* upgraded_key) {
     bool set_changed = false;
 
     if (os_version == 0) {
@@ -402,13 +429,21 @@ keymaster_error_t UpgradeSoftKeyBlob(const UniquePtr<Key>& key, const uint32_t o
     }
 
     if (!UpgradeIntegerTag(TAG_OS_VERSION, os_version, &key->sw_enforced(), &set_changed) ||
-        !UpgradeIntegerTag(TAG_OS_PATCHLEVEL, os_patchlevel, &key->sw_enforced(), &set_changed))
+        !UpgradeIntegerTag(TAG_OS_PATCHLEVEL, os_patchlevel, &key->sw_enforced(), &set_changed) ||
+        (vendor_patchlevel.has_value() &&
+         !UpgradeIntegerTag(TAG_VENDOR_PATCHLEVEL, vendor_patchlevel.value(), &key->sw_enforced(),
+                            &set_changed)) ||
+        (boot_patchlevel.has_value() &&
+         !UpgradeIntegerTag(TAG_BOOT_PATCHLEVEL, boot_patchlevel.value(), &key->sw_enforced(),
+                            &set_changed))) {
         // One of the version fields would have been a downgrade. Not allowed.
         return KM_ERROR_INVALID_ARGUMENT;
+    }
 
-    if (!set_changed)
+    if (!set_changed) {
         // Dont' need an upgrade.
         return KM_ERROR_OK;
+    }
 
     AuthorizationSet hidden;
     auto error = BuildHiddenAuthorizations(upgrade_params, &hidden, softwareRootOfTrust);
