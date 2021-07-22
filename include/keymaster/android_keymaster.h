@@ -93,6 +93,10 @@ class AndroidKeymaster {
     EarlyBootEndedResponse EarlyBootEnded();
     DeviceLockedResponse DeviceLocked(const DeviceLockedRequest& request);
     GetVersion2Response GetVersion2(const GetVersion2Request& request);
+    ConfigureVendorPatchlevelResponse
+    ConfigureVendorPatchlevel(const ConfigureVendorPatchlevelRequest& request);
+    ConfigureBootPatchlevelResponse
+    ConfigureBootPatchlevel(const ConfigureBootPatchlevelRequest& request);
 
     bool has_operation(keymaster_operation_handle_t op_handle) const;
 
