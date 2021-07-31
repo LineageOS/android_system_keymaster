@@ -241,7 +241,8 @@ keymaster_error_t ParseAuthEncryptedBlob(const KeymasterKeyBlob& blob,
     KmErrorOr<DeserializedKey> key = DeserializeAuthEncryptedBlob(blob);
     if (!key) return key.error();
 
-    KmErrorOr<KeymasterKeyBlob> decrypted = DecryptKey(*key, hidden, MASTER_KEY);
+    KmErrorOr<KeymasterKeyBlob> decrypted =
+        DecryptKey(*key, hidden, SecureDeletionData(), MASTER_KEY);
     if (!decrypted) return decrypted.error();
 
     *key_material = std::move(*decrypted);
