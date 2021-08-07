@@ -511,13 +511,17 @@ Return<void> AndroidKeymaster4Device::begin(KeyPurpose purpose, const hidl_vec<u
 Return<void> AndroidKeymaster4Device::update(uint64_t operationHandle,
                                              const hidl_vec<KeyParameter>& inParams,
                                              const hidl_vec<uint8_t>& input,
-                                             const HardwareAuthToken& /* authToken */,
+                                             const HardwareAuthToken&  authToken ,
                                              const VerificationToken& /* verificationToken */,
                                              update_cb _hidl_cb) {
     UpdateOperationRequest request(impl_->message_version());
     request.op_handle = operationHandle;
     request.input.Reinitialize(input.data(), input.size());
     request.additional_params.Reinitialize(KmParamSet(inParams));
+
+    hidl_vec<uint8_t> hidl_vec_token = authToken2HidlVec(authToken);
+    request.additional_params.push_back(
+        TAG_AUTH_TOKEN, reinterpret_cast<uint8_t*>(hidl_vec_token.data()), hidl_vec_token.size());
 
     UpdateOperationResponse response(impl_->message_version());
     impl_->UpdateOperation(request, &response);
@@ -538,7 +542,7 @@ Return<void> AndroidKeymaster4Device::finish(uint64_t operationHandle,
                                              const hidl_vec<KeyParameter>& inParams,
                                              const hidl_vec<uint8_t>& input,
                                              const hidl_vec<uint8_t>& signature,
-                                             const HardwareAuthToken& /* authToken */,
+                                             const HardwareAuthToken&  authToken ,
                                              const VerificationToken& /* verificationToken */,
                                              finish_cb _hidl_cb) {
     FinishOperationRequest request(impl_->message_version());
@@ -546,6 +550,11 @@ Return<void> AndroidKeymaster4Device::finish(uint64_t operationHandle,
     request.input.Reinitialize(input.data(), input.size());
     request.signature.Reinitialize(signature.data(), signature.size());
     request.additional_params.Reinitialize(KmParamSet(inParams));
+
+    hidl_vec<uint8_t> hidl_vec_token = authToken2HidlVec(authToken);
+    request.additional_params.push_back(
+        TAG_AUTH_TOKEN, reinterpret_cast<uint8_t*>(hidl_vec_token.data()), hidl_vec_token.size());
+
 
     FinishOperationResponse response(impl_->message_version());
     impl_->FinishOperation(request, &response);
