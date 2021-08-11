@@ -240,6 +240,7 @@ class Buffer : public Serializable {
     size_t buffer_size() const { return buffer_size_; }
 
     bool write(const uint8_t* src, size_t write_length);
+    template <size_t N> bool write(const uint8_t (&src)[N]) { return write(src, N); }
     bool read(uint8_t* dest, size_t read_length);
     const uint8_t* peek_read() const { return buffer_.get() + read_position_; }
     bool advance_read(int distance) {
