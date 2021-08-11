@@ -241,6 +241,7 @@ class Buffer : public Serializable {
     bool valid_buffer_state() const;
 
     bool write(const uint8_t* src, size_t write_length);
+    template <size_t N> bool write(const uint8_t (&src)[N]) { return write(src, N); }
     bool read(uint8_t* dest, size_t read_length);
     const uint8_t* peek_read() const { return buffer_.get() + read_position_; }
     uint8_t* peek_write() { return buffer_.get() + write_position_; }
