@@ -63,29 +63,32 @@ class KeyBlobTest : public testing::Test, public SoftwareRandomSource {
     }
 
     keymaster_error_t Encrypt(AuthEncryptedBlobFormat format = AES_GCM_WITH_SW_ENFORCED) {
-        keymaster_error_t error;
-        encrypted_key_ = EncryptKey(key_material_, format, hw_enforced_, sw_enforced_, hidden_,
-                                    master_key_, *this, &error);
-        return error;
+        auto result = EncryptKey(key_material_, format, hw_enforced_, sw_enforced_, hidden_,
+                                 master_key_, *this);
+        if (!result) return result.error();
+        encrypted_key_ = std::move(*result);
+        return KM_ERROR_OK;
     }
 
     keymaster_error_t Decrypt() {
-        keymaster_error_t error;
-        decrypted_plaintext_ = DecryptKey(move(deserialized_key_), hidden_, master_key_, &error);
-        return error;
+        auto result = DecryptKey(move(deserialized_key_), hidden_, master_key_);
+        if (!result) return result.error();
+        decrypted_plaintext_ = std::move(*result);
+        return KM_ERROR_OK;
     }
 
     keymaster_error_t Serialize() {
-        keymaster_error_t error;
-        serialized_blob_ =
-            SerializeAuthEncryptedBlob(encrypted_key_, hw_enforced_, sw_enforced_, &error);
-        return error;
+        auto result = SerializeAuthEncryptedBlob(encrypted_key_, hw_enforced_, sw_enforced_);
+        if (!result) return result.error();
+        serialized_blob_ = std::move(*result);
+        return KM_ERROR_OK;
     }
 
     keymaster_error_t Deserialize() {
-        keymaster_error_t error;
-        deserialized_key_ = DeserializeAuthEncryptedBlob(serialized_blob_, &error);
-        return error;
+        auto result = DeserializeAuthEncryptedBlob(serialized_blob_);
+        if (!result) return result.error();
+        deserialized_key_ = std::move(*result);
+        return KM_ERROR_OK;
     }
 
     // Encryption inputs
@@ -121,21 +124,15 @@ TEST_F(KeyBlobTest, EncryptDecrypt) {
                   std::search(serialized_blob_.begin(), serialized_blob_.end(),
                               encrypted_key_.ciphertext.begin(), encrypted_key_.ciphertext.end()));
 
-        keymaster_error_t error;
-        DeserializedKey deserialized = DeserializeAuthEncryptedBlob(serialized_blob_, &error);
-        ASSERT_EQ(KM_ERROR_OK, error);
-        EXPECT_EQ(hw_enforced_, deserialized.hw_enforced);
-        switch (format) {
-        case AES_OCB:
-        case AES_GCM_WITH_SW_ENFORCED:
-            EXPECT_EQ(sw_enforced_, deserialized.sw_enforced);
-            break;
-        }
+        KmErrorOr<DeserializedKey> deserialized = DeserializeAuthEncryptedBlob(serialized_blob_);
+        ASSERT_TRUE(deserialized.isOk());
+        EXPECT_EQ(hw_enforced_, deserialized->hw_enforced);
+        EXPECT_EQ(sw_enforced_, deserialized->sw_enforced);
 
-        KeymasterKeyBlob plaintext = DecryptKey(move(deserialized), hidden_, master_key_, &error);
-
-        ASSERT_EQ(key_material_.size(), plaintext.size());
-        EXPECT_TRUE(std::equal(key_material_.begin(), key_material_.end(), plaintext.begin()));
+        KmErrorOr<KeymasterKeyBlob> plaintext = DecryptKey(*deserialized, hidden_, master_key_);
+        ASSERT_TRUE(plaintext.isOk());
+        EXPECT_TRUE(std::equal(key_material_.begin(), key_material_.end(),  //
+                               plaintext->begin(), plaintext->end()));
     }
 }
 
@@ -204,10 +201,9 @@ TEST_F(KeyBlobTest, WrongMasterKey) {
 
     // Decrypting with wrong master key should fail.
     ASSERT_EQ(KM_ERROR_OK, Deserialize());
-    keymaster_error_t error;
-    DecryptKey(move(deserialized_key_), hidden_, wrong_master, &error);
-
-    ASSERT_EQ(KM_ERROR_INVALID_KEY_BLOB, error);
+    auto result = DecryptKey(deserialized_key_, hidden_, wrong_master);
+    ASSERT_FALSE(result.isOk());
+    ASSERT_EQ(KM_ERROR_INVALID_KEY_BLOB, result.error());
 }
 
 TEST_F(KeyBlobTest, WrongHwEnforced) {
@@ -260,9 +256,9 @@ TEST_F(KeyBlobTest, EmptyHidden) {
 
     // Deserialization shouldn't be affected, but decryption should fail.
     ASSERT_EQ(KM_ERROR_OK, Deserialize());
-    keymaster_error_t error;
-    DecryptKey(move(deserialized_key_), wrong_hidden, master_key_, &error);
-    EXPECT_EQ(KM_ERROR_INVALID_KEY_BLOB, error);
+    auto result = DecryptKey(deserialized_key_, wrong_hidden, master_key_);
+    EXPECT_FALSE(result.isOk());
+    EXPECT_EQ(KM_ERROR_INVALID_KEY_BLOB, result.error());
 }
 
 TEST_F(KeyBlobTest, WrongRootOfTrust) {
@@ -275,9 +271,9 @@ TEST_F(KeyBlobTest, WrongRootOfTrust) {
 
     // Deserialization shouldn't be affected, but decryption should fail.
     ASSERT_EQ(KM_ERROR_OK, Deserialize());
-    keymaster_error_t error;
-    DecryptKey(move(deserialized_key_), wrong_hidden, master_key_, &error);
-    EXPECT_EQ(KM_ERROR_INVALID_KEY_BLOB, error);
+    auto result = DecryptKey(deserialized_key_, wrong_hidden, master_key_);
+    EXPECT_FALSE(result.isOk());
+    EXPECT_EQ(KM_ERROR_INVALID_KEY_BLOB, result.error());
 }
 
 TEST_F(KeyBlobTest, WrongAppId) {
@@ -290,9 +286,9 @@ TEST_F(KeyBlobTest, WrongAppId) {
 
     // Deserialization shouldn't be affected, but decryption should fail.
     ASSERT_EQ(KM_ERROR_OK, Deserialize());
-    keymaster_error_t error;
-    DecryptKey(move(deserialized_key_), wrong_hidden, master_key_, &error);
-    EXPECT_EQ(KM_ERROR_INVALID_KEY_BLOB, error);
+    auto result = DecryptKey(deserialized_key_, wrong_hidden, master_key_);
+    EXPECT_FALSE(result.isOk());
+    EXPECT_EQ(KM_ERROR_INVALID_KEY_BLOB, result.error());
 }
 
 // This test is especially useful when compiled for 32-bit mode and run under valgrind.
@@ -319,15 +315,19 @@ TEST_F(KeyBlobTest, FuzzTest) {
                                                   &sw_enforced_));
 
         // Auth-encrypted blob.
-        keymaster_error_t error;
-        auto deserialized = DeserializeAuthEncryptedBlob(key_blob, &error);
-        if (error == KM_ERROR_OK) {
-            // It's possible to deserialize successfully.  Decryption should always fail.
+        auto deserialized = DeserializeAuthEncryptedBlob(key_blob);
+        if (deserialized.isOk()) {
+            // It's possible (though unlikely) to deserialize successfully.  Decryption should
+            // always fail, though.
             ++deserialize_auth_encrypted_success;
-            DecryptKey(move(deserialized), hidden_, master_key_, &error);
+            auto decrypted = DecryptKey(*deserialized, hidden_, master_key_);
+            ASSERT_FALSE(decrypted.isOk());
+            ASSERT_EQ(KM_ERROR_INVALID_KEY_BLOB, decrypted.error())
+                << "Somehow successfully parsed and decrypted a blob with seed " << now
+                << " at offset " << i;
+        } else {
+            ASSERT_EQ(KM_ERROR_INVALID_KEY_BLOB, deserialized.error());
         }
-        ASSERT_EQ(KM_ERROR_INVALID_KEY_BLOB, error)
-            << "Somehow sucessfully parsed a blob with seed " << now << " at offset " << i;
     }
 }
 
@@ -342,9 +342,9 @@ TEST_F(KeyBlobTest, UnderflowTest) {
               DeserializeIntegrityAssuredBlob(key_blob, hidden_, &key_material_, &hw_enforced_,
                                               &sw_enforced_));
 
-    keymaster_error_t error;
-    DeserializeAuthEncryptedBlob(key_blob, &error);
-    EXPECT_EQ(KM_ERROR_INVALID_KEY_BLOB, error);
+    auto deserialized = DeserializeAuthEncryptedBlob(key_blob);
+    EXPECT_FALSE(deserialized.isOk());
+    EXPECT_EQ(KM_ERROR_INVALID_KEY_BLOB, deserialized.error());
 }
 
 TEST_F(KeyBlobTest, DupBufferToolarge) {
@@ -359,9 +359,117 @@ TEST_F(KeyBlobTest, DupBufferToolarge) {
               DeserializeIntegrityAssuredBlob(key_blob, hidden_, &key_material_, &hw_enforced_,
                                               &sw_enforced_));
 
-    keymaster_error_t error;
-    DeserializeAuthEncryptedBlob(key_blob, &error);
-    EXPECT_EQ(KM_ERROR_INVALID_KEY_BLOB, error);
+    auto deserialized = DeserializeAuthEncryptedBlob(key_blob);
+    EXPECT_FALSE(deserialized.isOk());
+    EXPECT_EQ(KM_ERROR_INVALID_KEY_BLOB, deserialized.error());
+}
+
+TEST(KmErrorOrDeathTest, UncheckedError) {
+    ASSERT_DEATH({ KmErrorOr<int> kmError(KM_ERROR_UNKNOWN_ERROR); }, "");
+}
+
+TEST(KmErrorOrDeathTest, UseValueWithoutChecking) {
+    ASSERT_DEATH(
+        {
+            KmErrorOr<int> kmError(KM_ERROR_UNKNOWN_ERROR);
+            kmError.value();
+            kmError.isOk();  // Check here so dtor won't abort().
+        },
+        "");
+}
+
+TEST(KmErrorOrDeathTest, CheckAfterReturn) {
+    auto func = []() -> KmErrorOr<int> {
+        // This instance will have its content moved and then be destroyed.  It
+        // shouldn't abort()
+        return KmErrorOr<int>(KM_ERROR_UNEXPECTED_NULL_POINTER);
+    };
+
+    {
+        auto err = func();
+        ASSERT_FALSE(err.isOk());  // Check here, so it isn't destroyed.
+    }
+
+    ASSERT_DEATH({ auto err = func(); }, "");
+}
+
+TEST(KmErrorOrDeathTest, CheckAfterMoveAssign) {
+    ASSERT_DEATH(
+        {
+            KmErrorOr<int> err(KM_ERROR_UNEXPECTED_NULL_POINTER);
+            KmErrorOr<int> err2(4);
+
+            err2 = std::move(err);  // This swaps err and err2
+
+            // Checking only one isn't enough.  Both were unchecked.
+            EXPECT_FALSE(err2.isOk());
+        },
+        "");
+
+    ASSERT_DEATH(
+        {
+            KmErrorOr<int> err(KM_ERROR_UNEXPECTED_NULL_POINTER);
+            KmErrorOr<int> err2(4);
+
+            err2 = std::move(err);  // This swaps err and err2
+
+            // Checking only one isn't enough.  Both were unchecked.
+            EXPECT_TRUE(err.isOk());
+        },
+        "");
+
+    {
+        KmErrorOr<int> err(KM_ERROR_UNEXPECTED_NULL_POINTER);
+        KmErrorOr<int> err2(4);
+        err2 = std::move(err);  // This swaps err and err2
+
+        // Must check both to avoid abort().
+        EXPECT_TRUE(err.isOk());
+        EXPECT_FALSE(err2.isOk());
+    }
+
+    ASSERT_DEATH(
+        {
+            KmErrorOr<int> err(KM_ERROR_UNEXPECTED_NULL_POINTER);
+            KmErrorOr<int> err2(4);
+
+            err.isOk();             // Check err before swap
+            err2 = std::move(err);  // This swaps err and err2
+        },
+        "");
+
+    {
+        KmErrorOr<int> err(KM_ERROR_UNEXPECTED_NULL_POINTER);
+        KmErrorOr<int> err2(4);
+
+        err.isOk();             // Check err before swap
+        err2 = std::move(err);  // This swaps err and err2
+
+        // err2 is checked, check err
+        EXPECT_TRUE(err.isOk());
+    }
+}
+
+TEST(KmErrorOr, CheckAfterMove) {
+    KmErrorOr<int> err(KM_ERROR_UNEXPECTED_NULL_POINTER);
+
+    KmErrorOr<int> err2(std::move(err));  // err won't abort
+    EXPECT_FALSE(err2.isOk());            // err2 won't abort
+    EXPECT_EQ(err2.error(), KM_ERROR_UNEXPECTED_NULL_POINTER);
+}
+
+TEST(KmErrorOrTest, UseErrorWithoutChecking) {
+    KmErrorOr<int> kmError(99);
+    // Checking error before using isOk() always returns KM_ERROR_UNKNOWN_ERROR.
+    ASSERT_EQ(KM_ERROR_UNKNOWN_ERROR, kmError.error());
+    ASSERT_TRUE(kmError.isOk());
+    ASSERT_EQ(KM_ERROR_OK, kmError.error());
+    ASSERT_EQ(99, *kmError);
+}
+
+TEST(KmErrorTest, DefaultCtor) {
+    KmErrorOr<int> err;
+    // Default-constructed objects don't need to be tested.  Should not crash.
 }
 
 }  // namespace test
