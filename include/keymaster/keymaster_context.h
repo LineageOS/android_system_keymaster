@@ -33,6 +33,7 @@ namespace keymaster {
 class AuthorizationSet;
 class KeyFactory;
 class OperationFactory;
+class SecureDeletionSecretStorage;
 template <typename BlobType> struct TKeymasterBlob;
 typedef TKeymasterBlob<keymaster_key_blob_t> KeymasterKeyBlob;
 class Key;
@@ -187,6 +188,14 @@ class KeymasterContext {
      * storage.
      */
     virtual SecureKeyStorage* secure_key_storage() { return nullptr; }
+
+    /**
+     * Return the secure deletion secret storage for this context, or null if none is available.
+     *
+     * Note that SecureDeletionSecretStorage obsoletes SecureKeyStorage (see method above).  The
+     * latter will be removed in the future.
+     */
+    virtual SecureDeletionSecretStorage* secure_deletion_secret_storage() { return nullptr; }
 
     /**
      * Checks that the data in |input_data| of size |input_data_size| matches the
