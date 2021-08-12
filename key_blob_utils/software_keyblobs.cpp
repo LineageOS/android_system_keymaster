@@ -238,14 +238,18 @@ keymaster_error_t ParseAuthEncryptedBlob(const KeymasterKeyBlob& blob,
                                          KeymasterKeyBlob* key_material,
                                          AuthorizationSet* hw_enforced,
                                          AuthorizationSet* sw_enforced) {
-    keymaster_error_t error;
-    DeserializedKey key = DeserializeAuthEncryptedBlob(blob, &error);
-    if (error != KM_ERROR_OK) return error;
+    KmErrorOr<DeserializedKey> key = DeserializeAuthEncryptedBlob(blob);
+    if (!key) return key.error();
 
-    *key_material = DecryptKey(key, hidden, MASTER_KEY, &error);
-    *hw_enforced = move(key.hw_enforced);
-    *sw_enforced = move(key.sw_enforced);
-    return error;
+    KmErrorOr<KeymasterKeyBlob> decrypted =
+        DecryptKey(*key, hidden, SecureDeletionData(), MASTER_KEY);
+    if (!decrypted) return decrypted.error();
+
+    *key_material = std::move(*decrypted);
+    *hw_enforced = std::move(key->hw_enforced);
+    *sw_enforced = std::move(key->sw_enforced);
+
+    return KM_ERROR_OK;
 }
 
 keymaster_error_t SetKeyBlobAuthorizations(const AuthorizationSet& key_description,
