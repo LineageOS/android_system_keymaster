@@ -61,6 +61,8 @@ enum AndroidKeymasterCommand : uint32_t {
     GENERATE_RKP_KEY = 29,
     GENERATE_CSR = 30,
     GENERATE_TIMESTAMP_TOKEN = 31,
+    CONFIGURE_VENDOR_PATCHLEVEL = 32,
+    CONFIGURE_BOOT_PATCHLEVEL = 33,
 };
 
 /**
@@ -401,7 +403,7 @@ struct GenerateCsrRequest : public KeymasterMessage {
 
     bool test_mode = false;
     size_t num_keys = 0;
-    KeymasterBlob* keys_to_sign_array;
+    KeymasterBlob* keys_to_sign_array = nullptr;
     KeymasterBlob endpoint_enc_cert_chain;
     KeymasterBlob challenge;
 };
@@ -751,7 +753,7 @@ struct ConfigureRequest : public KeymasterMessage {
     }
 
     uint32_t os_version;
-    uint32_t os_patchlevel;
+    uint32_t os_patchlevel;  // YYYYMM
 };
 
 using ConfigureResponse = EmptyKeymasterResponse;
@@ -1142,5 +1144,37 @@ struct SetAttestationIdsRequest : public KeymasterMessage {
 };
 
 using SetAttestationIdsResponse = EmptyKeymasterResponse;
+
+struct ConfigureVendorPatchlevelRequest : public KeymasterMessage {
+    explicit ConfigureVendorPatchlevelRequest(int32_t ver) : KeymasterMessage(ver) {}
+
+    size_t SerializedSize() const override { return sizeof(vendor_patchlevel); }
+    uint8_t* Serialize(uint8_t* buf, const uint8_t* end) const override {
+        return append_uint32_to_buf(buf, end, vendor_patchlevel);
+    }
+    bool Deserialize(const uint8_t** buf_ptr, const uint8_t* end) override {
+        return copy_uint32_from_buf(buf_ptr, end, &vendor_patchlevel);
+    }
+
+    uint32_t vendor_patchlevel{};  // YYYYMMDD
+};
+
+using ConfigureVendorPatchlevelResponse = EmptyKeymasterResponse;
+
+struct ConfigureBootPatchlevelRequest : public KeymasterMessage {
+    explicit ConfigureBootPatchlevelRequest(int32_t ver) : KeymasterMessage(ver) {}
+
+    size_t SerializedSize() const override { return sizeof(boot_patchlevel); }
+    uint8_t* Serialize(uint8_t* buf, const uint8_t* end) const override {
+        return append_uint32_to_buf(buf, end, boot_patchlevel);
+    }
+    bool Deserialize(const uint8_t** buf_ptr, const uint8_t* end) override {
+        return copy_uint32_from_buf(buf_ptr, end, &boot_patchlevel);
+    }
+
+    uint32_t boot_patchlevel{};  // YYYYMMDD
+};
+
+using ConfigureBootPatchlevelResponse = EmptyKeymasterResponse;
 
 }  // namespace keymaster

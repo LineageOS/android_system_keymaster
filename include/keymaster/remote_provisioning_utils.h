@@ -35,7 +35,8 @@ template <typename T> class StatusOr {
   public:
     StatusOr(uint32_t status_code)  // NOLINT(google-explicit-constructor)
         : status_code_(status_code) {}
-    StatusOr(T val) : value_(std::move(val)) {}  // NOLINT(google-explicit-constructor)
+    StatusOr(T val)
+        : status_code_(0), value_(std::move(val)) {}  // NOLINT(google-explicit-constructor)
 
     bool isOk() { return status_code_ == 0; }
 

@@ -66,7 +66,10 @@ PureSoftKeymasterContext::PureSoftKeymasterContext(KmVersion version,
     if (security_level != KM_SECURITY_LEVEL_SOFTWARE) {
         pure_soft_secure_key_storage_ = std::make_unique<PureSoftSecureKeyStorage>(64);
     }
-    pure_soft_remote_provisioning_context_ = std::make_unique<PureSoftRemoteProvisioningContext>();
+    if (version >= KmVersion::KEYMINT_1) {
+        pure_soft_remote_provisioning_context_ =
+            std::make_unique<PureSoftRemoteProvisioningContext>();
+    }
 }
 
 PureSoftKeymasterContext::~PureSoftKeymasterContext() {}
@@ -184,6 +187,9 @@ keymaster_error_t PureSoftKeymasterContext::CreateKeyBlob(const AuthorizationSet
     keymaster_error_t error = SetKeyBlobAuthorizations(key_description, origin, os_version_,
                                                        os_patchlevel_, hw_enforced, sw_enforced);
     if (error != KM_ERROR_OK) return error;
+    error =
+        ExtendKeyBlobAuthorizations(hw_enforced, sw_enforced, vendor_patchlevel_, boot_patchlevel_);
+    if (error != KM_ERROR_OK) return error;
 
     AuthorizationSet hidden;
     error = BuildHiddenAuthorizations(key_description, &hidden, softwareRootOfTrust);
@@ -207,7 +213,8 @@ keymaster_error_t PureSoftKeymasterContext::UpgradeKeyBlob(const KeymasterKeyBlo
     keymaster_error_t error = ParseKeyBlob(key_to_upgrade, upgrade_params, &key);
     if (error != KM_ERROR_OK) return error;
 
-    return UpgradeSoftKeyBlob(key, os_version_, os_patchlevel_, upgrade_params, upgraded_key);
+    return FullUpgradeSoftKeyBlob(key, os_version_, os_patchlevel_, vendor_patchlevel_,
+                                  boot_patchlevel_, upgrade_params, upgraded_key);
 }
 
 keymaster_error_t PureSoftKeymasterContext::ParseKeyBlob(const KeymasterKeyBlob& blob,
