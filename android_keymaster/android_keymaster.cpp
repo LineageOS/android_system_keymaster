@@ -48,7 +48,6 @@ namespace {
 
 using cppcose::constructCoseEncrypt;
 using cppcose::constructCoseMac0;
-using cppcose::constructCoseSign1;
 using cppcose::CoseKey;
 using cppcose::EC2;
 using cppcose::ES256;
@@ -444,34 +443,20 @@ void AndroidKeymaster::GenerateCsr(const GenerateCsrRequest& request,
     }
     response->keys_to_sign_mac = KeymasterBlob(pubKeysToSignMac->data(), pubKeysToSignMac->size());
 
-    std::vector<uint8_t> devicePrivKey;
-    cppbor::Array bcc;
-    if (request.test_mode) {
-        std::tie(devicePrivKey, bcc) = rem_prov_ctx->GenerateBcc(/*testMode=*/true);
-    } else {
-        devicePrivKey = rem_prov_ctx->devicePrivKey_;
-        auto clone = rem_prov_ctx->bcc_.clone();
-        if (!clone->asArray()) {
-            LOG_E("The BCC is not an array.", 0);
-            response->error = static_cast<keymaster_error_t>(kStatusFailed);
-            return;
-        }
-        bcc = std::move(*clone->asArray());
-    }
     std::unique_ptr<cppbor::Map> device_info_map = rem_prov_ctx->CreateDeviceInfo();
     std::vector<uint8_t> device_info = device_info_map->encode();
     response->device_info_blob = KeymasterBlob(device_info.data(), device_info.size());
-    auto signedMac =
-        constructCoseSign1(devicePrivKey /* Signing key */,  //
-                           ephemeral_mac_key /* Payload */,
-                           cppbor::Array() /* AAD */
-                               .add(std::pair(request.challenge.begin(),
-                                              request.challenge.end() - request.challenge.begin()))
-                               .add(std::move(device_info_map))
-                               .add(std::pair(pubKeysToSignMac->data(), pubKeysToSignMac->size()))
-                               .encode());
-    if (!signedMac) {
-        LOG_E("Failed to construct COSE_Sign1 over the ephemeral mac key.", 0);
+    auto protectedDataPayload = rem_prov_ctx->BuildProtectedDataPayload(
+        request.test_mode,  //
+        ephemeral_mac_key /* Payload */,
+        cppbor::Array() /* AAD */
+            .add(std::pair(request.challenge.begin(),
+                           request.challenge.end() - request.challenge.begin()))
+            .add(std::move(device_info_map))
+            .add(std::pair(pubKeysToSignMac->data(), pubKeysToSignMac->size()))
+            .encode());
+    if (!protectedDataPayload) {
+        LOG_E("Failed to construct ProtectedData: %s", protectedDataPayload.moveMessage().c_str());
         response->error = static_cast<keymaster_error_t>(kStatusFailed);
         return;
     }
@@ -501,12 +486,10 @@ void AndroidKeymaster::GenerateCsr(const GenerateCsrRequest& request,
         response->error = static_cast<keymaster_error_t>(kStatusFailed);
         return;
     }
-    auto coseEncrypted = constructCoseEncrypt(*sessionKey, nonce,
-                                              cppbor::Array()  // payload
-                                                  .add(signedMac.moveValue())
-                                                  .add(std::move(bcc))
-                                                  .encode(),
-                                              {},  // aad
+    auto coseEncrypted = constructCoseEncrypt(*sessionKey,                       //
+                                              nonce,                             //
+                                              protectedDataPayload.moveValue(),  //
+                                              {},                                // aad
                                               buildCertReqRecipients(ephemeralPubKey, eek->second));
 
     if (!coseEncrypted) {
