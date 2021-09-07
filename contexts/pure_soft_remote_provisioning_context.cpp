@@ -35,6 +35,7 @@ using cppcose::constructCoseSign1;
 using cppcose::CoseKey;
 using cppcose::ED25519;
 using cppcose::EDDSA;
+using cppcose::ErrMsgOr;
 using cppcose::OCTET_KEY_PAIR;
 using cppcose::VERIFY;
 
@@ -129,6 +130,29 @@ PureSoftRemoteProvisioningContext::GenerateBcc(bool testMode) const {
     assert(coseSign1);
 
     return {privKey, cppbor::Array().add(std::move(coseKey)).add(coseSign1.moveValue())};
+}
+
+ErrMsgOr<std::vector<uint8_t>> PureSoftRemoteProvisioningContext::BuildProtectedDataPayload(
+    bool isTestMode,                     //
+    const std::vector<uint8_t>& macKey,  //
+    const std::vector<uint8_t>& aad) const {
+    std::vector<uint8_t> devicePrivKey;
+    cppbor::Array bcc;
+    if (isTestMode) {
+        std::tie(devicePrivKey, bcc) = GenerateBcc(/*testMode=*/true);
+    } else {
+        devicePrivKey = devicePrivKey_;
+        auto clone = bcc_.clone();
+        if (!clone->asArray()) {
+            return "The BCC is not an array";
+        }
+        bcc = std::move(*clone->asArray());
+    }
+    auto sign1 = constructCoseSign1(devicePrivKey, macKey, aad);
+    if (!sign1) {
+        return sign1.moveMessage();
+    }
+    return cppbor::Array().add(sign1.moveValue()).add(std::move(bcc)).encode();
 }
 
 std::optional<cppcose::HmacSha256>
