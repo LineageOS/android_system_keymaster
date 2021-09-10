@@ -33,7 +33,7 @@ constexpr keymaster_error_t kStatusInvalidEek = static_cast<keymaster_error_t>(-
 
 template <typename T> class StatusOr {
   public:
-    StatusOr(uint32_t status_code)  // NOLINT(google-explicit-constructor)
+    StatusOr(int32_t status_code)  // NOLINT(google-explicit-constructor)
         : status_code_(status_code) {}
     StatusOr(T val)
         : status_code_(0), value_(std::move(val)) {}  // NOLINT(google-explicit-constructor)
@@ -53,7 +53,7 @@ template <typename T> class StatusOr {
         return std::move(value_).value();
     }
 
-    uint32_t moveError() {
+    int32_t moveError() {
         assert(!isOk());
         return status_code_;
     }
@@ -61,7 +61,7 @@ template <typename T> class StatusOr {
     T moveValue() { return std::move(value_).value(); }
 
   private:
-    uint32_t status_code_;
+    int32_t status_code_;
     std::optional<T> value_;
 };
 
