@@ -21,7 +21,7 @@ shared_test_libs = [
 ]
 
 static_test_libs = [
-    "libsoftkeymasterdevice",
+    "libpuresoftkeymasterdevice",
     "libcppcose_rkp",
 ]
 
@@ -51,7 +51,7 @@ cc_test {
         "authorization_set_test.cpp",
         "key_blob_test.cpp",
         "android_keymaster_messages_test.cpp",
-         "keymaster_enforcement_test.cpp",
+        "keymaster_enforcement_test.cpp",
         "attestation_record_test.cpp",
         "wrapped_key_test.cpp",
     ],
