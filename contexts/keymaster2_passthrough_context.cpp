@@ -46,16 +46,12 @@ KeyFactory* Keymaster2PassthroughContext::GetKeyFactory(keymaster_algorithm_t al
     }
     return result.get();
 }
+
 OperationFactory*
 Keymaster2PassthroughContext::GetOperationFactory(keymaster_algorithm_t algorithm,
                                                   keymaster_purpose_t purpose) const {
     auto keyfactory = GetKeyFactory(algorithm);
     return keyfactory->GetOperationFactory(purpose);
-}
-keymaster_algorithm_t*
-Keymaster2PassthroughContext::GetSupportedAlgorithms(size_t* algorithms_count) const {
-    if (algorithms_count) *algorithms_count = 0;
-    return nullptr;
 }
 
 keymaster_error_t
