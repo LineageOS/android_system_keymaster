@@ -23,8 +23,6 @@
 
 #include <keymaster/UniquePtr.h>
 
-struct keymaster1_device;
-typedef struct keymaster1_device keymaster1_device_t;
 struct keymaster2_device;
 typedef struct keymaster2_device keymaster2_device_t;
 
@@ -59,7 +57,6 @@ class KeymasterPassthroughEngine {
     virtual OperationFactory* GetOperationFactory(keymaster_purpose_t purpose,
                                                   keymaster_algorithm_t algorithm) const = 0;
 
-    static UniquePtr<KeymasterPassthroughEngine> createInstance(const keymaster1_device_t* dev);
     static UniquePtr<KeymasterPassthroughEngine> createInstance(const keymaster2_device_t* dev);
 
   protected:

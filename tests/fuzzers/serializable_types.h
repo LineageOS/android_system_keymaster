@@ -21,17 +21,6 @@
 
 namespace keymaster {
 enum class SerializableType : uint32_t {
-    SUPPORTED_IMPORT_FORMATS_REQUEST,
-    SUPPORTED_EXPORT_FORMATS_REQUEST,
-    SUPPORTED_BLOCK_MODES_REQUEST,
-    SUPPORTED_PADDING_MODES_REQUEST,
-    SUPPORTED_DIGESTS_REQUEST,
-    SUPPORTED_ALGORITHMS_RESPONSE,
-    SUPPORTED_BLOCK_MODES_RESPONSE,
-    SUPPORTED_PADDING_MODES_RESPONSE,
-    SUPPORTED_DIGESTS_RESPONSE,
-    SUPPORTED_IMPORT_FORMATS_RESPONSE,
-    SUPPORTED_EXPORT_FORMATS_RESPONSE,
     GENERATE_KEY_REQUEST,
     GENERATE_KEY_RESPONSE,
     GET_KEY_CHARACTERISTICS_REQUEST,
@@ -83,28 +72,6 @@ enum class SerializableType : uint32_t {
 
 std::unique_ptr<Serializable> getSerializable(SerializableType serType) {
     switch (serType) {
-    case SerializableType::SUPPORTED_IMPORT_FORMATS_REQUEST:
-        return std::make_unique<SupportedImportFormatsRequest>(kMaxMessageVersion);
-    case SerializableType::SUPPORTED_EXPORT_FORMATS_REQUEST:
-        return std::make_unique<SupportedExportFormatsRequest>(kMaxMessageVersion);
-    case SerializableType::SUPPORTED_BLOCK_MODES_REQUEST:
-        return std::make_unique<SupportedBlockModesRequest>(kMaxMessageVersion);
-    case SerializableType::SUPPORTED_PADDING_MODES_REQUEST:
-        return std::make_unique<SupportedPaddingModesRequest>(kMaxMessageVersion);
-    case SerializableType::SUPPORTED_DIGESTS_REQUEST:
-        return std::make_unique<SupportedDigestsRequest>(kMaxMessageVersion);
-    case SerializableType::SUPPORTED_ALGORITHMS_RESPONSE:
-        return std::make_unique<SupportedAlgorithmsResponse>(kMaxMessageVersion);
-    case SerializableType::SUPPORTED_BLOCK_MODES_RESPONSE:
-        return std::make_unique<SupportedBlockModesResponse>(kMaxMessageVersion);
-    case SerializableType::SUPPORTED_PADDING_MODES_RESPONSE:
-        return std::make_unique<SupportedPaddingModesResponse>(kMaxMessageVersion);
-    case SerializableType::SUPPORTED_DIGESTS_RESPONSE:
-        return std::make_unique<SupportedDigestsResponse>(kMaxMessageVersion);
-    case SerializableType::SUPPORTED_IMPORT_FORMATS_RESPONSE:
-        return std::make_unique<SupportedImportFormatsResponse>(kMaxMessageVersion);
-    case SerializableType::SUPPORTED_EXPORT_FORMATS_RESPONSE:
-        return std::make_unique<SupportedExportFormatsResponse>(kMaxMessageVersion);
     case SerializableType::GENERATE_KEY_REQUEST:
         return std::make_unique<GenerateKeyRequest>(kMaxMessageVersion);
     case SerializableType::GENERATE_KEY_RESPONSE:
