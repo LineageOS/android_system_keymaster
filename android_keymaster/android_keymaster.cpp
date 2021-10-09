@@ -140,22 +140,6 @@ AndroidKeymaster::~AndroidKeymaster() {}
 AndroidKeymaster::AndroidKeymaster(AndroidKeymaster&& other)
     : context_(move(other.context_)), operation_table_(move(other.operation_table_)) {}
 
-// TODO(swillden): Unify support analysis.  Right now, we have per-keytype methods that determine if
-// specific modes, padding, etc. are supported for that key type, and AndroidKeymaster also has
-// methods that return the same information.  They'll get out of sync.  Best to put the knowledge in
-// the keytypes and provide some mechanism for AndroidKeymaster to query the keytypes for the
-// information.
-
-template <typename T>
-bool check_supported(const KeymasterContext& context, keymaster_algorithm_t algorithm,
-                     SupportedResponse<T>* response) {
-    if (context.GetKeyFactory(algorithm) == nullptr) {
-        response->error = KM_ERROR_UNSUPPORTED_ALGORITHM;
-        return false;
-    }
-    return true;
-}
-
 void AndroidKeymaster::GetVersion(const GetVersionRequest&, GetVersionResponse* rsp) {
     if (rsp == nullptr) return;
 
@@ -178,76 +162,6 @@ GetVersion2Response AndroidKeymaster::GetVersion2(const GetVersion2Request& req)
     LOG_D("GetVersion2 results: %d, %d, %d, %d", rsp.km_version, rsp.km_date,
           rsp.max_message_version, message_version_);
     return rsp;
-}
-
-void AndroidKeymaster::SupportedAlgorithms(const SupportedAlgorithmsRequest& /* request */,
-                                           SupportedAlgorithmsResponse* response) {
-    if (response == nullptr) return;
-
-    response->error = KM_ERROR_OK;
-
-    size_t algorithm_count = 0;
-    const keymaster_algorithm_t* algorithms = context_->GetSupportedAlgorithms(&algorithm_count);
-    if (algorithm_count == 0) return;
-    response->results_length = algorithm_count;
-    response->results = dup_array(algorithms, algorithm_count);
-    if (!response->results) response->error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
-}
-
-template <typename T>
-void GetSupported(const KeymasterContext& context, keymaster_algorithm_t algorithm,
-                  keymaster_purpose_t purpose,
-                  const T* (OperationFactory::*get_supported_method)(size_t* count) const,
-                  SupportedResponse<T>* response) {
-    if (response == nullptr || !check_supported(context, algorithm, response)) return;
-
-    const OperationFactory* factory = context.GetOperationFactory(algorithm, purpose);
-    if (!factory) {
-        response->error = KM_ERROR_UNSUPPORTED_PURPOSE;
-        return;
-    }
-
-    size_t count;
-    const T* supported = (factory->*get_supported_method)(&count);
-    response->SetResults(supported, count);
-}
-
-void AndroidKeymaster::SupportedBlockModes(const SupportedBlockModesRequest& request,
-                                           SupportedBlockModesResponse* response) {
-    GetSupported(*context_, request.algorithm, request.purpose,
-                 &OperationFactory::SupportedBlockModes, response);
-}
-
-void AndroidKeymaster::SupportedPaddingModes(const SupportedPaddingModesRequest& request,
-                                             SupportedPaddingModesResponse* response) {
-    GetSupported(*context_, request.algorithm, request.purpose,
-                 &OperationFactory::SupportedPaddingModes, response);
-}
-
-void AndroidKeymaster::SupportedDigests(const SupportedDigestsRequest& request,
-                                        SupportedDigestsResponse* response) {
-    GetSupported(*context_, request.algorithm, request.purpose, &OperationFactory::SupportedDigests,
-                 response);
-}
-
-void AndroidKeymaster::SupportedImportFormats(const SupportedImportFormatsRequest& request,
-                                              SupportedImportFormatsResponse* response) {
-    if (response == nullptr || !check_supported(*context_, request.algorithm, response)) return;
-
-    size_t count;
-    const keymaster_key_format_t* formats =
-        context_->GetKeyFactory(request.algorithm)->SupportedImportFormats(&count);
-    response->SetResults(formats, count);
-}
-
-void AndroidKeymaster::SupportedExportFormats(const SupportedExportFormatsRequest& request,
-                                              SupportedExportFormatsResponse* response) {
-    if (response == nullptr || !check_supported(*context_, request.algorithm, response)) return;
-
-    size_t count;
-    const keymaster_key_format_t* formats =
-        context_->GetKeyFactory(request.algorithm)->SupportedExportFormats(&count);
-    response->SetResults(formats, count);
 }
 
 GetHmacSharingParametersResponse AndroidKeymaster::GetHmacSharingParameters() {
