@@ -104,15 +104,6 @@ KeyFactory* PureSoftKeymasterContext::GetKeyFactory(keymaster_algorithm_t algori
     }
 }
 
-static keymaster_algorithm_t supported_algorithms[] = {KM_ALGORITHM_RSA, KM_ALGORITHM_EC,
-                                                       KM_ALGORITHM_AES, KM_ALGORITHM_HMAC};
-
-keymaster_algorithm_t*
-PureSoftKeymasterContext::GetSupportedAlgorithms(size_t* algorithms_count) const {
-    *algorithms_count = array_length(supported_algorithms);
-    return supported_algorithms;
-}
-
 OperationFactory* PureSoftKeymasterContext::GetOperationFactory(keymaster_algorithm_t algorithm,
                                                                 keymaster_purpose_t purpose) const {
     KeyFactory* key_factory = GetKeyFactory(algorithm);
