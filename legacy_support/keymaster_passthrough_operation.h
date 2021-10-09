@@ -18,7 +18,6 @@
 #ifndef SYSTEM_KEYMASTER_KEYMASTER_PASSTHROUGH_OPERATION_H_
 #define SYSTEM_KEYMASTER_KEYMASTER_PASSTHROUGH_OPERATION_H_
 
-#include <hardware/keymaster1.h>
 #include <hardware/keymaster2.h>
 
 #include <keymaster/legacy_support/keymaster_passthrough_key.h>
@@ -80,10 +79,6 @@ template <typename KeymasterDeviceType> class KeymasterPassthroughOperation : pu
     const KeymasterDeviceType* km_device_;
 };
 
-template <>
-keymaster_error_t KeymasterPassthroughOperation<keymaster1_device_t>::Finish(
-    const AuthorizationSet& input_params, const Buffer& input, const Buffer& signature,
-    AuthorizationSet* output_params, Buffer* output);
 template <>
 keymaster_error_t KeymasterPassthroughOperation<keymaster2_device_t>::Finish(
     const AuthorizationSet& input_params, const Buffer& input, const Buffer& signature,

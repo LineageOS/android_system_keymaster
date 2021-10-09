@@ -174,42 +174,6 @@ cc_library {
     },
 }
 
-// libsoftkeymaster provides a software-based keymaster HAL implementation.
-// This is used by keystore as a fallback for when the hardware keymaster does
-// not support the request.
-cc_library {
-    name: "libsoftkeymasterdevice",
-    srcs: [
-        "android_keymaster/keymaster_configuration.cpp",
-        "contexts/pure_soft_keymaster_context.cpp",
-        "contexts/pure_soft_remote_provisioning_context.cpp",
-        "contexts/soft_attestation_context.cpp",
-        "contexts/soft_keymaster_context.cpp",
-        "contexts/soft_keymaster_device.cpp",
-        "contexts/soft_keymaster_logger.cpp",
-        "km_openssl/soft_keymaster_enforcement.cpp",
-        "legacy_support/ec_keymaster1_key.cpp",
-        "legacy_support/ecdsa_keymaster1_operation.cpp",
-        "legacy_support/keymaster1_engine.cpp",
-        "legacy_support/keymaster1_legacy_support.cpp",
-        "legacy_support/rsa_keymaster1_key.cpp",
-        "legacy_support/rsa_keymaster1_operation.cpp",
-    ],
-    defaults: ["keymaster_defaults"],
-    shared_libs: [
-        "libkeymaster_messages",
-        "libkeymaster_portable",
-        "libsoft_attestation_cert",
-        "liblog",
-        "libbase",
-        "libcppbor_external",
-        "libcppcose_rkp",
-        "libcrypto",
-        "libcutils",
-    ],
-    export_include_dirs: ["include"],
-}
-
 cc_library {
     name: "libsoft_attestation_cert",
     srcs: [
@@ -285,16 +249,9 @@ cc_library_shared {
         "legacy_support/keymaster_passthrough_key.cpp",
         "legacy_support/keymaster_passthrough_engine.cpp",
         "legacy_support/keymaster_passthrough_operation.cpp",
-        "contexts/keymaster1_passthrough_context.cpp",
         "contexts/keymaster2_passthrough_context.cpp",
         "ng/AndroidKeymaster3Device.cpp",
         "android_keymaster/keymaster_configuration.cpp",
-        "legacy_support/ec_keymaster1_key.cpp",
-        "legacy_support/ecdsa_keymaster1_operation.cpp",
-        "legacy_support/keymaster1_engine.cpp",
-        "legacy_support/keymaster1_legacy_support.cpp",
-        "legacy_support/rsa_keymaster1_key.cpp",
-        "legacy_support/rsa_keymaster1_operation.cpp",
     ],
     defaults: ["keymaster_defaults"],
     shared_libs: [
