@@ -138,7 +138,8 @@ AndroidKeymaster::AndroidKeymaster(KeymasterContext* context, size_t operation_t
 AndroidKeymaster::~AndroidKeymaster() {}
 
 AndroidKeymaster::AndroidKeymaster(AndroidKeymaster&& other)
-    : context_(move(other.context_)), operation_table_(move(other.operation_table_)) {}
+    : context_(move(other.context_)), operation_table_(move(other.operation_table_)),
+      message_version_(other.message_version_) {}
 
 // TODO(swillden): Unify support analysis.  Right now, we have per-keytype methods that determine if
 // specific modes, padding, etc. are supported for that key type, and AndroidKeymaster also has
