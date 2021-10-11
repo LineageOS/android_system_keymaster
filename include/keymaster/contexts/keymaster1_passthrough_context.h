@@ -15,26 +15,32 @@
 ** limitations under the License.
 */
 
-#ifndef SOFTWARE_CONTEXT_KEYMASTER2_PASSTHROUGH_CONTEXT_H_
-#define SOFTWARE_CONTEXT_KEYMASTER2_PASSTHROUGH_CONTEXT_H_
+#ifndef SOFTWARE_CONTEXT_KEYMASTER1_PASSTHROUGH_CONTEXT_H_
+#define SOFTWARE_CONTEXT_KEYMASTER1_PASSTHROUGH_CONTEXT_H_
 
 #include <unordered_map>
 
-#include <hardware/keymaster2.h>
+#include <hardware/keymaster1.h>
 #include <hardware/keymaster_defs.h>
 
+#include <keymaster/contexts/soft_attestation_context.h>
 #include <keymaster/keymaster_context.h>
-#include <keymaster/km_version.h>
+#include <keymaster/km_openssl/software_random_source.h>
+#include <keymaster/legacy_support/keymaster1_engine.h>
 #include <keymaster/legacy_support/keymaster_passthrough_engine.h>
 #include <keymaster/legacy_support/keymaster_passthrough_key.h>
+#include <keymaster/soft_key_factory.h>
 
 namespace keymaster {
 
-class Keymaster2PassthroughContext : public KeymasterContext {
+class Keymaster1PassthroughContext : public KeymasterContext,
+                                     public SoftAttestationContext,
+                                     public SoftwareRandomSource,
+                                     public SoftwareKeyBlobMaker {
   public:
-    explicit Keymaster2PassthroughContext(KmVersion version, keymaster2_device_t* dev);
+    Keymaster1PassthroughContext(KmVersion version, keymaster1_device_t* dev);
 
-    KmVersion GetKmVersion() const override { return version_; }
+    KmVersion GetKmVersion() const override { return AttestationContext::GetKmVersion(); }
 
     /**
      * Sets the system version as reported by the system *itself*.  This is used to verify that the
@@ -115,6 +121,12 @@ class Keymaster2PassthroughContext : public KeymasterContext {
         return {};
     }
 
+    keymaster_error_t CreateKeyBlob(const AuthorizationSet& key_description,
+                                    const keymaster_key_origin_t origin,
+                                    const KeymasterKeyBlob& key_material, KeymasterKeyBlob* blob,
+                                    AuthorizationSet* hw_enforced,
+                                    AuthorizationSet* sw_enforced) const override;
+
     keymaster_error_t
     UnwrapKey(const KeymasterKeyBlob& wrapped_key_blob, const KeymasterKeyBlob& wrapping_key_blob,
               const AuthorizationSet& wrapping_key_params, const KeymasterKeyBlob& masking_key,
@@ -122,15 +134,15 @@ class Keymaster2PassthroughContext : public KeymasterContext {
               KeymasterKeyBlob* wrapped_key_material) const override;
 
   private:
-    keymaster2_device_t* device_;
-    mutable std::unordered_map<keymaster_algorithm_t, UniquePtr<KeymasterPassthroughKeyFactory>>
-        factories_;
-    UniquePtr<KeymasterPassthroughEngine> engine_;
+    keymaster1_device_t* device_;
+    mutable std::unordered_map<keymaster_algorithm_t, UniquePtr<KeyFactory>> factories_;
+    UniquePtr<KeymasterPassthroughEngine> pt_engine_;
+    UniquePtr<Keymaster1Engine> km1_engine_;
+
     uint32_t os_version_;
     uint32_t os_patchlevel_;
-    const KmVersion version_;
 };
 
 }  // namespace keymaster
 
-#endif  // SOFTWARE_CONTEXT_KEYMASTER2_PASSTHROUGH_CONTEXT_H_
+#endif  // SOFTWARE_CONTEXT_KEYMASTER1_PASSTHROUGH_CONTEXT_H_

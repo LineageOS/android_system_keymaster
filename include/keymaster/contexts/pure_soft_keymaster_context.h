@@ -33,6 +33,8 @@
 namespace keymaster {
 
 class SoftKeymasterKeyRegistrations;
+class Keymaster0Engine;
+class Keymaster1Engine;
 class Key;
 
 /**
@@ -59,6 +61,7 @@ class PureSoftKeymasterContext : public KeymasterContext,
     KeyFactory* GetKeyFactory(keymaster_algorithm_t algorithm) const override;
     OperationFactory* GetOperationFactory(keymaster_algorithm_t algorithm,
                                           keymaster_purpose_t purpose) const override;
+    keymaster_algorithm_t* GetSupportedAlgorithms(size_t* algorithms_count) const override;
     keymaster_error_t UpgradeKeyBlob(const KeymasterKeyBlob& key_to_upgrade,
                                      const AuthorizationSet& upgrade_params,
                                      KeymasterKeyBlob* upgraded_key) const override;

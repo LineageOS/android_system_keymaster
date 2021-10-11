@@ -52,6 +52,18 @@ class AndroidKeymaster {
     AndroidKeymaster(AndroidKeymaster&&);
 
     void GetVersion(const GetVersionRequest& request, GetVersionResponse* response);
+    void SupportedAlgorithms(const SupportedAlgorithmsRequest& request,
+                             SupportedAlgorithmsResponse* response);
+    void SupportedBlockModes(const SupportedBlockModesRequest& request,
+                             SupportedBlockModesResponse* response);
+    void SupportedPaddingModes(const SupportedPaddingModesRequest& request,
+                               SupportedPaddingModesResponse* response);
+    void SupportedDigests(const SupportedDigestsRequest& request,
+                          SupportedDigestsResponse* response);
+    void SupportedImportFormats(const SupportedImportFormatsRequest& request,
+                                SupportedImportFormatsResponse* response);
+    void SupportedExportFormats(const SupportedExportFormatsRequest& request,
+                                SupportedExportFormatsResponse* response);
 
     GetHmacSharingParametersResponse GetHmacSharingParameters();
     ComputeSharedHmacResponse ComputeSharedHmac(const ComputeSharedHmacRequest& request);
