@@ -22,6 +22,8 @@
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>
 
+typedef struct keymaster0_device keymaster0_device_t;
+typedef struct keymaster1_device keymaster1_device_t;
 typedef struct keymaster2_device keymaster2_device_t;
 
 namespace keymaster {
@@ -95,6 +97,8 @@ class AndroidKeymaster3Device : public IKeymasterDevice {
 IKeymasterDevice* CreateKeymasterDevice();
 
 IKeymasterDevice* CreateKeymasterDevice(keymaster2_device_t* km2_device);
+IKeymasterDevice* CreateKeymasterDevice(keymaster1_device_t* km1_device);
+IKeymasterDevice* CreateKeymasterDevice(keymaster0_device_t* km0_device);
 
 }  // namespace ng
 }  // namespace keymaster
