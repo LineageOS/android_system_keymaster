@@ -29,11 +29,11 @@
 #include <keymaster/km_openssl/asymmetric_key.h>
 #include <keymaster/km_openssl/attestation_utils.h>
 #include <keymaster/km_openssl/certificate_utils.h>
-#include <keymaster/km_openssl/ec_key_factory.h>
 #include <keymaster/km_openssl/hmac_key.h>
 #include <keymaster/km_openssl/openssl_err.h>
-#include <keymaster/km_openssl/rsa_key_factory.h>
 #include <keymaster/km_openssl/triple_des_key.h>
+#include <keymaster/legacy_support/ec_keymaster1_key.h>
+#include <keymaster/legacy_support/rsa_keymaster1_key.h>
 #include <keymaster/logger.h>
 
 #include <keymaster/contexts/soft_attestation_cert.h>
@@ -57,9 +57,27 @@ SoftKeymasterContext::SoftKeymasterContext(KmVersion version, const std::string&
       aes_factory_(new AesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
       tdes_factory_(new TripleDesKeyFactory(*this /* blob_maker */, *this /* random_source */)),
       hmac_factory_(new HmacKeyFactory(*this /* blob_maker */, *this /* random_source */)),
-      root_of_trust_(string2Blob(root_of_trust)), os_version_(0), os_patchlevel_(0) {}
+      km1_dev_(nullptr), root_of_trust_(string2Blob(root_of_trust)), os_version_(0),
+      os_patchlevel_(0) {}
 
 SoftKeymasterContext::~SoftKeymasterContext() {}
+
+keymaster_error_t SoftKeymasterContext::SetHardwareDevice(keymaster1_device_t* keymaster1_device) {
+    if (!keymaster1_device) return KM_ERROR_UNEXPECTED_NULL_POINTER;
+
+    km1_dev_ = keymaster1_device;
+
+    km1_engine_.reset(new Keymaster1Engine(keymaster1_device));
+    rsa_factory_.reset(new RsaKeymaster1KeyFactory(
+        *this /* blob_maker */, *this /* attestation_context */, km1_engine_.get()));
+    ec_factory_.reset(new EcdsaKeymaster1KeyFactory(
+        *this /* blob_maker */, *this /* attestation_context */, km1_engine_.get()));
+
+    // Use default HMAC and AES key factories. Higher layers will pass HMAC/AES keys/ops that are
+    // supported by the hardware to it and other ones to the software-only factory.
+
+    return KM_ERROR_OK;
+}
 
 keymaster_error_t SoftKeymasterContext::SetSystemVersion(uint32_t os_version,
                                                          uint32_t os_patchlevel) {
@@ -88,6 +106,15 @@ KeyFactory* SoftKeymasterContext::GetKeyFactory(keymaster_algorithm_t algorithm)
     default:
         return nullptr;
     }
+}
+
+static keymaster_algorithm_t supported_algorithms[] = {KM_ALGORITHM_RSA, KM_ALGORITHM_EC,
+                                                       KM_ALGORITHM_AES, KM_ALGORITHM_HMAC};
+
+keymaster_algorithm_t*
+SoftKeymasterContext::GetSupportedAlgorithms(size_t* algorithms_count) const {
+    *algorithms_count = array_length(supported_algorithms);
+    return supported_algorithms;
 }
 
 OperationFactory* SoftKeymasterContext::GetOperationFactory(keymaster_algorithm_t algorithm,
@@ -173,6 +200,23 @@ keymaster_error_t SoftKeymasterContext::UpgradeKeyBlob(const KeymasterKeyBlob& k
     keymaster_error_t error = ParseKeyBlob(key_to_upgrade, upgrade_params, &key);
     if (error != KM_ERROR_OK) return error;
 
+    // Three cases here:
+    //
+    // 1. Software key blob.  Version info, if present, is in sw_enforced.  If not present, we
+    //    should add it.
+    //
+    // 2. Keymaster0 hardware key blob.  Version info, if present, is in sw_enforced.  If not
+    //    present we should add it.
+    //
+    // 3. Keymaster1 hardware key blob.  Version info is not present and we shouldn't have been
+    //    asked to upgrade.
+
+    // Handle case 3.
+    if (km1_dev_ && key->hw_enforced().Contains(TAG_PURPOSE) &&
+        !key->hw_enforced().Contains(TAG_OS_PATCHLEVEL))
+        return KM_ERROR_INVALID_ARGUMENT;
+
+    // Handle case 1 and 2
     return UpgradeSoftKeyBlob(key, os_version_, os_patchlevel_, upgrade_params, upgraded_key);
 }
 
@@ -249,20 +293,71 @@ keymaster_error_t SoftKeymasterContext::ParseKeyBlob(const KeymasterKeyBlob& blo
     if (error == KM_ERROR_OK) LOG_D("Parsed an old sofkeymaster key", 0);
     if (error != KM_ERROR_INVALID_KEY_BLOB) return constructKey();
 
-    return KM_ERROR_INVALID_KEY_BLOB;
+    if (km1_dev_) {
+        error = ParseKeymaster1HwBlob(blob, additional_params, &key_material, &hw_enforced,
+                                      &sw_enforced);
+    } else {
+        return KM_ERROR_INVALID_KEY_BLOB;
+    }
+    return constructKey();
 }
 
-keymaster_error_t SoftKeymasterContext::DeleteKey(const KeymasterKeyBlob& /* blob */) const {
+keymaster_error_t SoftKeymasterContext::DeleteKey(const KeymasterKeyBlob& blob) const {
+    if (km1_engine_) {
+        // HACK. Due to a bug with Qualcomm's Keymaster implementation, which causes the device to
+        // reboot if we pass it a key blob it doesn't understand, we need to check for software
+        // keys.  If it looks like a software key there's nothing to do so we just return.
+        KeymasterKeyBlob key_material;
+        AuthorizationSet hw_enforced, sw_enforced;
+        keymaster_error_t error = DeserializeIntegrityAssuredBlob_NoHmacCheck(
+            blob, &key_material, &hw_enforced, &sw_enforced);
+        if (error == KM_ERROR_OK) {
+            return KM_ERROR_OK;
+        }
+
+        return km1_engine_->DeleteKey(blob);
+    }
+
     // Nothing to do for software-only contexts.
     return KM_ERROR_OK;
 }
 
 keymaster_error_t SoftKeymasterContext::DeleteAllKeys() const {
+    if (km1_engine_) return km1_engine_->DeleteAllKeys();
     return KM_ERROR_OK;
 }
 
 keymaster_error_t SoftKeymasterContext::AddRngEntropy(const uint8_t* buf, size_t length) const {
     RAND_add(buf, length, 0 /* Don't assume any entropy is added to the pool. */);
+    return KM_ERROR_OK;
+}
+
+keymaster_error_t SoftKeymasterContext::ParseKeymaster1HwBlob(
+    const KeymasterKeyBlob& blob, const AuthorizationSet& additional_params,
+    KeymasterKeyBlob* key_material, AuthorizationSet* hw_enforced,
+    AuthorizationSet* sw_enforced) const {
+    assert(km1_dev_);
+
+    keymaster_blob_t client_id = {nullptr, 0};
+    keymaster_blob_t app_data = {nullptr, 0};
+    keymaster_blob_t* client_id_ptr = nullptr;
+    keymaster_blob_t* app_data_ptr = nullptr;
+    if (additional_params.GetTagValue(TAG_APPLICATION_ID, &client_id)) client_id_ptr = &client_id;
+    if (additional_params.GetTagValue(TAG_APPLICATION_DATA, &app_data)) app_data_ptr = &app_data;
+
+    // Get key characteristics, which incidentally verifies that the HW recognizes the key.
+    keymaster_key_characteristics_t* characteristics;
+    keymaster_error_t error = km1_dev_->get_key_characteristics(km1_dev_, &blob, client_id_ptr,
+                                                                app_data_ptr, &characteristics);
+    if (error != KM_ERROR_OK) return error;
+    unique_ptr<keymaster_key_characteristics_t, Characteristics_Delete> characteristics_deleter(
+        characteristics);
+
+    LOG_D("Module \"%s\" accepted key", km1_dev_->common.module->name);
+
+    hw_enforced->Reinitialize(characteristics->hw_enforced);
+    sw_enforced->Reinitialize(characteristics->sw_enforced);
+    *key_material = blob;
     return KM_ERROR_OK;
 }
 
