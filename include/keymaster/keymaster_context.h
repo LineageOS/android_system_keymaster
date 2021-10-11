@@ -101,6 +101,7 @@ class KeymasterContext {
     virtual const KeyFactory* GetKeyFactory(keymaster_algorithm_t algorithm) const = 0;
     virtual const OperationFactory* GetOperationFactory(keymaster_algorithm_t algorithm,
                                                         keymaster_purpose_t purpose) const = 0;
+    virtual const keymaster_algorithm_t* GetSupportedAlgorithms(size_t* algorithms_count) const = 0;
 
     /**
      * UpgradeKeyBlob takes an existing blob, parses out key material and constructs a new blob with

@@ -21,6 +21,8 @@
 
 #include <openssl/evp.h>
 
+#include <hardware/keymaster1.h>
+
 #include <keymaster/attestation_context.h>
 #include <keymaster/contexts/soft_attestation_context.h>
 #include <keymaster/keymaster_context.h>
@@ -31,6 +33,7 @@
 namespace keymaster {
 
 class SoftKeymasterKeyRegistrations;
+class Keymaster1Engine;
 class Key;
 
 /**
@@ -48,6 +51,13 @@ class SoftKeymasterContext : public KeymasterContext,
 
     KmVersion GetKmVersion() const override { return AttestationContext::GetKmVersion(); }
 
+    /**
+     * Use the specified HW keymaster1 device for performing undigested RSA and EC operations after
+     * digesting has been done in software.  Takes ownership of the specified device (will call
+     * keymaster1_device->common.close());
+     */
+    keymaster_error_t SetHardwareDevice(keymaster1_device_t* keymaster1_device);
+
     /*********************************************************************************************
      * Implement KeymasterContext
      */
@@ -57,6 +67,7 @@ class SoftKeymasterContext : public KeymasterContext,
     KeyFactory* GetKeyFactory(keymaster_algorithm_t algorithm) const override;
     OperationFactory* GetOperationFactory(keymaster_algorithm_t algorithm,
                                           keymaster_purpose_t purpose) const override;
+    keymaster_algorithm_t* GetSupportedAlgorithms(size_t* algorithms_count) const override;
     keymaster_error_t UpgradeKeyBlob(const KeymasterKeyBlob& key_to_upgrade,
                                      const AuthorizationSet& upgrade_params,
                                      KeymasterKeyBlob* upgraded_key) const override;
@@ -97,11 +108,19 @@ class SoftKeymasterContext : public KeymasterContext,
     /*********************************************************************************************/
 
   private:
+    keymaster_error_t ParseKeymaster1HwBlob(const KeymasterKeyBlob& blob,
+                                            const AuthorizationSet& additional_params,
+                                            KeymasterKeyBlob* key_material,
+                                            AuthorizationSet* hw_enforced,
+                                            AuthorizationSet* sw_enforced) const;
+
+    std::unique_ptr<Keymaster1Engine> km1_engine_;
     std::unique_ptr<KeyFactory> rsa_factory_;
     std::unique_ptr<KeyFactory> ec_factory_;
     std::unique_ptr<KeyFactory> aes_factory_;
     std::unique_ptr<KeyFactory> tdes_factory_;
     std::unique_ptr<KeyFactory> hmac_factory_;
+    keymaster1_device* km1_dev_;
     const KeymasterBlob root_of_trust_;
     uint32_t os_version_;
     uint32_t os_patchlevel_;
