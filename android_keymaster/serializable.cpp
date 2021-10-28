@@ -149,13 +149,16 @@ bool Buffer::advance_write(int distance) {
     }
 
     const size_t validated_distance = static_cast<size_t>(distance);
-    const size_t new_write_position = write_position_ + validated_distance;
+    size_t new_write_position = 0;
 
-    if (new_write_position <= buffer_size_ && new_write_position >= write_position_) {
-        write_position_ = new_write_position;
-        return true;
+    // if an integer overflow occurred or the new position exceeds the buffer_size return false.
+    if (__builtin_add_overflow(write_position_, validated_distance, &new_write_position) ||
+        new_write_position > buffer_size_) {
+        return false;
     }
-    return false;
+
+    write_position_ = new_write_position;
+    return true;
 }
 
 size_t Buffer::SerializedSize() const {
