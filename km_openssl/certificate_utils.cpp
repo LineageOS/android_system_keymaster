@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <iostream>
+
 #include <openssl/asn1.h>
 #include <openssl/evp.h>
 #include <openssl/x509v3.h>
@@ -324,7 +326,10 @@ keymaster_error_t sign_cert(X509* certificate, const EVP_PKEY* signing_key) {
     // mistake that hasn't yet been corrected.
     auto sk = const_cast<EVP_PKEY*>(signing_key);
 
-    if (!X509_sign(certificate, sk, EVP_sha256())) {
+    // Ed25519 has an internal digest so needs to have no digest fed into X509_sign.
+    const EVP_MD* digest = (EVP_PKEY_id(signing_key) == EVP_PKEY_ED25519) ? nullptr : EVP_sha256();
+
+    if (!X509_sign(certificate, sk, digest)) {
         return TranslateLastOpenSslError();
     }
     return KM_ERROR_OK;
