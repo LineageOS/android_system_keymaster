@@ -219,6 +219,12 @@ AndroidKeyMintDevice::AndroidKeyMintDevice(SecurityLevel securityLevel)
                   KmVersion::KEYMINT_1, static_cast<keymaster_security_level_t>(securityLevel));
               context->SetSystemVersion(::keymaster::GetOsVersion(),
                                         ::keymaster::GetOsPatchlevel());
+              context->SetVendorPatchlevel(::keymaster::GetVendorPatchlevel());
+              // Software devices cannot be configured by the boot loader but they have
+              // to return a boot patch level. So lets just return the OS patch level.
+              // The OS patch level only has a year and a month so we just add the 1st
+              // of the month as day field.
+              context->SetBootPatchlevel(GetOsPatchlevel() * 100 + 1);
               return context;
           }(),
           kOperationTableSize)),
