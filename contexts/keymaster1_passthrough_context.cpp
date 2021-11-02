@@ -215,8 +215,9 @@ keymaster_error_t Keymaster1PassthroughContext::CreateKeyBlob(
     const AuthorizationSet& key_description, const keymaster_key_origin_t origin,
     const KeymasterKeyBlob& key_material, KeymasterKeyBlob* blob, AuthorizationSet* hw_enforced,
     AuthorizationSet* sw_enforced) const {
-    keymaster_error_t error = SetKeyBlobAuthorizations(key_description, origin, os_version_,
-                                                       os_patchlevel_, hw_enforced, sw_enforced);
+    keymaster_error_t error =
+        SetKeyBlobAuthorizations(key_description, origin, os_version_, os_patchlevel_, hw_enforced,
+                                 sw_enforced, GetKmVersion());
     if (error != KM_ERROR_OK) return error;
 
     AuthorizationSet hidden;
