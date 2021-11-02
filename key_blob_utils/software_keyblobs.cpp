@@ -255,7 +255,7 @@ keymaster_error_t ParseAuthEncryptedBlob(const KeymasterKeyBlob& blob,
 keymaster_error_t SetKeyBlobAuthorizations(const AuthorizationSet& key_description,
                                            keymaster_key_origin_t origin, uint32_t os_version,
                                            uint32_t os_patchlevel, AuthorizationSet* hw_enforced,
-                                           AuthorizationSet* sw_enforced) {
+                                           AuthorizationSet* sw_enforced, KmVersion version) {
     sw_enforced->Clear();
 
     for (auto& entry : key_description) {
@@ -377,8 +377,9 @@ keymaster_error_t SetKeyBlobAuthorizations(const AuthorizationSet& key_descripti
     pseudo_hw_enforced->push_back(TAG_OS_VERSION, os_version);
     pseudo_hw_enforced->push_back(TAG_OS_PATCHLEVEL, os_patchlevel);
 
-    // Honor caller creation, if provided.
-    if (!sw_enforced->Contains(TAG_CREATION_DATETIME)) {
+    // For KeyMaster implementations (but not KeyMint implementations), we need to add a
+    // CREATION_DATETIME into software-enforced if one was not provided.
+    if (version < KmVersion::KEYMINT_1 && !sw_enforced->Contains(TAG_CREATION_DATETIME)) {
         sw_enforced->push_back(TAG_CREATION_DATETIME, java_time(time(nullptr)));
     }
 
