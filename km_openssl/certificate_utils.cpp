@@ -343,8 +343,8 @@ CertificateChain generate_self_signed_cert(const AsymmetricKey& key, const Autho
     keymaster_error_t err;
     if (!error) error = &err;
 
-    EVP_PKEY_Ptr pkey(EVP_PKEY_new());
-    if (!key.InternalToEvp(pkey.get())) {
+    EVP_PKEY_Ptr pkey(key.InternalToEvp());
+    if (pkey.get() == nullptr) {
         *error = TranslateLastOpenSslError();
         return {};
     }

@@ -32,8 +32,8 @@ OperationPtr EcdsaOperationFactory::CreateOperation(Key&& key, const Authorizati
                                                     keymaster_error_t* error) {
     const EcKey& ecdsa_key = static_cast<EcKey&>(key);
 
-    UniquePtr<EVP_PKEY, EVP_PKEY_Delete> pkey(EVP_PKEY_new());
-    if (!ecdsa_key.InternalToEvp(pkey.get())) {
+    EVP_PKEY_Ptr pkey(ecdsa_key.InternalToEvp());
+    if (pkey.get() == nullptr) {
         *error = KM_ERROR_UNKNOWN_ERROR;
         return nullptr;
     }
