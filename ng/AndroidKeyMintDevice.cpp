@@ -53,7 +53,7 @@ vector<KeyCharacteristics> convertKeyCharacteristics(SecurityLevel keyMintSecuri
     if (keyMintSecurityLevel != SecurityLevel::SOFTWARE) {
         // We're pretending to be TRUSTED_ENVIRONMENT or STRONGBOX.
         keyMintEnforced.authorizations = kmParamSet2Aidl(hw_enforced);
-        if (include_keystore_enforced) {
+        if (include_keystore_enforced && !sw_enforced.empty()) {
             // Put all the software authorizations in the keystore list.
             KeyCharacteristics keystoreEnforced{SecurityLevel::KEYSTORE,
                                                 kmParamSet2Aidl(sw_enforced)};
