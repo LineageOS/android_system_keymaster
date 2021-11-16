@@ -31,6 +31,8 @@ class AsymmetricKey : public Key {
         : Key(move(hw_enforced), move(sw_enforced), key_factory) {}
     virtual ~AsymmetricKey() {}
 
+    virtual int evp_key_type() const = 0;
+
     keymaster_error_t formatted_key_material(keymaster_key_format_t format,
                                              UniquePtr<uint8_t[]>* material,
                                              size_t* size) const override;

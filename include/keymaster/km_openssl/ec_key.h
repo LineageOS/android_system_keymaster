@@ -33,6 +33,8 @@ class EcKey : public AsymmetricKey {
           EC_KEY_Ptr ec_key)
         : AsymmetricKey(move(hw_enforced), move(sw_enforced), factory), ec_key_(move(ec_key)) {}
 
+    int evp_key_type() const override { return EVP_PKEY_EC; }
+
     EVP_PKEY_Ptr InternalToEvp() const override;
     bool EvpToInternal(const EVP_PKEY* pkey) override;
 

@@ -33,6 +33,8 @@ class RsaKey : public AsymmetricKey {
            RSA_Ptr rsa_key)
         : AsymmetricKey(move(hw_enforced), move(sw_enforced), factory), rsa_key_(move(rsa_key)) {}
 
+    int evp_key_type() const override { return EVP_PKEY_RSA; }
+
     EVP_PKEY_Ptr InternalToEvp() const override;
     bool EvpToInternal(const EVP_PKEY* pkey) override;
 
