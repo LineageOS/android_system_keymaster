@@ -39,8 +39,6 @@ using cppcose::ErrMsgOr;
 using cppcose::OCTET_KEY_PAIR;
 using cppcose::VERIFY;
 
-constexpr uint32_t kMacKeyLength = 32;
-
 std::array<uint8_t, 32> GetRandomBytes() {
     std::array<uint8_t, 32> bytes;
     // This is used in code paths that cannot fail, so CHECK. If it turns
@@ -157,7 +155,9 @@ ErrMsgOr<std::vector<uint8_t>> PureSoftRemoteProvisioningContext::BuildProtected
 
 std::optional<cppcose::HmacSha256>
 PureSoftRemoteProvisioningContext::GenerateHmacSha256(const cppcose::bytevec& input) const {
-    auto key = DeriveBytesFromHbk("Key to MAC public keys", kMacKeyLength);
+    // Fix the key for now, else HMACs will fail to verify after reboot.
+    static const uint8_t kHmacKey[] = "Key to MAC public keys";
+    std::vector<uint8_t> key(std::begin(kHmacKey), std::end(kHmacKey));
     auto result = cppcose::generateHmacSha256(key, input);
     if (!result) {
         LOG_E("Error signing MAC: %s", result.message().c_str());
