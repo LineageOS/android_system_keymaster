@@ -332,6 +332,13 @@ void AndroidKeymaster::GenerateKey(const GenerateKeyRequest& request,
         if (response->error != KM_ERROR_OK) return;
     }
 
+    if (request.key_description.Contains(TAG_PURPOSE, KM_PURPOSE_ATTEST_KEY) &&
+        request.key_description.GetTagCount(TAG_PURPOSE) > 1) {
+        // ATTEST_KEY cannot be combined with any other purpose.
+        response->error = KM_ERROR_INCOMPATIBLE_PURPOSE;
+        return;
+    }
+
     response->enforced.Clear();
     response->unenforced.Clear();
     response->error = factory->GenerateKey(request.key_description,
@@ -772,6 +779,13 @@ void AndroidKeymaster::ImportKey(const ImportKeyRequest& request, ImportKeyRespo
         attest_key =
             LoadKey(request.attestation_signing_key_blob, {} /* params */, &response->error);
         if (response->error != KM_ERROR_OK) return;
+    }
+
+    if (request.key_description.Contains(TAG_PURPOSE, KM_PURPOSE_ATTEST_KEY) &&
+        request.key_description.GetTagCount(TAG_PURPOSE) > 1) {
+        // ATTEST_KEY cannot be combined with any other purpose.
+        response->error = KM_ERROR_INCOMPATIBLE_PURPOSE;
+        return;
     }
 
     response->error = factory->ImportKey(request.key_description,  //
