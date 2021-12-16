@@ -124,6 +124,7 @@ inline constexpr int32_t MessageVersion(KmVersion version, uint32_t /* km_date *
     case KmVersion::KEYMASTER_4_1:
         return 3;
     case KmVersion::KEYMINT_1:
+    case KmVersion::KEYMINT_2:
         return 4;
     }
     return kInvalidMessageVersion;
