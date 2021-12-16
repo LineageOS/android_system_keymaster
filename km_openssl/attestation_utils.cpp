@@ -248,13 +248,8 @@ AttestKeyInfo::AttestKeyInfo(const UniquePtr<Key>& key, const KeymasterBlob* iss
     *error = check_attest_key_auths(*key);
     if (*error != KM_ERROR_OK) return;
 
-    signing_key.reset(EVP_PKEY_new());
-    if (!signing_key) {
-        *error = TranslateLastOpenSslError();
-        return;
-    }
-
-    if (!static_cast<const AsymmetricKey&>(*key).InternalToEvp(signing_key.get())) {
+    signing_key = static_cast<const AsymmetricKey&>(*key).InternalToEvp();
+    if (signing_key.get() == nullptr) {
         *error = KM_ERROR_UNKNOWN_ERROR;
     }
 }
@@ -264,8 +259,8 @@ CertificateChain generate_attestation(const AsymmetricKey& key,
                                       AttestKeyInfo attest_key,
                                       const AttestationContext& context,  //
                                       keymaster_error_t* error) {
-    EVP_PKEY_Ptr pkey(EVP_PKEY_new());
-    if (!key.InternalToEvp(pkey.get())) {
+    EVP_PKEY_Ptr pkey(key.InternalToEvp());
+    if (pkey.get() == nullptr) {
         *error = TranslateLastOpenSslError();
         return {};
     }
