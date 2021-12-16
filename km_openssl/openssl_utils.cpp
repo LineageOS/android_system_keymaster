@@ -17,6 +17,7 @@
 #include <keymaster/km_openssl/openssl_utils.h>
 
 #include <keymaster/android_keymaster_utils.h>
+#include <openssl/mem.h>
 #include <openssl/rand.h>
 
 #include <keymaster/km_openssl/openssl_err.h>
@@ -108,13 +109,39 @@ keymaster_error_t KeyMaterialToEvpKey(keymaster_key_format_t key_format,
 }
 
 keymaster_error_t EvpKeyToKeyMaterial(const EVP_PKEY* pkey, KeymasterKeyBlob* key_blob) {
-    int key_data_size = i2d_PrivateKey(pkey, nullptr /* key_data*/);
-    if (key_data_size <= 0) return TranslateLastOpenSslError();
+    switch (EVP_PKEY_type(pkey->type)) {
+    case EVP_PKEY_ED25519:
+    case EVP_PKEY_X25519: {
+        // BoringSSL's i2d_PrivateKey does not handle curve 25519 keys.
+        uint8_t* data = nullptr;
+        size_t data_len;
+        CBB cbb;
+        if (!CBB_init(&cbb, 0) || !EVP_marshal_private_key(&cbb, pkey) ||
+            !CBB_finish(&cbb, &data, &data_len)) {
+            CBB_cleanup(&cbb);
+            OPENSSL_free(data);
+            return KM_ERROR_UNKNOWN_ERROR;
+        }
 
-    if (!key_blob->Reset(key_data_size)) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+        if (!key_blob->Reset(data_len)) {
+            OPENSSL_free(data);
+            return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+        }
+        memcpy(key_blob->writable_data(), data, data_len);
+        OPENSSL_free(data);
+        break;
+    }
+    default: {
+        int key_data_size = i2d_PrivateKey(pkey, nullptr /* key_data*/);
+        if (key_data_size <= 0) return TranslateLastOpenSslError();
 
-    uint8_t* tmp = key_blob->writable_data();
-    i2d_PrivateKey(pkey, &tmp);
+        if (!key_blob->Reset(key_data_size)) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+
+        uint8_t* tmp = key_blob->writable_data();
+        i2d_PrivateKey(pkey, &tmp);
+        break;
+    }
+    }
 
     return KM_ERROR_OK;
 }
