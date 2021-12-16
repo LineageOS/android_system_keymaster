@@ -105,8 +105,8 @@ static EVP_PKEY* GetEvpKey(const RsaKeymaster1Key& key, keymaster_error_t* error
         return nullptr;
     }
 
-    UniquePtr<EVP_PKEY, EVP_PKEY_Delete> pkey(EVP_PKEY_new());
-    if (!key.InternalToEvp(pkey.get())) {
+    EVP_PKEY_Ptr pkey(key.InternalToEvp());
+    if (pkey.get() == nullptr) {
         *error = KM_ERROR_UNKNOWN_ERROR;
         return nullptr;
     }
