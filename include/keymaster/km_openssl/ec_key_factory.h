@@ -30,7 +30,6 @@ class EcKeyFactory : public AsymmetricKeyFactory, public SoftKeyFactoryMixin {
         : AsymmetricKeyFactory(context), SoftKeyFactoryMixin(blob_maker) {}
 
     keymaster_algorithm_t keymaster_key_type() const override { return KM_ALGORITHM_EC; }
-    int evp_key_type() const override { return EVP_PKEY_EC; }
 
     keymaster_error_t GenerateKey(const AuthorizationSet& key_description,
                                   UniquePtr<Key> attest_key,            //
