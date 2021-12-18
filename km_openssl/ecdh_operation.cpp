@@ -89,12 +89,8 @@ OperationPtr EcdhOperationFactory::CreateOperation(Key&& key,
                                                    keymaster_error_t* error) {
     const EcKey& ecdh_key = static_cast<EcKey&>(key);
 
-    EVP_PKEY_Ptr pkey(EVP_PKEY_new());
+    EVP_PKEY_Ptr pkey(ecdh_key.InternalToEvp());
     if (pkey.get() == nullptr) {
-        *error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
-        return nullptr;
-    }
-    if (!ecdh_key.InternalToEvp(pkey.get())) {
         *error = KM_ERROR_UNKNOWN_ERROR;
         return nullptr;
     }
