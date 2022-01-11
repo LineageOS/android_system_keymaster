@@ -237,7 +237,18 @@ struct Characteristics_Delete {
     }
 };
 
+/**
+ * Attempt to determine an arbitrary elliptic curve from a key size.  If the key size
+ * is ambiguous, KM_ERROR_UNSUPPORTED_KEY_SIZE is returned.
+ */
+keymaster_error_t EllipticKeySizeToCurve(uint32_t key_size_bits, keymaster_ec_curve_t* curve);
+
+/**
+ * Attempt to determine an ECDSA curve from a key size, where the key is know to be
+ * an ECDSA (i.e. non-Edwards) specifically.
+ */
 keymaster_error_t EcKeySizeToCurve(uint32_t key_size_bits, keymaster_ec_curve_t* curve);
+
 keymaster_error_t EcCurveToKeySize(keymaster_ec_curve_t curve, uint32_t* key_size_bits);
 
 template <class F> class final_action {
