@@ -66,17 +66,6 @@ EC_GROUP* ec_get_group(keymaster_ec_curve_t curve) {
     }
 }
 
-static int convert_to_evp(keymaster_algorithm_t algorithm) {
-    switch (algorithm) {
-    case KM_ALGORITHM_RSA:
-        return EVP_PKEY_RSA;
-    case KM_ALGORITHM_EC:
-        return EVP_PKEY_EC;
-    default:
-        return -1;
-    };
-}
-
 keymaster_error_t convert_pkcs8_blob_to_evp(const uint8_t* key_data, size_t key_length,
                                             keymaster_algorithm_t expected_algorithm,
                                             UniquePtr<EVP_PKEY, EVP_PKEY_Delete>* pkey) {
@@ -89,9 +78,26 @@ keymaster_error_t convert_pkcs8_blob_to_evp(const uint8_t* key_data, size_t key_
     pkey->reset(EVP_PKCS82PKEY(pkcs8.get()));
     if (!pkey->get()) return TranslateLastOpenSslError(true /* log_message */);
 
-    if (EVP_PKEY_type((*pkey)->type) != convert_to_evp(expected_algorithm)) {
-        LOG_E("EVP key algorithm was %d, not the expected %d", EVP_PKEY_type((*pkey)->type),
-              convert_to_evp(expected_algorithm));
+    // Check the key type detected from the PKCS8 blob matches the KM algorithm we expect.
+    keymaster_algorithm_t got_algorithm;
+    switch (EVP_PKEY_type((*pkey)->type)) {
+    case EVP_PKEY_RSA:
+        got_algorithm = KM_ALGORITHM_RSA;
+        break;
+    case EVP_PKEY_EC:
+    case EVP_PKEY_ED25519:
+    case EVP_PKEY_X25519:
+        got_algorithm = KM_ALGORITHM_EC;
+        break;
+    default:
+        LOG_E("EVP key algorithm was unknown (type %d), not the expected %d",
+              EVP_PKEY_type((*pkey)->type), expected_algorithm);
+        return KM_ERROR_INVALID_KEY_BLOB;
+    }
+
+    if (expected_algorithm != got_algorithm) {
+        LOG_E("EVP key algorithm was %d (from type %d), not the expected %d", got_algorithm,
+              EVP_PKEY_type((*pkey)->type), expected_algorithm);
         return KM_ERROR_INVALID_KEY_BLOB;
     }
 
