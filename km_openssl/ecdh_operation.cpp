@@ -20,6 +20,7 @@
 #include <keymaster/km_openssl/openssl_err.h>
 #include <keymaster/km_openssl/openssl_utils.h>
 #include <keymaster/logger.h>
+#include <openssl/curve25519.h>
 #include <openssl/err.h>
 #include <vector>
 
@@ -84,10 +85,38 @@ keymaster_error_t EcdhOperation::Finish(const AuthorizationSet& /*additional_par
     return KM_ERROR_OK;
 }
 
+keymaster_error_t X25519Operation::Finish(const AuthorizationSet& /*additional_params*/,
+                                          const Buffer& input, const Buffer& /*signature*/,
+                                          AuthorizationSet* /*output_params*/, Buffer* output) {
+    if (input.available_read() != X25519_PUBLIC_VALUE_LEN) {
+        LOG_E("Invalid length %d of peer key", input.available_read());
+        return KM_ERROR_INVALID_ARGUMENT;
+    }
+    size_t key_len = X25519_PRIVATE_KEY_LEN;
+    uint8_t priv_key[X25519_PRIVATE_KEY_LEN];
+    if (EVP_PKEY_get_raw_private_key(ecdh_key_.get(), priv_key, &key_len) == 0) {
+        return TranslateLastOpenSslError();
+    }
+    if (key_len != X25519_PRIVATE_KEY_LEN) {
+        return KM_ERROR_UNKNOWN_ERROR;
+    }
+    if (!output->reserve(X25519_SHARED_KEY_LEN)) {
+        LOG_E("Error reserving data in output buffer", 0);
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    }
+    if (X25519(output->peek_write(), priv_key, input.begin()) != 1) {
+        LOG_E("Error deriving key", 0);
+        return TranslateLastOpenSslError();
+    }
+    output->advance_write(X25519_SHARED_KEY_LEN);
+
+    return KM_ERROR_OK;
+}
+
 OperationPtr EcdhOperationFactory::CreateOperation(Key&& key,
                                                    const AuthorizationSet& /*begin_params*/,
                                                    keymaster_error_t* error) {
-    const EcKey& ecdh_key = static_cast<EcKey&>(key);
+    const AsymmetricKey& ecdh_key = static_cast<AsymmetricKey&>(key);
 
     EVP_PKEY_Ptr pkey(ecdh_key.InternalToEvp());
     if (pkey.get() == nullptr) {
@@ -96,8 +125,22 @@ OperationPtr EcdhOperationFactory::CreateOperation(Key&& key,
     }
 
     *error = KM_ERROR_OK;
-    auto op = new (std::nothrow)
-        EcdhOperation(move(key.hw_enforced_move()), move(key.sw_enforced_move()), pkey.release());
+
+    EcdhOperation* op = nullptr;
+    switch (EVP_PKEY_type(pkey->type)) {
+    case EVP_PKEY_X25519:
+        op = new (std::nothrow) X25519Operation(move(key.hw_enforced_move()),
+                                                move(key.sw_enforced_move()), pkey.release());
+        break;
+    case EVP_PKEY_EC:
+        op = new (std::nothrow) EcdhOperation(move(key.hw_enforced_move()),
+                                              move(key.sw_enforced_move()), pkey.release());
+        break;
+    default:
+        *error = KM_ERROR_UNKNOWN_ERROR;
+        return nullptr;
+    }
+
     if (!op) {
         *error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
         return nullptr;

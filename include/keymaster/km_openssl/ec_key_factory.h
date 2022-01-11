@@ -48,6 +48,15 @@ class EcKeyFactory : public AsymmetricKeyFactory, public SoftKeyFactoryMixin {
                                 AuthorizationSet* sw_enforced,
                                 CertificateChain* cert_chain) const override;
 
+    keymaster_error_t ImportRawKey(const AuthorizationSet& key_description,
+                                   const KeymasterKeyBlob& input_key_material,
+                                   UniquePtr<Key> attest_key,  //
+                                   const KeymasterBlob& issuer_subject,
+                                   KeymasterKeyBlob* output_key_blob,  //
+                                   AuthorizationSet* hw_enforced,      //
+                                   AuthorizationSet* sw_enforced,
+                                   CertificateChain* cert_chain) const;
+
     keymaster_error_t CreateEmptyKey(AuthorizationSet&& hw_enforced, AuthorizationSet&& sw_enforced,
                                      UniquePtr<AsymmetricKey>* key) const override;
 
