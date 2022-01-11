@@ -79,6 +79,9 @@ class PureSoftKeymasterContext : public KeymasterContext,
                                                    const AuthorizationSet& cert_params,
                                                    bool fake_signature,
                                                    keymaster_error_t* error) const override;
+    Buffer GenerateUniqueId(uint64_t creation_date_time, const keymaster_blob_t& application_id,
+                            bool reset_since_rotation, keymaster_error_t* error) const override;
+
     KeymasterEnforcement* enforcement_policy() override {
         // SoftKeymaster does no enforcement; it's all done by Keystore.
         return &soft_keymaster_enforcement_;
