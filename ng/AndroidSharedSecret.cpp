@@ -44,7 +44,8 @@ ScopedAStatus AndroidSharedSecret::getSharedSecretParameters(SharedSecretParamet
 ScopedAStatus AndroidSharedSecret::computeSharedSecret(const vector<SharedSecretParameters>& params,
                                                        vector<uint8_t>* sharingCheck) {
     ComputeSharedHmacRequest request(impl_->message_version());
-    request.params_array.params_array = new keymaster::HmacSharingParameters[params.size()];
+    request.params_array.params_array =
+        new (std::nothrow) keymaster::HmacSharingParameters[params.size()];
     request.params_array.num_params = params.size();
     for (size_t i = 0; i < params.size(); ++i) {
         request.params_array.params_array[i].seed = {params[i].seed.data(), params[i].seed.size()};
