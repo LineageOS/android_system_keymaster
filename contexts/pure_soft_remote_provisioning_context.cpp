@@ -50,12 +50,6 @@ std::array<uint8_t, 32> GetRandomBytes() {
 
 }  // namespace
 
-PureSoftRemoteProvisioningContext::PureSoftRemoteProvisioningContext() {
-    std::tie(devicePrivKey_, bcc_) = GenerateBcc(/*testMode=*/false);
-}
-
-PureSoftRemoteProvisioningContext::~PureSoftRemoteProvisioningContext() {}
-
 std::vector<uint8_t>
 PureSoftRemoteProvisioningContext::DeriveBytesFromHbk(const std::string& context,
                                                       size_t num_bytes) const {
@@ -91,6 +85,11 @@ std::unique_ptr<cppbor::Map> PureSoftRemoteProvisioningContext::CreateDeviceInfo
 
     result->canonicalize();
     return result;
+}
+
+void PureSoftRemoteProvisioningContext::LazyInitProdBcc() const {
+    std::call_once(bccInitFlag_,
+                   [this]() { std::tie(devicePrivKey_, bcc_) = GenerateBcc(/*testMode=*/false); });
 }
 
 std::pair<std::vector<uint8_t> /* privKey */, cppbor::Array /* BCC */>
@@ -139,6 +138,7 @@ ErrMsgOr<std::vector<uint8_t>> PureSoftRemoteProvisioningContext::BuildProtected
     if (isTestMode) {
         std::tie(devicePrivKey, bcc) = GenerateBcc(/*testMode=*/true);
     } else {
+        LazyInitProdBcc();
         devicePrivKey = devicePrivKey_;
         auto clone = bcc_.clone();
         if (!clone->asArray()) {
