@@ -20,6 +20,8 @@
 
 #include <cppbor.h>
 
+#include <mutex>
+
 namespace keymaster {
 
 /**
@@ -27,8 +29,8 @@ namespace keymaster {
  */
 class PureSoftRemoteProvisioningContext : public RemoteProvisioningContext {
   public:
-    PureSoftRemoteProvisioningContext();
-    ~PureSoftRemoteProvisioningContext() override;
+    PureSoftRemoteProvisioningContext() = default;
+    ~PureSoftRemoteProvisioningContext() override = default;
     std::vector<uint8_t> DeriveBytesFromHbk(const std::string& context,
                                             size_t numBytes) const override;
     std::unique_ptr<cppbor::Map> CreateDeviceInfo() const override;
@@ -38,11 +40,19 @@ class PureSoftRemoteProvisioningContext : public RemoteProvisioningContext {
                               const std::vector<uint8_t>& aad) const override;
     std::optional<cppcose::HmacSha256>
     GenerateHmacSha256(const cppcose::bytevec& input) const override;
-    std::pair<std::vector<uint8_t>, cppbor::Array> GenerateBcc(bool testMode) const;
 
   private:
-    std::vector<uint8_t> devicePrivKey_;
-    cppbor::Array bcc_;
+    // Initialize the BCC if it has not yet happened.
+    void LazyInitProdBcc() const;
+
+    std::pair<std::vector<uint8_t>, cppbor::Array> GenerateBcc(bool testMode) const;
+
+    mutable std::once_flag bccInitFlag_;
+
+    // Always call LazyInitProdBcc before accessing these values, as they are
+    // lazy-initialized.
+    mutable std::vector<uint8_t> devicePrivKey_;
+    mutable cppbor::Array bcc_;
 };
 
 }  // namespace keymaster
