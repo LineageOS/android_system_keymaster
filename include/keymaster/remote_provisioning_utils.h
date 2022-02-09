@@ -70,7 +70,7 @@ validateAndExtractEekPubAndId(bool testMode, const KeymasterBlob& endpointEncryp
 
 StatusOr<std::vector<uint8_t> /* pubkeys */>
 validateAndExtractPubkeys(bool testMode, uint32_t numKeys, KeymasterBlob* keysToSign,
-                          cppcose::HmacSha256Function macFunction);
+                          const cppcose::HmacSha256Function& macFunction);
 
 cppbor::Array buildCertReqRecipients(const std::vector<uint8_t>& pubkey,
                                      const std::vector<uint8_t>& kid);
