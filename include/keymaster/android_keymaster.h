@@ -47,7 +47,7 @@ class OperationTable;
 class AndroidKeymaster {
   public:
     AndroidKeymaster(KeymasterContext* context, size_t operation_table_size,
-                     uint32_t message_version = kDefaultMessageVersion);
+                     int32_t message_version = kDefaultMessageVersion);
     virtual ~AndroidKeymaster();
     AndroidKeymaster(AndroidKeymaster&&);
 
@@ -103,7 +103,7 @@ class AndroidKeymaster {
     // Returns the message version negotiated in GetVersion2.  All response messages should have
     // this passed to their constructors.  This is done automatically for the methods that return a
     // response by value.  The caller must do it for the methods that take a response pointer.
-    uint32_t message_version() const { return message_version_; }
+    int32_t message_version() const { return message_version_; }
 
   private:
     // Loads the KM key from `key_blob`, getting app ID and app data from `additional_params`, if
