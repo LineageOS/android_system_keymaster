@@ -22,19 +22,14 @@
 
 namespace keymaster {
 
-namespace {
-
-/* Performs an overflow-checked bounds check */
-bool buffer_bound_check(const uint8_t* buf, const uint8_t* end, size_t len) {
+bool __buffer_bound_check(const uint8_t* buf, const uint8_t* end, size_t len) {
     uintptr_t buf_next;
     bool overflow_occurred = __builtin_add_overflow(__pval(buf), len, &buf_next);
     return (!overflow_occurred) && (buf_next <= __pval(end));
 }
 
-}  // namespace
-
 uint8_t* append_to_buf(uint8_t* buf, const uint8_t* end, const void* data, size_t data_len) {
-    if (buffer_bound_check(buf, end, data_len)) {
+    if (__buffer_bound_check(buf, end, data_len)) {
         memcpy(buf, data, data_len);
         return buf + data_len;
     } else {
@@ -43,7 +38,7 @@ uint8_t* append_to_buf(uint8_t* buf, const uint8_t* end, const void* data, size_
 }
 
 bool copy_from_buf(const uint8_t** buf_ptr, const uint8_t* end, void* dest, size_t size) {
-    if (buffer_bound_check(*buf_ptr, end, size)) {
+    if (__buffer_bound_check(*buf_ptr, end, size)) {
         memcpy(dest, *buf_ptr, size);
         *buf_ptr += size;
         return true;
@@ -61,7 +56,7 @@ bool copy_size_and_data_from_buf(const uint8_t** buf_ptr, const uint8_t* end, si
         return true;
     }
 
-    if (buffer_bound_check(*buf_ptr, end, *size)) {
+    if (__buffer_bound_check(*buf_ptr, end, *size)) {
         dest->reset(new (std::nothrow) uint8_t[*size]);
         if (!dest->get()) {
             return false;
