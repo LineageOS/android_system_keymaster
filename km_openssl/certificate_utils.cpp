@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <iostream>
+
 #include <openssl/asn1.h>
 #include <openssl/evp.h>
 #include <openssl/x509v3.h>
@@ -128,13 +130,7 @@ keymaster_error_t get_certificate_params(const AuthorizationSet& caller_params,
     cert_params->expire_date_time = kUndefinedExpirationDateTime;
 
     uint64_t tmp;
-    switch (kmVersion) {
-    case KmVersion::KEYMASTER_1:
-    case KmVersion::KEYMASTER_1_1:
-    case KmVersion::KEYMASTER_2:
-    case KmVersion::KEYMASTER_3:
-    case KmVersion::KEYMASTER_4:
-    case KmVersion::KEYMASTER_4_1:
+    if (kmVersion < KmVersion::KEYMINT_1) {
         if (caller_params.GetTagValue(TAG_ACTIVE_DATETIME, &tmp)) {
             LOG_D("Using TAG_ACTIVE_DATETIME: %lu", tmp);
             cert_params->active_date_time = static_cast<int64_t>(tmp);
@@ -143,9 +139,7 @@ keymaster_error_t get_certificate_params(const AuthorizationSet& caller_params,
             LOG_D("Using TAG_ORIGINATION_EXPIRE_DATETIME: %lu", tmp);
             cert_params->expire_date_time = static_cast<int64_t>(tmp);
         }
-        break;
-
-    case KmVersion::KEYMINT_1:
+    } else {
         if (!caller_params.GetTagValue(TAG_CERTIFICATE_NOT_BEFORE, &tmp)) {
             return KM_ERROR_MISSING_NOT_BEFORE;
         }
@@ -332,7 +326,10 @@ keymaster_error_t sign_cert(X509* certificate, const EVP_PKEY* signing_key) {
     // mistake that hasn't yet been corrected.
     auto sk = const_cast<EVP_PKEY*>(signing_key);
 
-    if (!X509_sign(certificate, sk, EVP_sha256())) {
+    // Ed25519 has an internal digest so needs to have no digest fed into X509_sign.
+    const EVP_MD* digest = (EVP_PKEY_id(signing_key) == EVP_PKEY_ED25519) ? nullptr : EVP_sha256();
+
+    if (!X509_sign(certificate, sk, digest)) {
         return TranslateLastOpenSslError();
     }
     return KM_ERROR_OK;
@@ -343,8 +340,8 @@ CertificateChain generate_self_signed_cert(const AsymmetricKey& key, const Autho
     keymaster_error_t err;
     if (!error) error = &err;
 
-    EVP_PKEY_Ptr pkey(EVP_PKEY_new());
-    if (!key.InternalToEvp(pkey.get())) {
+    EVP_PKEY_Ptr pkey(key.InternalToEvp());
+    if (pkey.get() == nullptr) {
         *error = TranslateLastOpenSslError();
         return {};
     }
