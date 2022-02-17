@@ -471,6 +471,19 @@ ScopedAStatus AndroidKeyMintDevice::getKeyCharacteristics(
     return ScopedAStatus::ok();
 }
 
+ScopedAStatus AndroidKeyMintDevice::getRootOfTrustChallenge(array<uint8_t, 16>* /* challenge */) {
+    return kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
+}
+
+ScopedAStatus AndroidKeyMintDevice::getRootOfTrust(const array<uint8_t, 16>& /* challenge */,
+                                                   vector<uint8_t>* /* rootOfTrust */) {
+    return kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
+}
+
+ScopedAStatus AndroidKeyMintDevice::sendRootOfTrust(const vector<uint8_t>& /* rootOfTrust */) {
+    return kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
+}
+
 IKeyMintDevice* CreateKeyMintDevice(SecurityLevel securityLevel) {
     return ::new AndroidKeyMintDevice(securityLevel);
 }
