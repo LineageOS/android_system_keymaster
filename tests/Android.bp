@@ -36,6 +36,10 @@ test_cflags = [
 cc_test {
     name: "keymaster_tests",
     cflags: test_cflags,
+    tidy_timeout_srcs: [
+        "android_keymaster_messages_test.cpp",
+        "authorization_set_test.cpp",
+    ],
     srcs: [
         "gtest_main.cpp",
         "keymaster_configuration_test.cpp",
