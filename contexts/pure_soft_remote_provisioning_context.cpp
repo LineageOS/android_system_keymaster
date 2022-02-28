@@ -50,6 +50,10 @@ std::array<uint8_t, 32> GetRandomBytes() {
 
 }  // namespace
 
+PureSoftRemoteProvisioningContext::PureSoftRemoteProvisioningContext(
+    keymaster_security_level_t security_level)
+    : security_level_(security_level) {}
+
 std::vector<uint8_t>
 PureSoftRemoteProvisioningContext::DeriveBytesFromHbk(const std::string& context,
                                                       size_t num_bytes) const {
@@ -71,17 +75,40 @@ std::unique_ptr<cppbor::Map> PureSoftRemoteProvisioningContext::CreateDeviceInfo
     auto result = std::make_unique<cppbor::Map>(cppbor::Map());
 
     // The following placeholders show how the DeviceInfo map would be populated.
-    // result->add(cppbor::Tstr("brand"), cppbor::Tstr("Google"));
-    // result->add(cppbor::Tstr("manufacturer"), cppbor::Tstr("Google"));
-    // result->add(cppbor::Tstr("product"), cppbor::Tstr("Fake"));
-    // result->add(cppbor::Tstr("model"), cppbor::Tstr("Imaginary"));
-    // result->add(cppbor::Tstr("board"), cppbor::Tstr("Chess"));
-    // result->add(cppbor::Tstr("vb_state"), cppbor::Tstr("orange"));
-    // result->add(cppbor::Tstr("bootloader_state"), cppbor::Tstr("unlocked"));
-    // result->add(cppbor::Tstr("os_version"), cppbor::Tstr("SC"));
-    // result->add(cppbor::Tstr("system_patch_level"), cppbor::Uint(20210331));
-    // result->add(cppbor::Tstr("boot_patch_level"), cppbor::Uint(20210331));
-    // result->add(cppbor::Tstr("vendor_patch_level"), cppbor::Uint(20210331));
+    result->add(cppbor::Tstr("brand"), cppbor::Tstr("Google"));
+    result->add(cppbor::Tstr("manufacturer"), cppbor::Tstr("Google"));
+    result->add(cppbor::Tstr("product"), cppbor::Tstr("Fake Product"));
+    result->add(cppbor::Tstr("model"), cppbor::Tstr("Fake Model"));
+    result->add(cppbor::Tstr("device"), cppbor::Tstr("Fake Device"));
+    if (bootloader_state_) {
+        result->add(cppbor::Tstr("bootloader_state"), cppbor::Tstr(*bootloader_state_));
+    }
+    if (verified_boot_state_) {
+        result->add(cppbor::Tstr("vb_state"), cppbor::Tstr(*verified_boot_state_));
+    }
+    if (vbmeta_digest_) {
+        result->add(cppbor::Tstr("vbmeta_digest"), cppbor::Bstr(*vbmeta_digest_));
+    }
+    if (os_version_) {
+        result->add(cppbor::Tstr("os_version"), cppbor::Tstr(std::to_string(*os_version_)));
+    }
+    if (os_patchlevel_) {
+        result->add(cppbor::Tstr("system_patch_level"), cppbor::Uint(*os_patchlevel_));
+    }
+    if (boot_patchlevel_) {
+        result->add(cppbor::Tstr("boot_patch_level"), cppbor::Uint(*boot_patchlevel_));
+    }
+    if (vendor_patchlevel_) {
+        result->add(cppbor::Tstr("vendor_patch_level"), cppbor::Uint(*vendor_patchlevel_));
+    }
+    result->add(cppbor::Tstr("version"), cppbor::Uint(2));
+    result->add(cppbor::Tstr("fused"), cppbor::Uint(0));
+
+    // "software" security level is not supported, so lie and say we're a TEE
+    // even if we're software.
+    const char* security_level =
+        security_level_ == KM_SECURITY_LEVEL_STRONGBOX ? "strongbox" : "tee";
+    result->add(cppbor::Tstr("security_level"), cppbor::Tstr(security_level));
 
     result->canonicalize();
     return result;
@@ -164,6 +191,28 @@ PureSoftRemoteProvisioningContext::GenerateHmacSha256(const cppcose::bytevec& in
         return std::nullopt;
     }
     return *result;
+}
+
+void PureSoftRemoteProvisioningContext::SetSystemVersion(uint32_t os_version,
+                                                         uint32_t os_patchlevel) {
+    os_version_ = os_version;
+    os_patchlevel_ = os_patchlevel;
+}
+
+void PureSoftRemoteProvisioningContext::SetVendorPatchlevel(uint32_t vendor_patchlevel) {
+    vendor_patchlevel_ = vendor_patchlevel;
+}
+
+void PureSoftRemoteProvisioningContext::SetBootPatchlevel(uint32_t boot_patchlevel) {
+    boot_patchlevel_ = boot_patchlevel;
+}
+
+void PureSoftRemoteProvisioningContext::SetVerifiedBootInfo(
+    std::string_view boot_state, std::string_view bootloader_state,
+    const std::vector<uint8_t>& vbmeta_digest) {
+    verified_boot_state_ = boot_state;
+    bootloader_state_ = bootloader_state;
+    vbmeta_digest_ = vbmeta_digest;
 }
 
 }  // namespace keymaster
