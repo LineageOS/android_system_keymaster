@@ -112,7 +112,7 @@ constexpr int32_t kDefaultMessageVersion = 3;
  * date in YYYYMMDD format (it's not recommended to change message formats within a KM version, but
  * it could happen).
  */
-inline constexpr int32_t MessageVersion(KmVersion version, uint32_t /* km_date */ = 0) {
+inline int32_t MessageVersion(KmVersion version, uint32_t /* km_date */ = 0) {
     switch (version) {
     case KmVersion::KEYMASTER_1:
         return 1;

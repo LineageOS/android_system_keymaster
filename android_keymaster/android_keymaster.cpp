@@ -131,7 +131,7 @@ constexpr int kP256AffinePointSize = 32;
 }  // anonymous namespace
 
 AndroidKeymaster::AndroidKeymaster(KeymasterContext* context, size_t operation_table_size,
-                                   uint32_t message_version)
+                                   int32_t message_version)
     : context_(context), operation_table_(new (std::nothrow) OperationTable(operation_table_size)),
       message_version_(message_version) {}
 
