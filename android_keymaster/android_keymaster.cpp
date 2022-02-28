@@ -828,6 +828,14 @@ AndroidKeymaster::ConfigureBootPatchlevel(const ConfigureBootPatchlevelRequest& 
     return rsp;
 }
 
+ConfigureVerifiedBootInfoResponse
+AndroidKeymaster::ConfigureVerifiedBootInfo(const ConfigureVerifiedBootInfoRequest& request) {
+    ConfigureVerifiedBootInfoResponse rsp(message_version());
+    rsp.error = context_->SetVerifiedBootInfo(request.boot_state, request.bootloader_state,
+                                              request.vbmeta_digest);
+    return rsp;
+}
+
 bool AndroidKeymaster::has_operation(keymaster_operation_handle_t op_handle) const {
     return operation_table_->Find(op_handle) != nullptr;
 }
