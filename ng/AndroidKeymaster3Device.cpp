@@ -21,7 +21,7 @@
 
 #include <android/log.h>
 
-#include "include/authorization_set.h"
+#include "keymaster_tags.h"
 
 #include <keymaster/android_keymaster.h>
 #include <keymaster/android_keymaster_messages.h>
