@@ -716,6 +716,25 @@ TEST(RoundTrip, ConfigureBootPatchlevelResponse) {
     }
 }
 
+TEST(RoundTrip, ConfigureVerifiedBootInfoRequest) {
+    for (int32_t ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        ConfigureVerifiedBootInfoRequest req(ver, "super", "duper", {1, 2, 3, 4, 5, 6});
+
+        UniquePtr<ConfigureVerifiedBootInfoRequest> deserialized(round_trip(ver, req, 28));
+        ASSERT_NE(deserialized, nullptr);
+        EXPECT_EQ(deserialized->boot_state, req.boot_state);
+        EXPECT_EQ(deserialized->bootloader_state, req.bootloader_state);
+        EXPECT_EQ(deserialized->vbmeta_digest, req.vbmeta_digest);
+    }
+}
+
+TEST(RoundTrip, ConfigureVerifiedBootInfoResponse) {
+    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        ConfigureVerifiedBootInfoResponse rsp(ver);
+        UniquePtr<ConfigureVerifiedBootInfoResponse> deserialized(round_trip(ver, rsp, 4));
+    }
+}
+
 TEST(RoundTrip, AddEntropyRequest) {
     for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
         AddEntropyRequest msg(ver);
@@ -954,6 +973,7 @@ GARBAGE_TEST(UpgradeKeyResponse);
 GARBAGE_TEST(GenerateTimestampTokenRequest);
 GARBAGE_TEST(GenerateTimestampTokenResponse);
 GARBAGE_TEST(SetAttestationIdsRequest);
+GARBAGE_TEST(ConfigureVerifiedBootInfoRequest);
 
 }  // namespace test
 
