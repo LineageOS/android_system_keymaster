@@ -18,6 +18,7 @@
 #define SYSTEM_KEYMASTER_KEYMASTER_CONTEXT_H_
 
 #include <optional>
+#include <string_view>
 
 #include <assert.h>
 
@@ -225,6 +226,16 @@ class KeymasterContext {
     virtual RemoteProvisioningContext* GetRemoteProvisioningContext() const { return nullptr; }
 
     /**
+     * Sets the verified boot metadata. This value should be set by the bootloader.
+     * A subsequent to set a different value will return KM_ERROR_INVALID_ARGUMENT.
+     */
+    virtual keymaster_error_t SetVerifiedBootInfo(std::string_view /*verified_boot_state*/,
+                                                  std::string_view /*bootloader_state*/,
+                                                  const std::vector<uint8_t>& /*vbmeta_digest*/) {
+        return KM_ERROR_UNIMPLEMENTED;
+    }
+
+    /**
      * Sets the vendor patchlevel (format YYYYMMDD) for the implementation. This value should
      * be set by the HAL service at start of day.  A subsequent attempt to set a different
      * value will return KM_ERROR_INVALID_ARGUMENT.
@@ -236,7 +247,7 @@ class KeymasterContext {
     /**
      * Sets the boot patchlevel (format YYYYMMDD) for the implementation. This value should be set
      * by the bootloader.  A subsequent to set a different value will return
-     * KM_ERROR_INVALID_ARGUMENT;
+     * KM_ERROR_INVALID_ARGUMENT.
      */
     virtual keymaster_error_t SetBootPatchlevel(uint32_t /* boot_patchlevel */) {
         return KM_ERROR_UNIMPLEMENTED;

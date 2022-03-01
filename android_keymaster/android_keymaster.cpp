@@ -131,7 +131,7 @@ constexpr int kP256AffinePointSize = 32;
 }  // anonymous namespace
 
 AndroidKeymaster::AndroidKeymaster(KeymasterContext* context, size_t operation_table_size,
-                                   uint32_t message_version)
+                                   int32_t message_version)
     : context_(context), operation_table_(new (std::nothrow) OperationTable(operation_table_size)),
       message_version_(message_version) {}
 
@@ -825,6 +825,14 @@ ConfigureBootPatchlevelResponse
 AndroidKeymaster::ConfigureBootPatchlevel(const ConfigureBootPatchlevelRequest& request) {
     ConfigureBootPatchlevelResponse rsp(message_version());
     rsp.error = context_->SetBootPatchlevel(request.boot_patchlevel);
+    return rsp;
+}
+
+ConfigureVerifiedBootInfoResponse
+AndroidKeymaster::ConfigureVerifiedBootInfo(const ConfigureVerifiedBootInfoRequest& request) {
+    ConfigureVerifiedBootInfoResponse rsp(message_version());
+    rsp.error = context_->SetVerifiedBootInfo(request.boot_state, request.bootloader_state,
+                                              request.vbmeta_digest);
     return rsp;
 }
 
