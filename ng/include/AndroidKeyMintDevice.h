@@ -94,6 +94,6 @@ class AndroidKeyMintDevice : public BnKeyMintDevice {
     SecurityLevel securityLevel_;
 };
 
-IKeyMintDevice* CreateKeyMintDevice(SecurityLevel securityLevel);
+std::shared_ptr<IKeyMintDevice> CreateKeyMintDevice(SecurityLevel securityLevel);
 
 }  // namespace aidl::android::hardware::security::keymint
