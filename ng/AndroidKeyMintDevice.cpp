@@ -492,8 +492,8 @@ ScopedAStatus AndroidKeyMintDevice::sendRootOfTrust(const vector<uint8_t>& /* ro
     return kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
 }
 
-IKeyMintDevice* CreateKeyMintDevice(SecurityLevel securityLevel) {
-    return ::new AndroidKeyMintDevice(securityLevel);
+std::shared_ptr<IKeyMintDevice> CreateKeyMintDevice(SecurityLevel securityLevel) {
+    return ndk::SharedRefBase::make<AndroidKeyMintDevice>(securityLevel);
 }
 
 }  // namespace aidl::android::hardware::security::keymint
