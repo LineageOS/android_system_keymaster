@@ -138,7 +138,8 @@ TEST_P(KeyBlobTest, EncryptDecrypt) {
     ASSERT_TRUE(deserialized.isOk());
     EXPECT_EQ(hw_enforced_, deserialized->hw_enforced);
     EXPECT_EQ(sw_enforced_, deserialized->sw_enforced);
-    if (GetParam() == AES_GCM_WITH_SECURE_DELETION) {
+    if (GetParam() == AES_GCM_WITH_SECURE_DELETION ||
+        GetParam() == AES_GCM_WITH_SECURE_DELETION_VERSIONED) {
         EXPECT_EQ(key_slot, deserialized->key_slot);
     } else {
         EXPECT_EQ(0U, deserialized->key_slot);
@@ -379,7 +380,9 @@ TEST_P(KeyBlobTest, DupBufferToolarge) {
 
 INSTANTIATE_TEST_SUITE_P(AllFormats, KeyBlobTest,
                          ::testing::Values(AES_OCB, AES_GCM_WITH_SW_ENFORCED,
-                                           AES_GCM_WITH_SECURE_DELETION),
+                                           AES_GCM_WITH_SECURE_DELETION,
+                                           AES_GCM_WITH_SW_ENFORCED_VERSIONED,
+                                           AES_GCM_WITH_SECURE_DELETION_VERSIONED),
                          [](const ::testing::TestParamInfo<KeyBlobTest::ParamType>& info) {
                              switch (info.param) {
                              case AES_OCB:
@@ -388,16 +391,39 @@ INSTANTIATE_TEST_SUITE_P(AllFormats, KeyBlobTest,
                                  return "AES_GCM_WITH_SW_ENFORCED";
                              case AES_GCM_WITH_SECURE_DELETION:
                                  return "AES_GCM_WITH_SECURE_DELETION";
+                             case AES_GCM_WITH_SW_ENFORCED_VERSIONED:
+                                 return "AES_GCM_WITH_SW_ENFORCED_VERSIONED";
+                             case AES_GCM_WITH_SECURE_DELETION_VERSIONED:
+                                 return "AES_GCM_WITH_SECURE_DELETION_VERSIONED";
                              }
                              CHECK(false) << "Shouldn't be able to get here";
                              return "Unexpected";
                          });
 
-// Tests that only apply to AES_GCM_WITH_SECURE_DELETION; we don't parameterize these.
 using SecureDeletionTest = KeyBlobTest;
 
-TEST_F(SecureDeletionTest, WrongFactoryResetSecret) {
-    ASSERT_EQ(KM_ERROR_OK, Encrypt(AES_GCM_WITH_SECURE_DELETION));
+INSTANTIATE_TEST_SUITE_P(SecureDeletionFormats, SecureDeletionTest,
+                         ::testing::Values(AES_GCM_WITH_SECURE_DELETION,
+                                           AES_GCM_WITH_SECURE_DELETION_VERSIONED),
+                         [](const ::testing::TestParamInfo<KeyBlobTest::ParamType>& info) {
+                             switch (info.param) {
+                             case AES_OCB:
+                                 return "AES_OCB";
+                             case AES_GCM_WITH_SW_ENFORCED:
+                                 return "AES_GCM_WITH_SW_ENFORCED";
+                             case AES_GCM_WITH_SECURE_DELETION:
+                                 return "AES_GCM_WITH_SECURE_DELETION";
+                             case AES_GCM_WITH_SW_ENFORCED_VERSIONED:
+                                 return "AES_GCM_WITH_SW_ENFORCED_VERSIONED";
+                             case AES_GCM_WITH_SECURE_DELETION_VERSIONED:
+                                 return "AES_GCM_WITH_SECURE_DELETION_VERSIONED";
+                             }
+                             CHECK(false) << "Shouldn't be able to get here";
+                             return "Unexpected";
+                         });
+
+TEST_P(SecureDeletionTest, WrongFactoryResetSecret) {
+    ASSERT_EQ(KM_ERROR_OK, Encrypt(GetParam()));
     ASSERT_EQ(KM_ERROR_OK, Serialize());
 
     SecureDeletionData wrong_secure_deletion(std::move(secure_deletion_data_));
@@ -410,8 +436,8 @@ TEST_F(SecureDeletionTest, WrongFactoryResetSecret) {
     EXPECT_EQ(KM_ERROR_INVALID_KEY_BLOB, result.error());
 }
 
-TEST_F(SecureDeletionTest, WrongSecureDeletionSecret) {
-    ASSERT_EQ(KM_ERROR_OK, Encrypt(AES_GCM_WITH_SECURE_DELETION));
+TEST_P(SecureDeletionTest, WrongSecureDeletionSecret) {
+    ASSERT_EQ(KM_ERROR_OK, Encrypt(GetParam()));
     ASSERT_EQ(KM_ERROR_OK, Serialize());
 
     SecureDeletionData wrong_secure_deletion(std::move(secure_deletion_data_));
@@ -424,8 +450,8 @@ TEST_F(SecureDeletionTest, WrongSecureDeletionSecret) {
     EXPECT_EQ(KM_ERROR_INVALID_KEY_BLOB, result.error());
 }
 
-TEST_F(SecureDeletionTest, WrongSecureDeletionKeySlot) {
-    ASSERT_EQ(KM_ERROR_OK, Encrypt(AES_GCM_WITH_SECURE_DELETION));
+TEST_P(SecureDeletionTest, WrongSecureDeletionKeySlot) {
+    ASSERT_EQ(KM_ERROR_OK, Encrypt(GetParam()));
     ASSERT_EQ(KM_ERROR_OK, Serialize());
 
     SecureDeletionData wrong_secure_deletion(std::move(secure_deletion_data_));
