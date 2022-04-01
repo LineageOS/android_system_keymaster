@@ -34,6 +34,8 @@ enum AuthEncryptedBlobFormat : uint8_t {
     AES_OCB = 0,
     AES_GCM_WITH_SW_ENFORCED = 1,
     AES_GCM_WITH_SECURE_DELETION = 2,
+    AES_GCM_WITH_SW_ENFORCED_VERSIONED = 3,
+    AES_GCM_WITH_SECURE_DELETION_VERSIONED = 4,
 };
 
 /**
@@ -69,6 +71,8 @@ struct EncryptedKey {
     KeymasterKeyBlob ciphertext;
     Buffer nonce;
     Buffer tag;
+    uint32_t kdf_version;
+    int32_t addl_info;
 };
 
 struct DeserializedKey {
@@ -117,5 +121,9 @@ KmErrorOr<DeserializedKey> DeserializeAuthEncryptedBlob(const KeymasterKeyBlob& 
 KmErrorOr<KeymasterKeyBlob> DecryptKey(const DeserializedKey& key, const AuthorizationSet& hidden,
                                        const SecureDeletionData& secure_deletion_data,
                                        const KeymasterKeyBlob& master_key);
+
+bool requiresSecureDeletion(const AuthEncryptedBlobFormat& fmt);
+
+bool isVersionedFormat(const AuthEncryptedBlobFormat& fmt);
 
 }  // namespace keymaster
