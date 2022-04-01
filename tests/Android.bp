@@ -9,7 +9,6 @@ package {
 
 shared_test_libs = [
     "libbase",
-    "libcppbor_external",
     "libcrypto",
     "libcutils",
     "libhidlbase",
@@ -21,6 +20,7 @@ shared_test_libs = [
 ]
 
 static_test_libs = [
+    "libcppbor_external",
     "libsoftkeymasterdevice",
     "libcppcose_rkp",
 ]

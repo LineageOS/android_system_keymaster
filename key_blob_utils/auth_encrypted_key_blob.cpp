@@ -51,7 +51,7 @@ KmErrorOr<Buffer> BuildDerivationInfo(const AuthEncryptedBlobFormat format,  //
                                       const AuthorizationSet& sw_enforced,   //
                                       const AuthorizationSet& hidden,
                                       const SecureDeletionData& secure_deletion_data) {
-    bool use_sdd = (format == AES_GCM_WITH_SECURE_DELETION);
+    bool use_sdd = requiresSecureDeletion(format);
 
     size_t info_len =
         hidden.SerializedSize() + hw_enforced.SerializedSize() + sw_enforced.SerializedSize();
@@ -204,13 +204,16 @@ KmErrorOr<KeymasterKeyBlob> SerializeAuthEncryptedBlob(const EncryptedKey& encry
                                                        const AuthorizationSet& hw_enforced,
                                                        const AuthorizationSet& sw_enforced,
                                                        uint32_t key_slot) {
-    bool use_key_slot = (encrypted_key.format == AES_GCM_WITH_SECURE_DELETION);
+    bool use_key_slot = requiresSecureDeletion(encrypted_key.format);
 
     size_t size = 1 /* version byte */ + encrypted_key.nonce.SerializedSize() +
                   encrypted_key.ciphertext.SerializedSize() + encrypted_key.tag.SerializedSize() +
                   hw_enforced.SerializedSize() + sw_enforced.SerializedSize();
     if (use_key_slot) size += sizeof(key_slot);
-
+    if (isVersionedFormat(encrypted_key.format)) {
+        size += sizeof(encrypted_key.kdf_version);
+        size += sizeof(encrypted_key.addl_info);
+    }
     KeymasterKeyBlob retval;
     if (!retval.Reset(size)) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 
@@ -221,6 +224,10 @@ KmErrorOr<KeymasterKeyBlob> SerializeAuthEncryptedBlob(const EncryptedKey& encry
     buf = encrypted_key.nonce.Serialize(buf, end);
     buf = encrypted_key.ciphertext.Serialize(buf, end);
     buf = encrypted_key.tag.Serialize(buf, end);
+    if (isVersionedFormat(encrypted_key.format)) {
+        buf = append_uint32_to_buf(buf, end, encrypted_key.kdf_version);
+        buf = append_uint32_to_buf(buf, end, encrypted_key.addl_info);
+    }
     buf = hw_enforced.Serialize(buf, end);
     buf = sw_enforced.Serialize(buf, end);
     if (use_key_slot) buf = append_uint32_to_buf(buf, end, key_slot);
@@ -243,15 +250,26 @@ KmErrorOr<DeserializedKey> DeserializeAuthEncryptedBlob(const KeymasterKeyBlob& 
     retval.encrypted_key.format = static_cast<AuthEncryptedBlobFormat>(*(*buf_ptr)++);
     if (!retval.encrypted_key.nonce.Deserialize(buf_ptr, end) ||       //
         !retval.encrypted_key.ciphertext.Deserialize(buf_ptr, end) ||  //
-        !retval.encrypted_key.tag.Deserialize(buf_ptr, end) ||         //
-        !retval.hw_enforced.Deserialize(buf_ptr, end) ||               //
+        !retval.encrypted_key.tag.Deserialize(buf_ptr, end)) {
+        return KM_ERROR_INVALID_KEY_BLOB;
+    }
+
+    if (isVersionedFormat(retval.encrypted_key.format)) {
+        if (!copy_uint32_from_buf(buf_ptr, end, &retval.encrypted_key.kdf_version) ||
+            !copy_uint32_from_buf(buf_ptr, end, &retval.encrypted_key.addl_info)) {
+            return KM_ERROR_INVALID_KEY_BLOB;
+        }
+    }
+
+    if (!retval.hw_enforced.Deserialize(buf_ptr, end) ||  //
         !retval.sw_enforced.Deserialize(buf_ptr, end)) {
         return KM_ERROR_INVALID_KEY_BLOB;
     }
 
-    if (retval.encrypted_key.format == AES_GCM_WITH_SECURE_DELETION &&
-        !copy_uint32_from_buf(buf_ptr, end, &retval.key_slot)) {
-        return KM_ERROR_INVALID_KEY_BLOB;
+    if (requiresSecureDeletion(retval.encrypted_key.format)) {
+        if (!copy_uint32_from_buf(buf_ptr, end, &retval.key_slot)) {
+            return KM_ERROR_INVALID_KEY_BLOB;
+        }
     }
 
     if (*buf_ptr != end) return KM_ERROR_INVALID_KEY_BLOB;
@@ -266,6 +284,8 @@ KmErrorOr<DeserializedKey> DeserializeAuthEncryptedBlob(const KeymasterKeyBlob& 
 
     case AES_GCM_WITH_SW_ENFORCED:
     case AES_GCM_WITH_SECURE_DELETION:
+    case AES_GCM_WITH_SW_ENFORCED_VERSIONED:
+    case AES_GCM_WITH_SECURE_DELETION_VERSIONED:
         if (retval.encrypted_key.nonce.available_read() != kAesGcmNonceLength ||
             retval.encrypted_key.tag.available_read() != kAesGcmTagLength) {
             return KM_ERROR_INVALID_KEY_BLOB;
@@ -298,7 +318,9 @@ EncryptKey(const KeymasterKeyBlob& plaintext, AuthEncryptedBlobFormat format,
     }
 
     case AES_GCM_WITH_SW_ENFORCED:
-    case AES_GCM_WITH_SECURE_DELETION: {
+    case AES_GCM_WITH_SECURE_DELETION:
+    case AES_GCM_WITH_SW_ENFORCED_VERSIONED:
+    case AES_GCM_WITH_SECURE_DELETION_VERSIONED: {
         auto nonce = generate_nonce(random, kAesGcmNonceLength);
         if (!nonce) return nonce.error();
         return AesGcmEncryptKey(hw_enforced, sw_enforced, hidden, secure_deletion_data, master_key,
@@ -325,11 +347,22 @@ KmErrorOr<KeymasterKeyBlob> DecryptKey(const DeserializedKey& key, const Authori
 
     case AES_GCM_WITH_SW_ENFORCED:
     case AES_GCM_WITH_SECURE_DELETION:
+    case AES_GCM_WITH_SW_ENFORCED_VERSIONED:
+    case AES_GCM_WITH_SECURE_DELETION_VERSIONED:
         return AesGcmDecryptKey(key, hidden, secure_deletion_data, master_key);
     }
 
     LOG_E("Invalid key blob format %d", key.encrypted_key.format);
     return KM_ERROR_INVALID_KEY_BLOB;
+}
+
+bool requiresSecureDeletion(const AuthEncryptedBlobFormat& fmt) {
+    return fmt == AES_GCM_WITH_SECURE_DELETION || fmt == AES_GCM_WITH_SECURE_DELETION_VERSIONED;
+}
+
+bool isVersionedFormat(const AuthEncryptedBlobFormat& fmt) {
+    return fmt == AES_GCM_WITH_SW_ENFORCED_VERSIONED ||
+           fmt == AES_GCM_WITH_SECURE_DELETION_VERSIONED;
 }
 
 }  // namespace keymaster
