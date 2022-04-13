@@ -66,6 +66,8 @@ keymaster_error_t CheckPatchLevel(const AuthorizationSet& tee_enforced,
         if (key_patchlevel < current_patchlevel) {
             return KM_ERROR_KEY_REQUIRES_UPGRADE;
         } else if (key_patchlevel > current_patchlevel) {
+            LOG_E("Key blob invalid! key patchlevel %lu is > current patchlevel %lu",
+                  (unsigned long)key_patchlevel, (unsigned long)current_patchlevel);
             return KM_ERROR_INVALID_KEY_BLOB;
         }
     }
