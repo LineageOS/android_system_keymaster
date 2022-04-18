@@ -53,14 +53,14 @@ cc_defaults {
         "-Werror",
         "-Wunused",
     ],
-    clang: true,
+
     clang_cflags: [
         "-Wno-error=unused-const-variable",
         "-Wno-error=unused-private-field",
         "-Wimplicit-fallthrough",
         // TODO(krasin): reenable coverage flags, when the new Clang toolchain is released.
         // Currently, if enabled, these flags will cause an internal error in Clang.
-        "-fno-sanitize-coverage=edge,indirect-calls,8bit-counters,trace-cmp"
+        "-fno-sanitize-coverage=edge,indirect-calls,8bit-counters,trace-cmp",
     ],
     tidy: true,
     tidy_checks: [
@@ -82,7 +82,7 @@ cc_library_shared {
         "android_keymaster/serializable.cpp",
     ],
     header_libs: ["libhardware_headers"],
-    defaults: ["keymaster_defaults" ],
+    defaults: ["keymaster_defaults"],
     clang_cflags: [
         "-DKEYMASTER_NAME_TAGS",
     ],
@@ -163,7 +163,7 @@ cc_library {
     export_shared_lib_headers: ["libcppbor_external"],
     header_libs: ["libhardware_headers"],
     export_header_lib_headers: ["libhardware_headers"],
-    defaults: ["keymaster_defaults" ],
+    defaults: ["keymaster_defaults"],
     host_supported: true,
     export_include_dirs: ["include"],
     target: {
@@ -311,7 +311,10 @@ cc_library_shared {
         "libsoft_attestation_cert",
         "libutils",
     ],
-    export_include_dirs: ["include", "ng/include"],
+    export_include_dirs: [
+        "include",
+        "ng/include",
+    ],
 }
 
 cc_library_shared {
@@ -339,7 +342,7 @@ cc_library_shared {
     ],
     export_include_dirs: [
         "ng/include",
-        "include"
+        "include",
     ],
 }
 
@@ -423,7 +426,10 @@ cc_library {
         "libpuresoftkeymasterdevice",
         "libutils",
     ],
-    export_include_dirs: ["include", "ng/include"],
+    export_include_dirs: [
+        "include",
+        "ng/include",
+    ],
 }
 
 cc_library {
