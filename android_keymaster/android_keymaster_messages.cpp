@@ -605,6 +605,10 @@ bool ImportKeyRequest::Deserialize(const uint8_t** buf_ptr, const uint8_t* end) 
            && deserialize_blob(&issuer_subject, buf_ptr, end);
 }
 
+void ImportKeyRequest::SetKeyMaterial(const void* key_material, size_t length) {
+    key_data = KeymasterKeyBlob(static_cast<const uint8_t*>(key_material), length);
+}
+
 void ImportKeyResponse::SetKeyMaterial(const void* key_material, size_t length) {
     set_key_blob(&key_blob, key_material, length);
 }
