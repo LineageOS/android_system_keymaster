@@ -605,6 +605,7 @@ struct ImportKeyRequest : public KeymasterMessage {
     size_t SerializedSize() const override;
     uint8_t* Serialize(uint8_t* buf, const uint8_t* end) const override;
     bool Deserialize(const uint8_t** buf_ptr, const uint8_t* end) override;
+    void SetKeyMaterial(const void* key_material, size_t length);
 
     AuthorizationSet key_description;
     keymaster_key_format_t key_format;
