@@ -16,6 +16,23 @@
       "message": "Verified on darcy",
       "revId": "32611b307bcc7ce1898eb3a37fba8c85bec31809",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "bf458319_524aecc2",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 11801
+      },
+      "writtenOn": "2022-04-29T04:33:49Z",
+      "side": 1,
+      "message": "is this a revert?",
+      "revId": "32611b307bcc7ce1898eb3a37fba8c85bec31809",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
