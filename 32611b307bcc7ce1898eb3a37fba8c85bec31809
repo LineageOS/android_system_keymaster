@@ -33,6 +33,24 @@
       "message": "is this a revert?",
       "revId": "32611b307bcc7ce1898eb3a37fba8c85bec31809",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "305d8edf_33652f38",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 14048
+      },
+      "writtenOn": "2022-04-29T06:25:53Z",
+      "side": 1,
+      "message": "No, it is not. The commit that removed this function refactored code. I essentially took the aosp code that replaced a call to this function and put that in the function. Which results in the class state matching what the tegra hal expects after calling the function.",
+      "parentUuid": "bf458319_524aecc2",
+      "revId": "32611b307bcc7ce1898eb3a37fba8c85bec31809",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
