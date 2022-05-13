@@ -52,9 +52,6 @@ cc_defaults {
         "-Wall",
         "-Werror",
         "-Wunused",
-    ],
-
-    clang_cflags: [
         "-Wno-error=unused-const-variable",
         "-Wno-error=unused-private-field",
         "-Wimplicit-fallthrough",
@@ -83,14 +80,14 @@ cc_library_shared {
     ],
     header_libs: ["libhardware_headers"],
     defaults: ["keymaster_defaults"],
-    clang_cflags: [
+    cflags: [
         "-DKEYMASTER_NAME_TAGS",
     ],
     export_include_dirs: ["include"],
     host_supported: true,
     target: {
         host: {
-            clang_cflags: [
+            cflags: [
                 "-fno-rtti", // TODO(b/156427382): Remove workaround when possible.
             ],
         },
@@ -168,7 +165,7 @@ cc_library {
     export_include_dirs: ["include"],
     target: {
         host: {
-            clang_cflags: [
+            cflags: [
                 "-fno-rtti", // TODO(b/156427382): Remove workaround when possible.
             ],
         },
@@ -273,7 +270,7 @@ cc_library {
         "libcutils",
         "libbase",
     ],
-    clang_cflags: [
+    cflags: [
         "-DKEYMASTER_NAME_TAGS",
         "-fno-rtti", // TODO(b/156427382): Remove workaround when possible.
     ],
@@ -468,7 +465,7 @@ cc_defaults {
     host_supported: true,
     target: {
         host: {
-            clang_cflags: [
+            cflags: [
                 "-fno-rtti", // TODO(b/156427382): Remove when default library removes this
             ],
         },
