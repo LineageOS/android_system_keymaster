@@ -23,6 +23,7 @@
 #include <assert.h>
 
 #include <hardware/keymaster_defs.h>
+
 #include <keymaster/android_keymaster_utils.h>
 #include <keymaster/keymaster_enforcement.h>
 #include <keymaster/km_version.h>
@@ -32,6 +33,7 @@
 namespace keymaster {
 
 class AuthorizationSet;
+class AttestationContext;
 class KeyFactory;
 class OperationFactory;
 class SecureDeletionSecretStorage;
@@ -149,6 +151,11 @@ class KeymasterContext {
      * Return the enforcement policy for this context, or null if no enforcement should be done.
      */
     virtual KeymasterEnforcement* enforcement_policy() = 0;
+
+    /**
+     * Return the attestation context for this context.
+     */
+    virtual AttestationContext* attestation_context() { return nullptr; }
 
     /**
      * Generate an attestation certificate, with chain.

@@ -68,6 +68,7 @@ enum AndroidKeymasterCommand : uint32_t {
     CONFIGURE_VENDOR_PATCHLEVEL = 32,
     CONFIGURE_BOOT_PATCHLEVEL = 33,
     CONFIGURE_VERIFIED_BOOT_INFO = 34,
+    GET_ROOT_OF_TRUST = 35,
 };
 
 /**
@@ -838,7 +839,8 @@ struct ComputeSharedHmacRequest : public KeymasterMessage {
 
 struct ComputeSharedHmacResponse : public KeymasterResponse {
     explicit ComputeSharedHmacResponse(int32_t ver) : KeymasterResponse(ver) {}
-    ComputeSharedHmacResponse(ComputeSharedHmacResponse&& other) : KeymasterResponse(move(other)) {
+    ComputeSharedHmacResponse(ComputeSharedHmacResponse&& other)
+        : KeymasterResponse(other.message_version) {
         sharing_check = move(other.sharing_check);
     }
 
@@ -1214,5 +1216,37 @@ struct ConfigureVerifiedBootInfoRequest : public KeymasterMessage {
 };
 
 using ConfigureVerifiedBootInfoResponse = EmptyKeymasterResponse;
+
+struct GetRootOfTrustRequest : public KeymasterMessage {
+    explicit GetRootOfTrustRequest(int32_t ver) : GetRootOfTrustRequest(ver, {}) {}
+    GetRootOfTrustRequest(int32_t ver, std::vector<uint8_t> challenge_param)
+        : KeymasterMessage(ver), challenge(std::move(challenge_param)){};
+
+    size_t SerializedSize() const override { return sizeof(uint32_t) + challenge.size(); }
+    uint8_t* Serialize(uint8_t* buf, const uint8_t* end) const override {
+        return append_collection_to_buf(buf, end, challenge);
+    }
+    bool Deserialize(const uint8_t** buf_ptr, const uint8_t* end) override {
+        return copy_collection_from_buf(buf_ptr, end, &challenge);
+    }
+
+    std::vector<uint8_t> challenge;
+};
+
+struct GetRootOfTrustResponse : public KeymasterResponse {
+    explicit GetRootOfTrustResponse(uint32_t ver) : GetRootOfTrustResponse(ver, {}) {}
+    GetRootOfTrustResponse(uint32_t ver, std::vector<uint8_t> rootOfTrust_param)
+        : KeymasterResponse(ver), rootOfTrust(std::move(rootOfTrust_param)){};
+
+    size_t NonErrorSerializedSize() const override { return sizeof(uint32_t) + rootOfTrust.size(); }
+    uint8_t* NonErrorSerialize(uint8_t* buf, const uint8_t* end) const override {
+        return append_collection_to_buf(buf, end, rootOfTrust);
+    }
+    bool NonErrorDeserialize(const uint8_t** buf_ptr, const uint8_t* end) override {
+        return copy_collection_from_buf(buf_ptr, end, &rootOfTrust);
+    }
+
+    std::vector<uint8_t> rootOfTrust;
+};
 
 }  // namespace keymaster
