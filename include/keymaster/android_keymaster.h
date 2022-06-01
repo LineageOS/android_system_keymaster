@@ -99,6 +99,7 @@ class AndroidKeymaster {
     ConfigureBootPatchlevel(const ConfigureBootPatchlevelRequest& request);
     ConfigureVerifiedBootInfoResponse
     ConfigureVerifiedBootInfo(const ConfigureVerifiedBootInfoRequest& request);
+    GetRootOfTrustResponse GetRootOfTrust(const GetRootOfTrustRequest& request);
 
     bool has_operation(keymaster_operation_handle_t op_handle) const;
 
