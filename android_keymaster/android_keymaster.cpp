@@ -28,6 +28,7 @@
 
 #include <keymaster/UniquePtr.h>
 #include <keymaster/android_keymaster_utils.h>
+#include <keymaster/attestation_context.h>
 #include <keymaster/cppcose/cppcose.h>
 #include <keymaster/key.h>
 #include <keymaster/key_blob_utils/ae.h>
@@ -128,7 +129,12 @@ cppcose::HmacSha256Function getMacFunction(bool test_mode,
     };
 }
 
+std::pair<const uint8_t*, size_t> blob2Pair(const keymaster_blob_t& blob) {
+    return {blob.data, blob.data_length};
+}
+
 constexpr int kP256AffinePointSize = 32;
+constexpr int kRoTVersion1 = 40001;
 
 }  // anonymous namespace
 
@@ -927,6 +933,60 @@ DeviceLockedResponse AndroidKeymaster::DeviceLocked(const DeviceLockedRequest& r
     if (context_->enforcement_policy()) {
         context_->enforcement_policy()->device_locked(request.passwordOnly);
         response.error = KM_ERROR_OK;
+    }
+
+    return response;
+}
+
+GetRootOfTrustResponse AndroidKeymaster::GetRootOfTrust(const GetRootOfTrustRequest& request) {
+    GetRootOfTrustResponse response(message_version());
+
+    if (!context_->attestation_context()) {
+        response.error = KM_ERROR_UNIMPLEMENTED;
+        return response;
+    }
+
+    const AttestationContext::VerifiedBootParams* vbParams =
+        context_->attestation_context()->GetVerifiedBootParams(&response.error);
+    if (response.error != KM_ERROR_OK) return response;
+
+    auto boot_patch_level = context_->GetBootPatchlevel();
+    if (!boot_patch_level) {
+        response.error = KM_ERROR_UNIMPLEMENTED;
+        return response;
+    }
+
+    if (!context_->enforcement_policy()) {
+        response.error = KM_ERROR_UNIMPLEMENTED;
+        return response;
+    }
+
+    auto macFunction =
+        [&](const std::vector<uint8_t>& data) -> cppcose::ErrMsgOr<cppcose::HmacSha256> {
+        auto mac = context_->enforcement_policy()->ComputeHmac(data);
+        if (!mac) return "Failed to compute HMAC";
+        return *std::move(mac);
+    };
+
+    auto maced_root_of_trust = cppcose::constructCoseMac0(
+        macFunction,  //
+        request.challenge,
+        cppbor::SemanticTag(kRoTVersion1, cppbor::Array(                                //
+                                              blob2Pair(vbParams->verified_boot_key),   //
+                                              vbParams->device_locked,                  //
+                                              vbParams->verified_boot_state,            //
+                                              blob2Pair(vbParams->verified_boot_hash),  //
+                                              *boot_patch_level))
+            .encode());
+
+    if (!maced_root_of_trust) {
+        LOG_E("Error MACing RoT: %s", maced_root_of_trust.message().c_str());
+        response.error = KM_ERROR_UNKNOWN_ERROR;
+    } else {
+        response.error = KM_ERROR_OK;
+        response.rootOfTrust =
+            cppbor::SemanticTag(cppcose::kCoseMac0SemanticTag, *std::move(maced_root_of_trust))
+                .encode();
     }
 
     return response;
