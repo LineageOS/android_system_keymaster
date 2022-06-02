@@ -846,6 +846,27 @@ TEST(RoundTrip, GenerateTimestampTokenResponse) {
     }
 }
 
+TEST(RoundTrip, GetRootOfTrustRequest) {
+    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        std::vector<uint8_t> challenge{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+        GetRootOfTrustRequest msg(ver, challenge);
+
+        UniquePtr<GetRootOfTrustRequest> deserialized(round_trip(ver, msg, 20));
+        EXPECT_EQ(deserialized->challenge, challenge);
+    }
+}
+
+TEST(RoundTrip, GetRootOfTrustResponse) {
+    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        std::vector<uint8_t> rootOfTrust{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+        GetRootOfTrustResponse msg(ver, rootOfTrust);
+        msg.error = KM_ERROR_OK;
+
+        UniquePtr<GetRootOfTrustResponse> deserialized(round_trip(ver, msg, 24));
+        EXPECT_EQ(deserialized->rootOfTrust, rootOfTrust);
+    }
+}
+
 #define SET_ATTESTATION_ID(x) msg.x.Reinitialize(#x, strlen(#x))
 
 void check_id(const Buffer& id, const char* value) {
@@ -974,6 +995,8 @@ GARBAGE_TEST(GenerateTimestampTokenRequest);
 GARBAGE_TEST(GenerateTimestampTokenResponse);
 GARBAGE_TEST(SetAttestationIdsRequest);
 GARBAGE_TEST(ConfigureVerifiedBootInfoRequest);
+GARBAGE_TEST(GetRootOfTrustRequest);
+GARBAGE_TEST(GetRootOfTrustResponse);
 
 }  // namespace test
 
