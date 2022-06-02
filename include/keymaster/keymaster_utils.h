@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#pragma once
+
 #include <optional>
 
 #include <keymaster/logger.h>
@@ -88,8 +90,7 @@ template <typename T> class KmErrorOr {
 
     T& operator*() & { return value_.value(); }
     const T& operator*() const& { return value_.value(); }
-    T&& operator*() && { return value_.value(); }
-    const T&& operator*() const&& { return value_.value(); }
+    T&& operator*() && { return std::move(value_).value(); }
 
   private:
     keymaster_error_t error_ = KM_ERROR_OK;
