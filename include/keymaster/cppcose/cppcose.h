@@ -66,6 +66,8 @@ constexpr int kCoseEncryptUnprotectedParams = 1;
 constexpr int kCoseEncryptPayload = 2;
 constexpr int kCoseEncryptRecipients = 3;
 
+constexpr int kCoseMac0SemanticTag = 17;
+
 enum Label : int {
     ALGORITHM = 1,
     KEY_ID = 4,
