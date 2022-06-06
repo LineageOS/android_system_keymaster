@@ -104,7 +104,7 @@ OperationPtr EcdsaKeymaster1OperationFactory::CreateOperation(Key&& key,
 
     switch (purpose_) {
     case KM_PURPOSE_SIGN:
-        return OperationPtr(new EcdsaKeymaster1Operation<EcdsaSignOperation>(
+        return OperationPtr(new (std::nothrow) EcdsaKeymaster1Operation<EcdsaSignOperation>(
             key.hw_enforced_move(), key.sw_enforced_move(), digest, ecdsa.release(), engine_));
     default:
         LOG_E(

@@ -213,9 +213,9 @@ void addClientAndAppData(const std::vector<uint8_t>& appId, const std::vector<ui
 constexpr size_t kOperationTableSize = 16;
 
 AndroidKeyMintDevice::AndroidKeyMintDevice(SecurityLevel securityLevel)
-    : impl_(new ::keymaster::AndroidKeymaster(
-          [&]() -> auto {
-              auto context = new PureSoftKeymasterContext(
+    : impl_(new (std::nothrow)::keymaster::AndroidKeymaster(
+          [&]() -> auto{
+              auto context = new (std::nothrow) PureSoftKeymasterContext(
                   KmVersion::KEYMINT_2, static_cast<keymaster_security_level_t>(securityLevel));
               context->SetSystemVersion(::keymaster::GetOsVersion(),
                                         ::keymaster::GetOsPatchlevel());

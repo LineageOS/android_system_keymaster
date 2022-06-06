@@ -128,11 +128,11 @@ OperationPtr RsaKeymaster1OperationFactory::CreateOperation(Key&& key,
 
     switch (purpose_) {
     case KM_PURPOSE_SIGN:
-        return OperationPtr(new RsaKeymaster1Operation<RsaSignOperation>(
+        return OperationPtr(new (std::nothrow) RsaKeymaster1Operation<RsaSignOperation>(
             key.hw_enforced_move(), key.sw_enforced_move(), digest, padding, rsa.release(),
             engine_));
     case KM_PURPOSE_DECRYPT:
-        return OperationPtr(new RsaKeymaster1Operation<RsaDecryptOperation>(
+        return OperationPtr(new (std::nothrow) RsaKeymaster1Operation<RsaDecryptOperation>(
             key.hw_enforced_move(), key.sw_enforced_move(), digest, padding, rsa.release(),
             engine_));
     default:
