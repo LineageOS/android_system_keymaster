@@ -234,12 +234,18 @@ keymaster_error_t EcKeyFactory::ImportKey(const AuthorizationSet& key_descriptio
     switch (EVP_PKEY_type(pkey->type)) {
     case EVP_PKEY_ED25519:
         key.reset(new (std::nothrow) Ed25519Key(*hw_enforced, *sw_enforced, this));
+        if (key.get() == nullptr) {
+            return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+        }
         if (!key->EvpToInternal(pkey.get())) {
             return KM_ERROR_UNSUPPORTED_KEY_FORMAT;
         }
         break;
     case EVP_PKEY_X25519:
         key.reset(new (std::nothrow) X25519Key(*hw_enforced, *sw_enforced, this));
+        if (key.get() == nullptr) {
+            return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+        }
         if (!key->EvpToInternal(pkey.get())) {
             return KM_ERROR_UNSUPPORTED_KEY_FORMAT;
         }
@@ -249,6 +255,9 @@ keymaster_error_t EcKeyFactory::ImportKey(const AuthorizationSet& key_descriptio
         if (!ec_key.get()) return KM_ERROR_INVALID_ARGUMENT;
 
         key.reset(new (std::nothrow) EcKey(*hw_enforced, *sw_enforced, this, move(ec_key)));
+        if (key.get() == nullptr) {
+            return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+        }
         break;
     }
     default:
