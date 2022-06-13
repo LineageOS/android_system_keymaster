@@ -942,21 +942,27 @@ GetRootOfTrustResponse AndroidKeymaster::GetRootOfTrust(const GetRootOfTrustRequ
     GetRootOfTrustResponse response(message_version());
 
     if (!context_->attestation_context()) {
+        LOG_E("Have no attestation context, cannot get RootOfTrust", 0);
         response.error = KM_ERROR_UNIMPLEMENTED;
         return response;
     }
 
     const AttestationContext::VerifiedBootParams* vbParams =
         context_->attestation_context()->GetVerifiedBootParams(&response.error);
-    if (response.error != KM_ERROR_OK) return response;
+    if (response.error != KM_ERROR_OK) {
+        LOG_E("Error retrieving verified boot params: %lu", response.error);
+        return response;
+    }
 
     auto boot_patch_level = context_->GetBootPatchlevel();
     if (!boot_patch_level) {
+        LOG_E("Error retrieving boot patch level: %lu", response.error);
         response.error = KM_ERROR_UNIMPLEMENTED;
         return response;
     }
 
     if (!context_->enforcement_policy()) {
+        LOG_E("Have no enforcement policy, cannot get RootOfTrust", 0);
         response.error = KM_ERROR_UNIMPLEMENTED;
         return response;
     }
