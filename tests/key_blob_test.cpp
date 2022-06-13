@@ -228,7 +228,7 @@ TEST_P(KeyBlobTest, WrongHwEnforced) {
 
     // Find enforced serialization data and modify it.
     size_t hw_enforced_size = hw_enforced_.SerializedSize();
-    UniquePtr<uint8_t[]> hw_enforced_data(new uint8_t[hw_enforced_size]);
+    UniquePtr<uint8_t[]> hw_enforced_data(new (std::nothrow) uint8_t[hw_enforced_size]);
     hw_enforced_.Serialize(hw_enforced_data.get(), hw_enforced_data.get() + hw_enforced_size);
 
     auto hw_enforced_ptr =
