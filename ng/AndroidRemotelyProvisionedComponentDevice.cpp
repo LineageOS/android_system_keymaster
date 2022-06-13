@@ -112,7 +112,7 @@ ScopedAStatus AndroidRemotelyProvisionedComponentDevice::generateCertificateRequ
     GenerateCsrRequest request(impl_->message_version());
     request.test_mode = testMode;
     request.num_keys = keysToSign.size();
-    request.keys_to_sign_array = new KeymasterBlob[keysToSign.size()];
+    request.keys_to_sign_array = new (std::nothrow) KeymasterBlob[keysToSign.size()];
     for (size_t i = 0; i < keysToSign.size(); i++) {
         request.SetKeyToSign(i, keysToSign[i].macedKey.data(), keysToSign[i].macedKey.size());
     }
