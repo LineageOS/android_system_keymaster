@@ -231,7 +231,7 @@ keymaster_error_t EcKeyFactory::ImportKey(const AuthorizationSet& key_descriptio
     if (error != KM_ERROR_OK) return error;
 
     std::unique_ptr<AsymmetricKey> key;
-    switch (EVP_PKEY_type(pkey->type)) {
+    switch (EVP_PKEY_id(pkey.get())) {
     case EVP_PKEY_ED25519:
         key.reset(new (std::nothrow) Ed25519Key(*hw_enforced, *sw_enforced, this));
         if (key.get() == nullptr) {
@@ -392,7 +392,7 @@ keymaster_error_t EcKeyFactory::UpdateImportKeyDescription(const AuthorizationSe
         return KM_ERROR_IMPORT_PARAMETER_MISMATCH;
     }
 
-    switch (EVP_PKEY_type(pkey->type)) {
+    switch (EVP_PKEY_id(pkey.get())) {
     case EVP_PKEY_EC: {
         UniquePtr<EC_KEY, EC_KEY_Delete> ec_key(EVP_PKEY_get1_EC_KEY(pkey.get()));
         if (!ec_key.get()) return TranslateLastOpenSslError();
