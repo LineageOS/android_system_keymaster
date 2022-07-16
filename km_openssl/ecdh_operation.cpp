@@ -149,7 +149,7 @@ OperationPtr EcdhOperationFactory::CreateOperation(Key&& key,
     *error = KM_ERROR_OK;
 
     EcdhOperation* op = nullptr;
-    switch (EVP_PKEY_type(pkey->type)) {
+    switch (EVP_PKEY_id(pkey.get())) {
     case EVP_PKEY_X25519:
         op = new (std::nothrow) X25519Operation(move(key.hw_enforced_move()),
                                                 move(key.sw_enforced_move()), pkey.release());
