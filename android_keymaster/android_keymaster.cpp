@@ -16,6 +16,7 @@
 
 #include <keymaster/android_keymaster.h>
 
+#include <utility>
 #include <vector>
 
 #include <assert.h>
@@ -146,7 +147,7 @@ AndroidKeymaster::AndroidKeymaster(KeymasterContext* context, size_t operation_t
 AndroidKeymaster::~AndroidKeymaster() {}
 
 AndroidKeymaster::AndroidKeymaster(AndroidKeymaster&& other)
-    : context_(move(other.context_)), operation_table_(move(other.operation_table_)),
+    : context_(std::move(other.context_)), operation_table_(std::move(other.operation_table_)),
       message_version_(other.message_version_) {}
 
 // TODO(swillden): Unify support analysis.  Right now, we have per-keytype methods that determine if
@@ -350,7 +351,7 @@ void AndroidKeymaster::GenerateKey(const GenerateKeyRequest& request,
     response->enforced.Clear();
     response->unenforced.Clear();
     response->error = factory->GenerateKey(request.key_description,
-                                           move(attest_key),  //
+                                           std::move(attest_key),  //
                                            request.issuer_subject,
                                            &response->key_blob,  //
                                            &response->enforced,
@@ -528,8 +529,8 @@ void AndroidKeymaster::GetKeyCharacteristics(const GetKeyCharacteristicsRequest&
     if (response->error != KM_ERROR_OK) return;
 
     // scavenge the key object for the auth lists
-    response->enforced = move(key->hw_enforced());
-    response->unenforced = move(key->sw_enforced());
+    response->enforced = std::move(key->hw_enforced());
+    response->unenforced = std::move(key->sw_enforced());
 
     response->error = CheckVersionInfo(response->enforced, response->unenforced, *context_);
 }
@@ -553,7 +554,7 @@ void AndroidKeymaster::BeginOperation(const BeginOperationRequest& request,
     uint32_t sd_slot = key->secure_deletion_slot();
 
     OperationPtr operation(
-        factory->CreateOperation(move(*key), request.additional_params, &response->error));
+        factory->CreateOperation(std::move(*key), request.additional_params, &response->error));
     if (operation.get() == nullptr) return;
 
     operation->set_secure_deletion_slot(sd_slot);
@@ -581,7 +582,7 @@ void AndroidKeymaster::BeginOperation(const BeginOperationRequest& request,
     if (response->error != KM_ERROR_OK) return;
 
     response->op_handle = operation->operation_handle();
-    response->error = operation_table_->Add(move(operation));
+    response->error = operation_table_->Add(std::move(operation));
 }
 
 void AndroidKeymaster::UpdateOperation(const UpdateOperationRequest& request,
@@ -799,7 +800,7 @@ void AndroidKeymaster::ImportKey(const ImportKeyRequest& request, ImportKeyRespo
     response->error = factory->ImportKey(request.key_description,  //
                                          request.key_format,       //
                                          request.key_data,         //
-                                         move(attest_key),         //
+                                         std::move(attest_key),    //
                                          request.issuer_subject,   //
                                          &response->key_blob,      //
                                          &response->enforced,      //
