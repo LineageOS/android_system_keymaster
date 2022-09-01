@@ -314,7 +314,7 @@ cc_library_shared {
     ],
 }
 
-cc_library_shared {
+cc_library {
     name: "libkeymaster4",
     srcs: [
         "legacy_support/keymaster_passthrough_key.cpp",
