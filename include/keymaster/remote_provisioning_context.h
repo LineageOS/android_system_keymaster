@@ -44,6 +44,8 @@ class RemoteProvisioningContext {
     virtual std::optional<cppcose::HmacSha256>
     GenerateHmacSha256(const cppcose::bytevec& input) const = 0;
     virtual void GetHwInfo(GetHwInfoResponse* hwInfo) const = 0;
+    virtual cppcose::ErrMsgOr<cppbor::Array> BuildCsr(const std::vector<uint8_t>& challenge,
+                                                      cppbor::Array keysToSign) const = 0;
 
   private:
     // Uncopyable.
