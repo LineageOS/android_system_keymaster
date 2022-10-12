@@ -867,6 +867,26 @@ TEST(RoundTrip, GetRootOfTrustResponse) {
     }
 }
 
+TEST(RoundTrip, GetHwInfoResponse) {
+    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        GetHwInfoResponse rsp(ver);
+        rsp.error = KM_ERROR_OK;
+        rsp.version = 17;
+        rsp.rpcAuthorName = "AAAAA";
+        rsp.supportedEekCurve = 48;
+        rsp.uniqueId = "BBBBB";
+
+        UniquePtr<GetHwInfoResponse> deserialized;
+        deserialized.reset(round_trip(ver, rsp, 30));
+
+        EXPECT_EQ(KM_ERROR_OK, deserialized->error);
+        EXPECT_EQ(deserialized->version, rsp.version);
+        EXPECT_EQ(deserialized->rpcAuthorName, rsp.rpcAuthorName);
+        EXPECT_EQ(deserialized->supportedEekCurve, rsp.supportedEekCurve);
+        EXPECT_EQ(deserialized->uniqueId, rsp.uniqueId);
+    }
+}
+
 #define SET_ATTESTATION_ID(x) msg.x.Reinitialize(#x, strlen(#x))
 
 void check_id(const Buffer& id, const char* value) {
