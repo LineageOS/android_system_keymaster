@@ -70,6 +70,7 @@ enum AndroidKeymasterCommand : uint32_t {
     CONFIGURE_BOOT_PATCHLEVEL = 33,
     CONFIGURE_VERIFIED_BOOT_INFO = 34,
     GET_ROOT_OF_TRUST = 35,
+    GET_HW_INFO = 36,
 };
 
 /**
@@ -1248,6 +1249,36 @@ struct GetRootOfTrustResponse : public KeymasterResponse {
     }
 
     std::vector<uint8_t> rootOfTrust;
+};
+
+struct GetHwInfoRequest : public EmptyKeymasterRequest {
+    explicit GetHwInfoRequest(int32_t ver) : EmptyKeymasterRequest(ver) {}
+};
+
+struct GetHwInfoResponse : public KeymasterResponse {
+    explicit GetHwInfoResponse(int32_t ver) : KeymasterResponse(ver) {}
+
+    size_t NonErrorSerializedSize() const override {
+        return sizeof(version) + sizeof(uint32_t) + rpcAuthorName.size() +
+               sizeof(supportedEekCurve) + sizeof(uint32_t) + uniqueId.size();
+    }
+    uint8_t* NonErrorSerialize(uint8_t* buf, const uint8_t* end) const override {
+        buf = append_uint32_to_buf(buf, end, version);
+        buf = append_collection_to_buf(buf, end, rpcAuthorName);
+        buf = append_uint32_to_buf(buf, end, supportedEekCurve);
+        return append_collection_to_buf(buf, end, uniqueId);
+    }
+    bool NonErrorDeserialize(const uint8_t** buf_ptr, const uint8_t* end) override {
+        return copy_uint32_from_buf(buf_ptr, end, &version) &&
+               copy_collection_from_buf(buf_ptr, end, &rpcAuthorName) &&
+               copy_uint32_from_buf(buf_ptr, end, &supportedEekCurve) &&
+               copy_collection_from_buf(buf_ptr, end, &uniqueId);
+    }
+
+    uint32_t version;
+    std::string rpcAuthorName;
+    uint32_t supportedEekCurve;
+    std::string uniqueId;
 };
 
 }  // namespace keymaster

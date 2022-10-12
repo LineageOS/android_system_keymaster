@@ -192,6 +192,13 @@ PureSoftRemoteProvisioningContext::GenerateHmacSha256(const cppcose::bytevec& in
     return *result;
 }
 
+void PureSoftRemoteProvisioningContext::GetHwInfo(GetHwInfoResponse* hwInfo) const {
+    hwInfo->version = 2;
+    hwInfo->rpcAuthorName = "Google";
+    hwInfo->supportedEekCurve = 2 /* CURVE_25519 */;
+    hwInfo->uniqueId = "default keymint";
+}
+
 void PureSoftRemoteProvisioningContext::SetSystemVersion(uint32_t os_version,
                                                          uint32_t os_patchlevel) {
     os_version_ = os_version;
