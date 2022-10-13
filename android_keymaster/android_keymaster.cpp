@@ -999,4 +999,19 @@ GetRootOfTrustResponse AndroidKeymaster::GetRootOfTrust(const GetRootOfTrustRequ
     return response;
 }
 
+GetHwInfoResponse AndroidKeymaster::GetHwInfo() {
+    GetHwInfoResponse response(message_version());
+
+    auto rem_prov_ctx = context_->GetRemoteProvisioningContext();
+    if (!rem_prov_ctx) {
+        LOG_E("Couldn't get a pointer to the remote provisioning context, returned null.", 0);
+        response.error = static_cast<keymaster_error_t>(kStatusFailed);
+        return response;
+    }
+
+    rem_prov_ctx->GetHwInfo(&response);
+    response.error = KM_ERROR_OK;
+    return response;
+}
+
 }  // namespace keymaster
