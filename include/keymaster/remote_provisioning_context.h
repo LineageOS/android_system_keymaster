@@ -23,6 +23,7 @@
 #include <vector>
 
 #include <cppbor.h>
+#include <keymaster/android_keymaster_messages.h>
 #include <keymaster/cppcose/cppcose.h>
 
 namespace keymaster {
@@ -42,6 +43,7 @@ class RemoteProvisioningContext {
     // input hasn't changed across multiple calls to the remote provisioning HAL.
     virtual std::optional<cppcose::HmacSha256>
     GenerateHmacSha256(const cppcose::bytevec& input) const = 0;
+    virtual void GetHwInfo(GetHwInfoResponse* hwInfo) const = 0;
 
   private:
     // Uncopyable.
