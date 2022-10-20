@@ -249,6 +249,46 @@ TEST(RoundTrip, GenerateCsrResponse) {
     }
 }
 
+TEST(RoundTrip, GenerateCsrV2Request) {
+    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        GenerateCsrV2Request req(ver);
+        EXPECT_TRUE(req.InitKeysToSign(2));
+        for (size_t i = 0; i < req.num_keys; i++) {
+            req.SetKeyToSign(i, dup_array(TEST_DATA), array_length(TEST_DATA));
+        }
+        req.SetChallenge(dup_array(TEST_DATA), array_length(TEST_DATA));
+        UniquePtr<GenerateCsrV2Request> deserialized(round_trip(ver, req, 49));
+        EXPECT_EQ(deserialized->num_keys, req.num_keys);
+        for (int i = 0; i < (int)req.num_keys; i++) {
+            EXPECT_EQ(deserialized->keys_to_sign_array[i].data_length,
+                      req.keys_to_sign_array[i].data_length);
+            EXPECT_EQ(0, std::memcmp(deserialized->keys_to_sign_array[i].data,
+                                     req.keys_to_sign_array[i].data,
+                                     req.keys_to_sign_array[i].data_length));
+        }
+        EXPECT_EQ(deserialized->challenge.data_length, req.challenge.data_length);
+        EXPECT_EQ(0, std::memcmp(deserialized->challenge.data, req.challenge.data,
+                                 req.challenge.data_length));
+    }
+}
+
+TEST(RoundTrip, GenerateCsrV2Response) {
+    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        GenerateCsrV2Response rsp(ver);
+        rsp.error = KM_ERROR_OK;
+        rsp.csr.data = dup_array(TEST_DATA);
+        rsp.csr.data_length = array_length(TEST_DATA);
+
+        UniquePtr<GenerateCsrV2Response> deserialized;
+        deserialized.reset(round_trip(ver, rsp, 19));
+
+        EXPECT_EQ(KM_ERROR_OK, deserialized->error);
+        EXPECT_EQ(deserialized->csr.data_length, rsp.csr.data_length);
+        EXPECT_EQ(0,
+                  std::memcmp(deserialized->csr.data, rsp.csr.data, deserialized->csr.data_length));
+    }
+}
+
 TEST(RoundTrip, GetKeyCharacteristicsRequest) {
     for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
         GetKeyCharacteristicsRequest req(ver);

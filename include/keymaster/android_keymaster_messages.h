@@ -71,6 +71,7 @@ enum AndroidKeymasterCommand : uint32_t {
     CONFIGURE_VERIFIED_BOOT_INFO = 34,
     GET_ROOT_OF_TRUST = 35,
     GET_HW_INFO = 36,
+    GENERATE_CSR_V2 = 37,
 };
 
 /**
@@ -427,6 +428,33 @@ struct GenerateCsrResponse : public KeymasterResponse {
     KeymasterBlob keys_to_sign_mac;
     KeymasterBlob device_info_blob;
     KeymasterBlob protected_data_blob;
+};
+
+struct GenerateCsrV2Request : public KeymasterMessage {
+    explicit GenerateCsrV2Request(int32_t ver) : KeymasterMessage(ver) {}
+
+    ~GenerateCsrV2Request() override { delete[] keys_to_sign_array; }
+
+    size_t SerializedSize() const override;
+    uint8_t* Serialize(uint8_t* buf, const uint8_t* end) const override;
+    bool Deserialize(const uint8_t** buf_ptr, const uint8_t* end) override;
+    bool InitKeysToSign(uint32_t count);
+    void SetKeyToSign(uint32_t index, const void* data, size_t length);
+    void SetChallenge(const void* data, size_t length);
+
+    uint32_t num_keys = 0;
+    KeymasterBlob* keys_to_sign_array = nullptr;
+    KeymasterBlob challenge;
+};
+
+struct GenerateCsrV2Response : public KeymasterResponse {
+    explicit GenerateCsrV2Response(int32_t ver) : KeymasterResponse(ver) {}
+
+    size_t NonErrorSerializedSize() const override;
+    uint8_t* NonErrorSerialize(uint8_t* buf, const uint8_t* end) const override;
+    bool NonErrorDeserialize(const uint8_t** buf_ptr, const uint8_t* end) override;
+
+    KeymasterBlob csr;
 };
 
 struct GetKeyCharacteristicsRequest : public KeymasterMessage {
