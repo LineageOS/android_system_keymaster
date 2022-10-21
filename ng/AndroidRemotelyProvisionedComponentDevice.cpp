@@ -35,6 +35,8 @@ namespace aidl::android::hardware::security::keymint {
 
 using keymaster::GenerateCsrRequest;
 using keymaster::GenerateCsrResponse;
+using keymaster::GenerateCsrV2Request;
+using keymaster::GenerateCsrV2Response;
 using keymaster::GenerateRkpKeyRequest;
 using keymaster::GenerateRkpKeyResponse;
 using keymaster::GetHwInfoRequest;
@@ -137,6 +139,27 @@ ScopedAStatus AndroidRemotelyProvisionedComponentDevice::generateCertificateRequ
     deviceInfo->deviceInfo = km_utils::kmBlob2vector(response.device_info_blob);
     protectedData->protectedData = km_utils::kmBlob2vector(response.protected_data_blob);
     *keysToSignMac = km_utils::kmBlob2vector(response.keys_to_sign_mac);
+    return ScopedAStatus::ok();
+}
+
+ScopedAStatus AndroidRemotelyProvisionedComponentDevice::generateCertificateRequestV2(
+    const std::vector<MacedPublicKey>& keysToSign, const std::vector<uint8_t>& challenge,
+    std::vector<uint8_t>* csr) {
+    GenerateCsrV2Request request(impl_->message_version());
+    if (!request.InitKeysToSign(keysToSign.size())) {
+        return km_utils::kmError2ScopedAStatus(static_cast<keymaster_error_t>(STATUS_FAILED));
+    }
+    for (size_t i = 0; i < keysToSign.size(); i++) {
+        request.SetKeyToSign(i, keysToSign[i].macedKey.data(), keysToSign[i].macedKey.size());
+    }
+    request.SetChallenge(challenge.data(), challenge.size());
+    GenerateCsrV2Response response(impl_->message_version());
+    impl_->GenerateCsrV2(request, &response);
+
+    if (response.error != KM_ERROR_OK) {
+        return Status(-static_cast<int32_t>(response.error), "Failure in CSR v2 generation.");
+    }
+    *csr = km_utils::kmBlob2vector(response.csr);
     return ScopedAStatus::ok();
 }
 
