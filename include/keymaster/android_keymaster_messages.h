@@ -1288,25 +1288,29 @@ struct GetHwInfoResponse : public KeymasterResponse {
 
     size_t NonErrorSerializedSize() const override {
         return sizeof(version) + sizeof(uint32_t) + rpcAuthorName.size() +
-               sizeof(supportedEekCurve) + sizeof(uint32_t) + uniqueId.size();
+               sizeof(supportedEekCurve) + sizeof(uint32_t) + uniqueId.size() +
+               sizeof(supportedNumKeysInCsr);
     }
     uint8_t* NonErrorSerialize(uint8_t* buf, const uint8_t* end) const override {
         buf = append_uint32_to_buf(buf, end, version);
         buf = append_collection_to_buf(buf, end, rpcAuthorName);
         buf = append_uint32_to_buf(buf, end, supportedEekCurve);
-        return append_collection_to_buf(buf, end, uniqueId);
+        buf = append_collection_to_buf(buf, end, uniqueId);
+        return append_uint32_to_buf(buf, end, supportedNumKeysInCsr);
     }
     bool NonErrorDeserialize(const uint8_t** buf_ptr, const uint8_t* end) override {
         return copy_uint32_from_buf(buf_ptr, end, &version) &&
                copy_collection_from_buf(buf_ptr, end, &rpcAuthorName) &&
                copy_uint32_from_buf(buf_ptr, end, &supportedEekCurve) &&
-               copy_collection_from_buf(buf_ptr, end, &uniqueId);
+               copy_collection_from_buf(buf_ptr, end, &uniqueId) &&
+               copy_uint32_from_buf(buf_ptr, end, &supportedNumKeysInCsr);
     }
 
     uint32_t version;
     std::string rpcAuthorName;
     uint32_t supportedEekCurve;
     std::string uniqueId;
+    uint32_t supportedNumKeysInCsr;
 };
 
 }  // namespace keymaster
