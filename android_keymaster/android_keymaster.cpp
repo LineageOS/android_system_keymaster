@@ -1062,4 +1062,11 @@ GetHwInfoResponse AndroidKeymaster::GetHwInfo() {
     return response;
 }
 
+SetAttestationIdsResponse
+AndroidKeymaster::SetAttestationIds(const SetAttestationIdsRequest& request) {
+    SetAttestationIdsResponse response(message_version());
+    response.error = context_->SetAttestationIds(request);
+    return response;
+}
+
 }  // namespace keymaster
