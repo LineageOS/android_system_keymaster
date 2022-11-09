@@ -196,7 +196,7 @@ keymaster_error_t ParseOldSoftkeymasterBlob(const KeymasterKeyBlob& blob,
     }
     p += publicLen;
 
-    if (end - p < 2) {
+    if (end - p < sizeof(type)) {
         LOG_W("key blob appears to be truncated (if an old SW key)", 0);
         return KM_ERROR_INVALID_KEY_BLOB;
     }
