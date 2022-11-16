@@ -915,15 +915,17 @@ TEST(RoundTrip, GetHwInfoResponse) {
         rsp.rpcAuthorName = "AAAAA";
         rsp.supportedEekCurve = 48;
         rsp.uniqueId = "BBBBB";
+        rsp.supportedNumKeysInCsr = 549;
 
         UniquePtr<GetHwInfoResponse> deserialized;
-        deserialized.reset(round_trip(ver, rsp, 30));
+        deserialized.reset(round_trip(ver, rsp, 34));
 
         EXPECT_EQ(KM_ERROR_OK, deserialized->error);
         EXPECT_EQ(deserialized->version, rsp.version);
         EXPECT_EQ(deserialized->rpcAuthorName, rsp.rpcAuthorName);
         EXPECT_EQ(deserialized->supportedEekCurve, rsp.supportedEekCurve);
         EXPECT_EQ(deserialized->uniqueId, rsp.uniqueId);
+        EXPECT_EQ(deserialized->supportedNumKeysInCsr, rsp.supportedNumKeysInCsr);
     }
 }
 
