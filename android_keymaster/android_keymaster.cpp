@@ -359,8 +359,6 @@ void AndroidKeymaster::GenerateKey(const GenerateKeyRequest& request,
                                            &response->certificate_chain);
 }
 
-constexpr int kRkpVersionWithoutSuperencryption = 3;
-
 void AndroidKeymaster::GenerateRkpKey(const GenerateRkpKeyRequest& request,
                                       GenerateRkpKeyResponse* response) {
     if (response == nullptr) return;
@@ -370,11 +368,6 @@ void AndroidKeymaster::GenerateRkpKey(const GenerateRkpKeyRequest& request,
         response->error = static_cast<keymaster_error_t>(kStatusFailed);
         return;
     }
-
-    GetHwInfoResponse hwInfo(message_version());
-    rem_prov_ctx->GetHwInfo(&hwInfo);
-    bool test_mode =
-        (hwInfo.version >= kRkpVersionWithoutSuperencryption) ? false : request.test_mode;
 
     // Generate the keypair that will become the attestation key.
     GenerateKeyRequest gen_key_request(message_version_);
@@ -409,13 +402,13 @@ void AndroidKeymaster::GenerateRkpKey(const GenerateRkpKeyRequest& request,
                                           .add(CoseKey::CURVE, P256)
                                           .add(CoseKey::PUBKEY_X, x_coord)
                                           .add(CoseKey::PUBKEY_Y, y_coord);
-    if (test_mode) {
+    if (request.test_mode) {
         cose_public_key_map.add(CoseKey::TEST_KEY, cppbor::Null());
     }
 
     std::vector<uint8_t> cosePublicKey = cose_public_key_map.canonicalize().encode();
 
-    auto macFunction = getMacFunction(test_mode, rem_prov_ctx);
+    auto macFunction = getMacFunction(request.test_mode, rem_prov_ctx);
     auto macedKey = constructCoseMac0(macFunction, {} /* externalAad */, cosePublicKey);
     if (!macedKey) {
         response->error = static_cast<keymaster_error_t>(kStatusFailed);
@@ -435,13 +428,6 @@ void AndroidKeymaster::GenerateCsr(const GenerateCsrRequest& request,
     if (!rem_prov_ctx) {
         LOG_E("Couldn't get a pointer to the remote provisioning context, returned null.", 0);
         response->error = static_cast<keymaster_error_t>(kStatusFailed);
-        return;
-    }
-
-    GetHwInfoResponse hwInfo(message_version());
-    rem_prov_ctx->GetHwInfo(&hwInfo);
-    if (hwInfo.version >= kRkpVersionWithoutSuperencryption) {
-        response->error = static_cast<keymaster_error_t>(kStatusRemoved);
         return;
     }
 
