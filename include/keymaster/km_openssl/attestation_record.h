@@ -121,6 +121,7 @@ typedef struct km_auth_list {
     ASN1_INTEGER* boot_patch_level;
     ASN1_NULL* device_unique_attestation;
     ASN1_NULL* identity_credential_key;
+    ASN1_OCTET_STRING* attestation_id_second_imei;
 } KM_AUTH_LIST;
 
 ASN1_SEQUENCE(KM_AUTH_LIST) = {
@@ -191,6 +192,8 @@ ASN1_SEQUENCE(KM_AUTH_LIST) = {
                  TAG_DEVICE_UNIQUE_ATTESTATION.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, identity_credential_key, ASN1_NULL,
                  TAG_IDENTITY_CREDENTIAL_KEY.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, attestation_id_second_imei, ASN1_OCTET_STRING,
+                 TAG_ATTESTATION_ID_SECOND_IMEI.masked_tag()),
 } ASN1_SEQUENCE_END(KM_AUTH_LIST);
 DECLARE_ASN1_FUNCTIONS(KM_AUTH_LIST);
 
@@ -418,6 +421,8 @@ inline static uint version_to_attestation_km_version(KmVersion version) {
         return 100;
     case KmVersion::KEYMINT_2:
         return 200;
+    case KmVersion::KEYMINT_3:
+        return 300;
     }
 }
 
@@ -441,6 +446,8 @@ inline static uint version_to_attestation_version(KmVersion version) {
         return 100;
     case KmVersion::KEYMINT_2:
         return 200;
+    case KmVersion::KEYMINT_3:
+        return 300;
     }
 }
 
