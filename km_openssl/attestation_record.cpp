@@ -47,10 +47,11 @@ IMPLEMENT_ASN1_FUNCTIONS(KM_AUTH_LIST);
 IMPLEMENT_ASN1_FUNCTIONS(KM_KEY_DESCRIPTION);
 
 static const keymaster_tag_t kDeviceAttestationTags[] = {
-    KM_TAG_ATTESTATION_ID_BRAND,        KM_TAG_ATTESTATION_ID_DEVICE, KM_TAG_ATTESTATION_ID_PRODUCT,
-    KM_TAG_ATTESTATION_ID_SERIAL,       KM_TAG_ATTESTATION_ID_IMEI,   KM_TAG_ATTESTATION_ID_MEID,
+    KM_TAG_ATTESTATION_ID_BRAND,        KM_TAG_ATTESTATION_ID_DEVICE,
+    KM_TAG_ATTESTATION_ID_PRODUCT,      KM_TAG_ATTESTATION_ID_SERIAL,
+    KM_TAG_ATTESTATION_ID_IMEI,         KM_TAG_ATTESTATION_ID_MEID,
     KM_TAG_ATTESTATION_ID_MANUFACTURER, KM_TAG_ATTESTATION_ID_MODEL,
-};
+    KM_TAG_ATTESTATION_ID_SECOND_IMEI};
 
 struct KM_AUTH_LIST_Delete {
     void operator()(KM_AUTH_LIST* p) { KM_AUTH_LIST_free(p); }
@@ -678,6 +679,9 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
             break;
         case KM_TAG_ATTESTATION_ID_IMEI:
             string_ptr = &record->attestation_id_imei;
+            break;
+        case KM_TAG_ATTESTATION_ID_SECOND_IMEI:
+            string_ptr = &record->attestation_id_second_imei;
             break;
         case KM_TAG_ATTESTATION_ID_MEID:
             string_ptr = &record->attestation_id_meid;
@@ -1385,6 +1389,14 @@ keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet
 
     // identity credential key
     if (record->identity_credential_key && !auth_list->push_back(TAG_IDENTITY_CREDENTIAL_KEY)) {
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    }
+
+    // Second IMEI
+    if (record->attestation_id_second_imei &&
+        !auth_list->push_back(TAG_ATTESTATION_ID_SECOND_IMEI,
+                              record->attestation_id_second_imei->data,
+                              record->attestation_id_second_imei->length)) {
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
