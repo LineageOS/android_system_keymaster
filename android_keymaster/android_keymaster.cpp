@@ -460,7 +460,8 @@ void AndroidKeymaster::GenerateCsr(const GenerateCsrRequest& request,
     }
     response->keys_to_sign_mac = KeymasterBlob(pubKeysToSignMac->data(), pubKeysToSignMac->size());
 
-    std::unique_ptr<cppbor::Map> device_info_map = rem_prov_ctx->CreateDeviceInfo();
+    std::unique_ptr<cppbor::Map> device_info_map =
+        rem_prov_ctx->CreateDeviceInfo(2 /* csrVersion */);
     std::vector<uint8_t> device_info = device_info_map->encode();
     response->device_info_blob = KeymasterBlob(device_info.data(), device_info.size());
     auto protectedDataPayload = rem_prov_ctx->BuildProtectedDataPayload(
