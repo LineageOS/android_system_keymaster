@@ -108,7 +108,7 @@ vector<uint8_t> authToken2AidlVec(const std::optional<HardwareAuthToken>& token)
     vector<uint8_t> result;
 
     if (!token.has_value()) return result;
-    if (token->mac.size() < 32) return result;
+    if (token->mac.size() != 32) return result;
 
     result.resize(sizeof(hw_auth_token_t));
     auto pos = result.begin();
