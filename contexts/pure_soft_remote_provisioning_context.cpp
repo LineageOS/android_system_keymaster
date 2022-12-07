@@ -71,7 +71,8 @@ PureSoftRemoteProvisioningContext::DeriveBytesFromHbk(const std::string& context
     return result;
 }
 
-std::unique_ptr<cppbor::Map> PureSoftRemoteProvisioningContext::CreateDeviceInfo() const {
+std::unique_ptr<cppbor::Map>
+PureSoftRemoteProvisioningContext::CreateDeviceInfo(uint32_t csrVersion) const {
     auto result = std::make_unique<cppbor::Map>(cppbor::Map());
 
     // The following placeholders show how the DeviceInfo map would be populated.
@@ -101,7 +102,10 @@ std::unique_ptr<cppbor::Map> PureSoftRemoteProvisioningContext::CreateDeviceInfo
     if (vendor_patchlevel_) {
         result->add(cppbor::Tstr("vendor_patch_level"), cppbor::Uint(*vendor_patchlevel_));
     }
-    result->add(cppbor::Tstr("version"), cppbor::Uint(2));
+    // "version" field was removed from DeviceInfo in CSR v3.
+    if (csrVersion < 3) {
+        result->add(cppbor::Tstr("version"), cppbor::Uint(csrVersion));
+    }
     result->add(cppbor::Tstr("fused"), cppbor::Uint(0));
 
     // "software" security level is not supported, so lie and say we're a TEE
@@ -203,13 +207,14 @@ void PureSoftRemoteProvisioningContext::GetHwInfo(GetHwInfoResponse* hwInfo) con
 cppcose::ErrMsgOr<cppbor::Array>
 PureSoftRemoteProvisioningContext::BuildCsr(const std::vector<uint8_t>& challenge,
                                             cppbor::Array keysToSign) const {
-    auto deviceInfo = std::move(*CreateDeviceInfo());
+    uint32_t csrVersion = 3;
+    auto deviceInfo = std::move(*CreateDeviceInfo(csrVersion));
     auto signedDataPayload =
         cppbor::Array().add(std::move(deviceInfo)).add(challenge).add(std::move(keysToSign));
     auto signedData = constructCoseSign1(devicePrivKey_, signedDataPayload.encode(), {} /* aad */);
 
     return cppbor::Array()
-        .add(3 /* version */)
+        .add(csrVersion)
         .add(cppbor::Map() /* UdsCerts */)
         .add(std::move(*bcc_.clone()->asArray()) /* DiceCertChain */)
         .add(std::move(*signedData) /* SignedData */);
