@@ -34,7 +34,7 @@ class RemoteProvisioningContext {
     virtual ~RemoteProvisioningContext(){};
     virtual std::vector<uint8_t> DeriveBytesFromHbk(const std::string& context,
                                                     size_t numBytes) const = 0;
-    virtual std::unique_ptr<cppbor::Map> CreateDeviceInfo() const = 0;
+    virtual std::unique_ptr<cppbor::Map> CreateDeviceInfo(uint32_t csrVersion) const = 0;
     virtual cppcose::ErrMsgOr<std::vector<uint8_t>>
     BuildProtectedDataPayload(bool testMode,                       //
                               const std::vector<uint8_t>& macKey,  //
