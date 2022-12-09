@@ -947,6 +947,7 @@ std::vector<uint8_t> build_unique_id_input(uint64_t creation_date_time,
     uint8_t* serialized_date = reinterpret_cast<uint8_t*>(&rounded_date);
 
     std::vector<uint8_t> input;
+    input.reserve(sizeof(rounded_date) + application_id.data_length + 1);
     input.insert(input.end(), serialized_date, serialized_date + sizeof(rounded_date));
     input.insert(input.end(), application_id.data,
                  application_id.data + application_id.data_length);
