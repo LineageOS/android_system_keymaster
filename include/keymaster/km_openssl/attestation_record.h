@@ -403,7 +403,7 @@ keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet
 /**
  * Convert a KeymasterContext::Version to the keymaster version number used in attestations.
  */
-inline static uint version_to_attestation_km_version(KmVersion version) {
+inline static uint32_t version_to_attestation_km_version(KmVersion version) {
     switch (version) {
     default:
     case KmVersion::KEYMASTER_1:
@@ -429,7 +429,7 @@ inline static uint version_to_attestation_km_version(KmVersion version) {
 /**
  * Convert a KeymasterContext::Version to the corresponding attestation format version number.
  */
-inline static uint version_to_attestation_version(KmVersion version) {
+inline static uint32_t version_to_attestation_version(KmVersion version) {
     switch (version) {
     default:
     case KmVersion::KEYMASTER_1:

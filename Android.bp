@@ -66,6 +66,11 @@ cc_defaults {
     sanitize: {
         integer_overflow: false,
     },
+    target: {
+        windows: {
+            enabled: true,
+        },
+    },
 }
 
 cc_library_shared {
@@ -445,6 +450,11 @@ cc_library {
         "libcrypto",
         "liblog",
     ],
+    target: {
+        windows: {
+            enabled: true,
+        },
+    },
 }
 
 cc_defaults {
