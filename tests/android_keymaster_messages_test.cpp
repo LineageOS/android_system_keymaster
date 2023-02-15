@@ -962,6 +962,31 @@ TEST(RoundTrip, SetAttestationIdsRequest) {
     }
 }
 
+TEST(RoundTrip, SetAttestationIdsKM3Request) {
+    for (int ver = 0; ver <= kMaxMessageVersion; ++ver) {
+        SetAttestationIdsKM3Request msg(ver);
+        SET_ATTESTATION_ID(base.brand);
+        SET_ATTESTATION_ID(base.device);
+        SET_ATTESTATION_ID(base.product);
+        SET_ATTESTATION_ID(base.serial);
+        SET_ATTESTATION_ID(base.imei);
+        SET_ATTESTATION_ID(base.meid);
+        SET_ATTESTATION_ID(base.manufacturer);
+        SET_ATTESTATION_ID(base.model);
+        SET_ATTESTATION_ID(second_imei);
+
+        UniquePtr<SetAttestationIdsKM3Request> deserialized(round_trip(ver, msg, 136));
+        ASSERT_TRUE(deserialized);
+        CHECK_ID(base.brand);
+        CHECK_ID(base.device);
+        CHECK_ID(base.product);
+        CHECK_ID(base.serial);
+        CHECK_ID(base.imei);
+        CHECK_ID(base.model);
+        CHECK_ID(second_imei);
+    }
+}
+
 uint8_t msgbuf[] = {
     220, 88,  183, 255, 71,  1,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
     0,   173, 0,   0,   0,   228, 174, 98,  187, 191, 135, 253, 200, 51,  230, 114, 247, 151, 109,
@@ -1028,7 +1053,9 @@ template <typename Message> void parse_garbage() {
 }
 
 #define GARBAGE_TEST(Message)                                                                      \
-    TEST(GarbageTest, Message) { parse_garbage<Message>(); }
+    TEST(GarbageTest, Message) {                                                                   \
+        parse_garbage<Message>();                                                                  \
+    }
 
 GARBAGE_TEST(AbortOperationRequest);
 GARBAGE_TEST(EmptyKeymasterResponse);
@@ -1056,6 +1083,7 @@ GARBAGE_TEST(UpgradeKeyResponse);
 GARBAGE_TEST(GenerateTimestampTokenRequest);
 GARBAGE_TEST(GenerateTimestampTokenResponse);
 GARBAGE_TEST(SetAttestationIdsRequest);
+GARBAGE_TEST(SetAttestationIdsKM3Request);
 GARBAGE_TEST(ConfigureVerifiedBootInfoRequest);
 GARBAGE_TEST(GetRootOfTrustRequest);
 GARBAGE_TEST(GetRootOfTrustResponse);

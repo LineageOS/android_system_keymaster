@@ -104,6 +104,7 @@ class AndroidKeymaster {
     GetRootOfTrustResponse GetRootOfTrust(const GetRootOfTrustRequest& request);
     GetHwInfoResponse GetHwInfo();
     SetAttestationIdsResponse SetAttestationIds(const SetAttestationIdsRequest& request);
+    SetAttestationIdsKM3Response SetAttestationIdsKM3(const SetAttestationIdsKM3Request& request);
 
     bool has_operation(keymaster_operation_handle_t op_handle) const;
 
