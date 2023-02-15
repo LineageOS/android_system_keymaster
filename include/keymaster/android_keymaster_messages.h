@@ -1185,6 +1185,29 @@ struct SetAttestationIdsRequest : public KeymasterMessage {
 
 using SetAttestationIdsResponse = EmptyKeymasterResponse;
 
+struct SetAttestationIdsKM3Request : public KeymasterMessage {
+    explicit SetAttestationIdsKM3Request(int32_t ver) : KeymasterMessage(ver), base(ver) {}
+    size_t SerializedSize() const override {
+        return base.SerializedSize()  //
+               + second_imei.SerializedSize();
+    }
+
+    uint8_t* Serialize(uint8_t* buf, const uint8_t* end) const override {
+        buf = base.Serialize(buf, end);
+        return second_imei.Serialize(buf, end);
+    }
+
+    bool Deserialize(const uint8_t** buf_ptr, const uint8_t* end) override {
+        return base.Deserialize(buf_ptr, end)             //
+               && second_imei.Deserialize(buf_ptr, end);  //
+    }
+
+    SetAttestationIdsRequest base;
+    Buffer second_imei;
+};
+
+using SetAttestationIdsKM3Response = EmptyKeymasterResponse;
+
 struct ConfigureVendorPatchlevelRequest : public KeymasterMessage {
     explicit ConfigureVendorPatchlevelRequest(int32_t ver) : KeymasterMessage(ver) {}
 
