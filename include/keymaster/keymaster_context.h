@@ -281,6 +281,16 @@ class KeymasterContext {
         return KM_ERROR_UNIMPLEMENTED;
     }
 
+    /**
+     * Sets KM3 attestation IDs for the implementation. On physical
+     * devices (as opposed to emulators) attestation ID should only be set
+     * during provisioning process.
+     */
+    virtual keymaster_error_t
+    SetAttestationIdsKM3(const SetAttestationIdsKM3Request& /* request */) {
+        return KM_ERROR_UNIMPLEMENTED;
+    }
+
   private:
     // Uncopyable.
     KeymasterContext(const KeymasterContext&);
