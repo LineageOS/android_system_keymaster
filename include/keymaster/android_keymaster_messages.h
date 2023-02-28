@@ -73,6 +73,7 @@ enum AndroidKeymasterCommand : uint32_t {
     GET_HW_INFO = 36,
     GENERATE_CSR_V2 = 37,
     SET_ATTESTATION_IDS = 38,
+    SET_ATTESTATION_IDS_KM3 = 39,
 };
 
 /**
