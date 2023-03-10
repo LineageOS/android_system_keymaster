@@ -197,7 +197,7 @@ PureSoftRemoteProvisioningContext::GenerateHmacSha256(const cppcose::bytevec& in
 }
 
 void PureSoftRemoteProvisioningContext::GetHwInfo(GetHwInfoResponse* hwInfo) const {
-    hwInfo->version = 2;
+    hwInfo->version = 3;
     hwInfo->rpcAuthorName = "Google";
     hwInfo->supportedEekCurve = 2 /* CURVE_25519 */;
     hwInfo->uniqueId = "default keymint";
@@ -209,12 +209,16 @@ PureSoftRemoteProvisioningContext::BuildCsr(const std::vector<uint8_t>& challeng
                                             cppbor::Array keysToSign) const {
     uint32_t csrVersion = 3;
     auto deviceInfo = std::move(*CreateDeviceInfo(csrVersion));
-    auto signedDataPayload =
-        cppbor::Array().add(std::move(deviceInfo)).add(challenge).add(std::move(keysToSign));
+    auto csrPayload = cppbor::Array()
+                          .add(csrVersion)
+                          .add("keymint" /* CertificateType */)
+                          .add(std::move(deviceInfo))
+                          .add(std::move(keysToSign));
+    auto signedDataPayload = cppbor::Array().add(challenge).add(cppbor::Bstr(csrPayload.encode()));
     auto signedData = constructCoseSign1(devicePrivKey_, signedDataPayload.encode(), {} /* aad */);
 
     return cppbor::Array()
-        .add(csrVersion)
+        .add(1 /* version */)
         .add(cppbor::Map() /* UdsCerts */)
         .add(std::move(*bcc_.clone()->asArray()) /* DiceCertChain */)
         .add(std::move(*signedData) /* SignedData */);
