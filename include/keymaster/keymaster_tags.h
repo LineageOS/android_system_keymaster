@@ -108,7 +108,7 @@ template <keymaster_tag_type_t tag_type, keymaster_tag_t tag> class TypedTag {
     // NOLINTNEXTLINE(google-explicit-constructor)
     inline operator keymaster_tag_t() { return tag; }
     // NOLINTNEXTLINE(google-runtime-int)
-    inline long masked_tag() { return static_cast<long>(keymaster_tag_mask_type(tag)); }
+    inline int masked_tag() { return static_cast<int>(keymaster_tag_mask_type(tag)); }
 };
 
 template <keymaster_tag_type_t tag_type, keymaster_tag_t tag, typename KeymasterEnum>
@@ -126,7 +126,7 @@ class TypedEnumTag {
     // NOLINTNEXTLINE(google-explicit-constructor)
     inline operator keymaster_tag_t() { return tag; }
     // NOLINTNEXTLINE(google-runtime-int)
-    inline long masked_tag() { return static_cast<long>(keymaster_tag_mask_type(tag)); }
+    inline int masked_tag() { return static_cast<int>(keymaster_tag_mask_type(tag)); }
 };
 
 #ifdef KEYMASTER_NAME_TAGS
