@@ -134,6 +134,7 @@ std::pair<const uint8_t*, size_t> blob2Pair(const keymaster_blob_t& blob) {
     return {blob.data, blob.data_length};
 }
 
+constexpr int kMaxChallengeSizeV2 = 64;
 constexpr int kP256AffinePointSize = 32;
 constexpr int kRoTVersion1 = 40001;
 
@@ -524,6 +525,14 @@ void AndroidKeymaster::GenerateCsrV2(const GenerateCsrV2Request& request,
                                      GenerateCsrV2Response* response) {
 
     if (response == nullptr) return;
+
+    if (request.challenge.size() > kMaxChallengeSizeV2) {
+        LOG_E("Challenge is too large. %zu expected. %zu actual.",
+              kMaxChallengeSizeV2,        //
+              request.challenge.size());  //
+        response->error = static_cast<keymaster_error_t>(kStatusFailed);
+        return;
+    }
 
     auto rem_prov_ctx = context_->GetRemoteProvisioningContext();
     if (rem_prov_ctx == nullptr) {
