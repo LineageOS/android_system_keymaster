@@ -940,32 +940,47 @@ keymaster_error_t build_eat_record(const AuthorizationSet& attestation_params,
     return KM_ERROR_OK;
 }
 
-std::vector<uint8_t> build_unique_id_input(uint64_t creation_date_time,
-                                           const keymaster_blob_t& application_id,
-                                           bool reset_since_rotation) {
+keymaster_error_t build_unique_id_input(uint64_t creation_date_time,
+                                        const keymaster_blob_t& application_id,
+                                        bool reset_since_rotation, Buffer* input_data) {
+    if (input_data == nullptr) {
+        return KM_ERROR_UNEXPECTED_NULL_POINTER;
+    }
     uint64_t rounded_date = creation_date_time / 2592000000LLU;
     uint8_t* serialized_date = reinterpret_cast<uint8_t*>(&rounded_date);
+    uint8_t reset_byte = (reset_since_rotation ? 1 : 0);
 
-    std::vector<uint8_t> input;
-    input.reserve(sizeof(rounded_date) + application_id.data_length + 1);
-    input.insert(input.end(), serialized_date, serialized_date + sizeof(rounded_date));
-    input.insert(input.end(), application_id.data,
-                 application_id.data + application_id.data_length);
-    input.push_back(reset_since_rotation ? 1 : 0);
-    return input;
+    if (!input_data->Reinitialize(sizeof(rounded_date) + application_id.data_length + 1) ||
+        !input_data->write(serialized_date, sizeof(rounded_date)) ||
+        !input_data->write(application_id.data, application_id.data_length) ||
+        !input_data->write(&reset_byte, 1)) {
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    }
+    return KM_ERROR_OK;
 }
 
-Buffer generate_unique_id(const std::vector<uint8_t>& hbk, uint64_t creation_date_time,
-                          const keymaster_blob_t& application_id, bool reset_since_rotation) {
+keymaster_error_t generate_unique_id(const std::vector<uint8_t>& hbk, uint64_t creation_date_time,
+                                     const keymaster_blob_t& application_id,
+                                     bool reset_since_rotation, Buffer* unique_id) {
+    if (unique_id == nullptr) {
+        return KM_ERROR_UNEXPECTED_NULL_POINTER;
+    }
     HmacSha256 hmac;
     hmac.Init(hbk.data(), hbk.size());
 
-    std::vector<uint8_t> input =
-        build_unique_id_input(creation_date_time, application_id, reset_since_rotation);
-    Buffer unique_id(UNIQUE_ID_SIZE);
-    hmac.Sign(input.data(), input.size(), unique_id.peek_write(), unique_id.available_write());
-    unique_id.advance_write(UNIQUE_ID_SIZE);
-    return unique_id;
+    Buffer input;
+    keymaster_error_t error =
+        build_unique_id_input(creation_date_time, application_id, reset_since_rotation, &input);
+    if (error != KM_ERROR_OK) {
+        return error;
+    }
+    if (!unique_id->Reinitialize(UNIQUE_ID_SIZE)) {
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    }
+    hmac.Sign(input.peek_read(), input.available_read(), unique_id->peek_write(),
+              unique_id->available_write());
+    unique_id->advance_write(UNIQUE_ID_SIZE);
+    return KM_ERROR_OK;
 }
 
 // Construct an ASN1.1 DER-encoded attestation record containing the values from sw_enforced and
