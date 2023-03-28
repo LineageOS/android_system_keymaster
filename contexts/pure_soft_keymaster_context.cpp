@@ -454,8 +454,10 @@ keymaster::Buffer PureSoftKeymasterContext::GenerateUniqueId(uint64_t creation_d
     // The secret must contain at least 128 bits of entropy and be unique to the individual device"
     const std::vector<uint8_t> fake_hbk = {'M', 'u', 's', 't', 'B', 'e', 'R', 'a',
                                            'n', 'd', 'o', 'm', 'B', 'i', 't', 's'};
-    return keymaster::generate_unique_id(fake_hbk, creation_date_time, application_id,
-                                         reset_since_rotation);
+    Buffer unique_id;
+    *error = keymaster::generate_unique_id(fake_hbk, creation_date_time, application_id,
+                                           reset_since_rotation, &unique_id);
+    return unique_id;
 }
 
 static keymaster_error_t TranslateAuthorizationSetError(AuthorizationSet::Error err) {
