@@ -94,13 +94,13 @@ validateAndExtractEekPubAndId(bool testMode, const KeymasterBlob& endpointEncryp
 
             auto curve = parsedPubKey->getIntValue(CoseKey::CURVE);
             if (!curve) {
-                LOG_E("Key is missing required label 'CURVE'", 0);
+                LOG_E("Key is missing required label 'CURVE'");
                 return kStatusInvalidEek;
             }
 
             auto rawPubKey = parsedPubKey->getBstrValue(CoseKey::PUBKEY_X);
             if (!rawPubKey) {
-                LOG_E("Key is missing required label 'PUBKEY_X'", 0);
+                LOG_E("Key is missing required label 'PUBKEY_X'");
                 return kStatusInvalidEek;
             }
 
@@ -108,7 +108,7 @@ validateAndExtractEekPubAndId(bool testMode, const KeymasterBlob& endpointEncryp
                                byte_view(rawPubKey->data(), rawPubKey->size())};
             if (std::find(std::begin(kAuthorizedEekRoots), std::end(kAuthorizedEekRoots),
                           matcher) == std::end(kAuthorizedEekRoots)) {
-                LOG_E("Unrecognized root of EEK chain", 0);
+                LOG_E("Unrecognized root of EEK chain");
                 return kStatusInvalidEek;
             }
         }
@@ -133,7 +133,7 @@ validateAndExtractPubkeys(bool testMode, uint32_t numKeys, KeymasterBlob* keysTo
             cppbor::parse(keysToSign[i].begin(), keysToSign[i].end());
         if (!macedKeyItem || !macedKeyItem->asArray() ||
             macedKeyItem->asArray()->size() != kCoseMac0EntryCount) {
-            LOG_E("Invalid COSE_Mac0 structure", 0);
+            LOG_E("Invalid COSE_Mac0 structure");
             return kStatusFailed;
         }
 
@@ -142,7 +142,7 @@ validateAndExtractPubkeys(bool testMode, uint32_t numKeys, KeymasterBlob* keysTo
         auto payload = macedKeyItem->asArray()->get(kCoseMac0Payload)->asBstr();
         auto tag = macedKeyItem->asArray()->get(kCoseMac0Tag)->asBstr();
         if (!protectedParms || !unprotectedParms || !payload || !tag) {
-            LOG_E("Invalid COSE_Mac0 contents", 0);
+            LOG_E("Invalid COSE_Mac0 contents");
             return kStatusFailed;
         }
 
@@ -153,7 +153,7 @@ validateAndExtractPubkeys(bool testMode, uint32_t numKeys, KeymasterBlob* keysTo
         }
         auto& algo = protectedMap->asMap()->get(ALGORITHM);
         if (!algo || !algo->asInt() || algo->asInt()->value() != HMAC_256) {
-            LOG_E("Unsupported Mac0 algorithm", 0);
+            LOG_E("Unsupported Mac0 algorithm");
             return kStatusFailed;
         }
 
@@ -165,10 +165,10 @@ validateAndExtractPubkeys(bool testMode, uint32_t numKeys, KeymasterBlob* keysTo
 
         bool testKey = static_cast<bool>(pubKey->getMap().get(CoseKey::TEST_KEY));
         if (testMode && !testKey) {
-            LOG_E("Production key in test request", 0);
+            LOG_E("Production key in test request");
             return kStatusProductionKeyInTestRequest;
         } else if (!testMode && testKey) {
-            LOG_E("Test key in production request", 0);
+            LOG_E("Test key in production request");
             return kStatusTestKeyInProductionRequest;
         }
 
@@ -179,7 +179,7 @@ validateAndExtractPubkeys(bool testMode, uint32_t numKeys, KeymasterBlob* keysTo
         }
         if (macTag->size() != tag->value().size() ||
             CRYPTO_memcmp(macTag->data(), tag->value().data(), macTag->size()) != 0) {
-            LOG_E("MAC tag mismatch", 0);
+            LOG_E("MAC tag mismatch");
             return kStatusInvalidMac;
         }
 

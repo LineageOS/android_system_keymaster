@@ -67,7 +67,7 @@ template <typename T> class KmErrorOr {
 
     ~KmErrorOr() {
         if (!value_checked_) {
-            LOG_S("KmErrorOr not checked", 0);
+            LOG_S("KmErrorOr not checked");
             abort();
         }
     }

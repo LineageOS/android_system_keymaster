@@ -59,7 +59,7 @@ static keymaster_error_t GetAndValidateGcmTagLength(const AuthorizationSet& begi
 
     uint32_t min_tag_length_bits;
     if (!key_params.GetTagValue(TAG_MIN_MAC_LENGTH, &min_tag_length_bits)) {
-        LOG_E("AES GCM key must have KM_TAG_MIN_MAC_LENGTH", 0);
+        LOG_E("AES GCM key must have KM_TAG_MIN_MAC_LENGTH");
         return KM_ERROR_INVALID_KEY_BLOB;
     }
 
@@ -82,7 +82,8 @@ OperationPtr BlockCipherOperationFactory::CreateOperation(Key&& key,
     *error = KM_ERROR_OK;
     keymaster_block_mode_t block_mode;
     if (!begin_params.GetTagValue(TAG_BLOCK_MODE, &block_mode)) {
-        LOG_E("%d block modes specified in begin params", begin_params.GetTagCount(TAG_BLOCK_MODE));
+        LOG_E("%zu block modes specified in begin params",
+              begin_params.GetTagCount(TAG_BLOCK_MODE));
         *error = KM_ERROR_UNSUPPORTED_BLOCK_MODE;
         return nullptr;
     } else if (!supported(block_mode)) {
@@ -108,7 +109,7 @@ OperationPtr BlockCipherOperationFactory::CreateOperation(Key&& key,
         return nullptr;
     }
     if (!allows_padding(block_mode) && padding != KM_PAD_NONE) {
-        LOG_E("Mode does not support padding", 0);
+        LOG_E("Mode does not support padding");
         *error = KM_ERROR_INCOMPATIBLE_PADDING_MODE;
         return nullptr;
     }
@@ -262,18 +263,18 @@ keymaster_error_t BlockCipherEvpOperation::InitializeCipher(const KeymasterKeyBl
 keymaster_error_t BlockCipherEvpOperation::GetIv(const AuthorizationSet& input_params) {
     keymaster_blob_t iv_blob;
     if (!input_params.GetTagValue(TAG_NONCE, &iv_blob)) {
-        LOG_E("No IV provided", 0);
+        LOG_E("No IV provided");
         return KM_ERROR_INVALID_ARGUMENT;
     }
 
     if (block_mode_ != KM_MODE_GCM && iv_blob.data_length != block_size_bytes()) {
-        LOG_E("Expected %d-byte IV for operation, but got %d bytes", block_size_bytes(),
+        LOG_E("Expected %zu-byte IV for operation, but got %zu bytes", block_size_bytes(),
               iv_blob.data_length);
         return KM_ERROR_INVALID_NONCE;
     }
 
     if (block_mode_ == KM_MODE_GCM && iv_blob.data_length != GCM_NONCE_SIZE) {
-        LOG_E("Expected %d-byte nonce for GCM operation, but got %d bytes", GCM_NONCE_SIZE,
+        LOG_E("Expected %zu-byte nonce for GCM operation, but got %zu bytes", GCM_NONCE_SIZE,
               iv_blob.data_length);
         return KM_ERROR_INVALID_NONCE;
     }
