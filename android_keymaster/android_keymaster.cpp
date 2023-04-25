@@ -374,8 +374,10 @@ void AndroidKeymaster::GenerateRkpKey(const GenerateRkpKeyRequest& request,
 
     GetHwInfoResponse hwInfo(message_version());
     rem_prov_ctx->GetHwInfo(&hwInfo);
-    bool test_mode =
-        (hwInfo.version >= kRkpVersionWithoutSuperencryption) ? false : request.test_mode;
+    if (hwInfo.version >= kRkpVersionWithoutSuperencryption && request.test_mode) {
+        response->error = static_cast<keymaster_error_t>(kStatusRemoved);
+        return;
+    }
 
     // Generate the keypair that will become the attestation key.
     GenerateKeyRequest gen_key_request(message_version_);
@@ -410,13 +412,13 @@ void AndroidKeymaster::GenerateRkpKey(const GenerateRkpKeyRequest& request,
                                           .add(CoseKey::CURVE, P256)
                                           .add(CoseKey::PUBKEY_X, x_coord)
                                           .add(CoseKey::PUBKEY_Y, y_coord);
-    if (test_mode) {
+    if (request.test_mode) {
         cose_public_key_map.add(CoseKey::TEST_KEY, cppbor::Null());
     }
 
     std::vector<uint8_t> cosePublicKey = cose_public_key_map.canonicalize().encode();
 
-    auto macFunction = getMacFunction(test_mode, rem_prov_ctx);
+    auto macFunction = getMacFunction(request.test_mode, rem_prov_ctx);
     auto macedKey = constructCoseMac0(macFunction, {} /* externalAad */, cosePublicKey);
     if (!macedKey) {
         response->error = static_cast<keymaster_error_t>(kStatusFailed);
