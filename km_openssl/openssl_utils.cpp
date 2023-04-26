@@ -194,7 +194,7 @@ size_t ec_group_size_bits(EC_KEY* ec_key) {
     UniquePtr<BN_CTX, BN_CTX_Delete> bn_ctx(BN_CTX_new());
     UniquePtr<BIGNUM, BIGNUM_Delete> order(BN_new());
     if (!EC_GROUP_get_order(group, order.get(), bn_ctx.get())) {
-        LOG_E("Failed to get EC group order", 0);
+        LOG_E("Failed to get EC group order");
         return 0;
     }
     return BN_num_bits(order.get());

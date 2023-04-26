@@ -168,7 +168,7 @@ keymaster_error_t OcbDecryptKey(const AuthorizationSet& hw_enforced,
         // Authentication failed!  Decryption probably succeeded(ish), but we don't want to return
         // any data when the authentication fails, so clear it.
         plaintext->Clear();
-        LOG_E("Failed to validate authentication tag during key decryption", 0);
+        LOG_E("Failed to validate authentication tag during key decryption");
         return KM_ERROR_INVALID_KEY_BLOB;
     } else if (ae_err < 0) {
         LOG_E("Failed to decrypt key, error: %d", ae_err);

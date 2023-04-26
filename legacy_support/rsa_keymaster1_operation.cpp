@@ -80,7 +80,7 @@ RsaKeymaster1WrappedOperation::PrepareFinish(EVP_PKEY* rsa_key,
                                              const AuthorizationSet& input_params) {
     Keymaster1Engine::KeyData* key_data = engine_->GetData(rsa_key);
     if (!key_data) {
-        LOG_E("Could not get extended key data... not a Keymaster1Engine key?", 0);
+        LOG_E("Could not get extended key data... not a Keymaster1Engine key?");
         return KM_ERROR_UNKNOWN_ERROR;
     }
     key_data->op_handle = operation_handle_;
@@ -136,8 +136,8 @@ OperationPtr RsaKeymaster1OperationFactory::CreateOperation(Key&& key,
             key.hw_enforced_move(), key.sw_enforced_move(), digest, padding, rsa.release(),
             engine_));
     default:
-        LOG_E("Bug: Pubkey operation requested.  Those should be handled by normal RSA operations.",
-              0);
+        LOG_E(
+            "Bug: Pubkey operation requested.  Those should be handled by normal RSA operations.");
         *error = KM_ERROR_UNSUPPORTED_PURPOSE;
         return nullptr;
     }

@@ -436,7 +436,7 @@ void AndroidKeymaster::GenerateCsr(const GenerateCsrRequest& request,
 
     auto rem_prov_ctx = context_->GetRemoteProvisioningContext();
     if (!rem_prov_ctx) {
-        LOG_E("Couldn't get a pointer to the remote provisioning context, returned null.", 0);
+        LOG_E("Couldn't get a pointer to the remote provisioning context, returned null.");
         response->error = static_cast<keymaster_error_t>(kStatusFailed);
         return;
     }
@@ -452,14 +452,14 @@ void AndroidKeymaster::GenerateCsr(const GenerateCsrRequest& request,
     auto pubKeysToSign = validateAndExtractPubkeys(request.test_mode, request.num_keys,
                                                    request.keys_to_sign_array, macFunction);
     if (!pubKeysToSign.isOk()) {
-        LOG_E("Failed to validate and extract the public keys for the CSR", 0);
+        LOG_E("Failed to validate and extract the public keys for the CSR");
         response->error = static_cast<keymaster_error_t>(pubKeysToSign.moveError());
         return;
     }
 
     std::vector<uint8_t> ephemeral_mac_key(SHA256_DIGEST_LENGTH, 0 /* value */);
     if (GenerateRandom(ephemeral_mac_key.data(), ephemeral_mac_key.size()) != KM_ERROR_OK) {
-        LOG_E("Failed to generate a random mac key.", 0);
+        LOG_E("Failed to generate a random mac key.");
         response->error = static_cast<keymaster_error_t>(kStatusFailed);
         return;
     }
@@ -471,7 +471,7 @@ void AndroidKeymaster::GenerateCsr(const GenerateCsrRequest& request,
     auto pubKeysToSignMac = generateCoseMac0Mac(ephemeral_mac_function, std::vector<uint8_t>{},
                                                 pubKeysToSign->encode());
     if (!pubKeysToSignMac) {
-        LOG_E("Failed to generate COSE_Mac0 over the public keys to sign.", 0);
+        LOG_E("Failed to generate COSE_Mac0 over the public keys to sign.");
         response->error = static_cast<keymaster_error_t>(kStatusFailed);
         return;
     }
@@ -502,7 +502,7 @@ void AndroidKeymaster::GenerateCsr(const GenerateCsrRequest& request,
 
     auto eek = validateAndExtractEekPubAndId(request.test_mode, request.endpoint_enc_cert_chain);
     if (!eek.isOk()) {
-        LOG_E("Failed to validate and extract the endpoint encryption key.", 0);
+        LOG_E("Failed to validate and extract the endpoint encryption key.");
         response->error = static_cast<keymaster_error_t>(eek.moveError());
         return;
     }
@@ -510,14 +510,14 @@ void AndroidKeymaster::GenerateCsr(const GenerateCsrRequest& request,
     auto sessionKey =
         x25519_HKDF_DeriveKey(ephemeralPubKey, ephemeralPrivKey, eek->first, true /* senderIsA */);
     if (!sessionKey) {
-        LOG_E("Failed to derive the session key.", 0);
+        LOG_E("Failed to derive the session key.");
         response->error = static_cast<keymaster_error_t>(kStatusFailed);
         return;
     }
 
     std::vector<uint8_t> nonce(kAesGcmNonceLength, 0 /* value */);
     if (GenerateRandom(nonce.data(), nonce.size()) != KM_ERROR_OK) {
-        LOG_E("Failed to generate a random nonce.", 0);
+        LOG_E("Failed to generate a random nonce.");
         response->error = static_cast<keymaster_error_t>(kStatusFailed);
         return;
     }
@@ -528,7 +528,7 @@ void AndroidKeymaster::GenerateCsr(const GenerateCsrRequest& request,
                                               buildCertReqRecipients(ephemeralPubKey, eek->second));
 
     if (!coseEncrypted) {
-        LOG_E("Failed to construct a COSE_Encrypt ProtectedData structure", 0);
+        LOG_E("Failed to construct a COSE_Encrypt ProtectedData structure");
         response->error = static_cast<keymaster_error_t>(kStatusFailed);
         return;
     }
@@ -543,7 +543,7 @@ void AndroidKeymaster::GenerateCsrV2(const GenerateCsrV2Request& request,
     if (response == nullptr) return;
 
     if (request.challenge.size() > kMaxChallengeSizeV2) {
-        LOG_E("Challenge is too large. %zu expected. %zu actual.",
+        LOG_E("Challenge is too large. %d expected. %zu actual.",
               kMaxChallengeSizeV2,        //
               request.challenge.size());  //
         response->error = static_cast<keymaster_error_t>(kStatusFailed);
@@ -552,7 +552,7 @@ void AndroidKeymaster::GenerateCsrV2(const GenerateCsrV2Request& request,
 
     auto rem_prov_ctx = context_->GetRemoteProvisioningContext();
     if (rem_prov_ctx == nullptr) {
-        LOG_E("Couldn't get a pointer to the remote provisioning context, returned null.", 0);
+        LOG_E("Couldn't get a pointer to the remote provisioning context, returned null.");
         response->error = static_cast<keymaster_error_t>(kStatusFailed);
         return;
     }
@@ -561,7 +561,7 @@ void AndroidKeymaster::GenerateCsrV2(const GenerateCsrV2Request& request,
     auto pubKeys = validateAndExtractPubkeys(false /* test_mode */, request.num_keys,
                                              request.keys_to_sign_array, macFunction);
     if (!pubKeys.isOk()) {
-        LOG_E("Failed to validate and extract the public keys for the CSR", 0);
+        LOG_E("Failed to validate and extract the public keys for the CSR");
         response->error = static_cast<keymaster_error_t>(pubKeys.moveError());
         return;
     }
@@ -569,7 +569,7 @@ void AndroidKeymaster::GenerateCsrV2(const GenerateCsrV2Request& request,
     auto csr = rem_prov_ctx->BuildCsr(
         std::vector(request.challenge.begin(), request.challenge.end()), std::move(*pubKeys));
     if (!csr) {
-        LOG_E("Failed to build CSR", 0);
+        LOG_E("Failed to build CSR");
         response->error = static_cast<keymaster_error_t>(kStatusFailed);
         return;
     }
@@ -1003,7 +1003,7 @@ GetRootOfTrustResponse AndroidKeymaster::GetRootOfTrust(const GetRootOfTrustRequ
     GetRootOfTrustResponse response(message_version());
 
     if (!context_->attestation_context()) {
-        LOG_E("Have no attestation context, cannot get RootOfTrust", 0);
+        LOG_E("Have no attestation context, cannot get RootOfTrust");
         response.error = KM_ERROR_UNIMPLEMENTED;
         return response;
     }
@@ -1011,19 +1011,19 @@ GetRootOfTrustResponse AndroidKeymaster::GetRootOfTrust(const GetRootOfTrustRequ
     const AttestationContext::VerifiedBootParams* vbParams =
         context_->attestation_context()->GetVerifiedBootParams(&response.error);
     if (response.error != KM_ERROR_OK) {
-        LOG_E("Error retrieving verified boot params: %lu", response.error);
+        LOG_E("Error retrieving verified boot params: %d", response.error);
         return response;
     }
 
     auto boot_patch_level = context_->GetBootPatchlevel();
     if (!boot_patch_level) {
-        LOG_E("Error retrieving boot patch level: %lu", response.error);
+        LOG_E("Error retrieving boot patch level: %d", response.error);
         response.error = KM_ERROR_UNIMPLEMENTED;
         return response;
     }
 
     if (!context_->enforcement_policy()) {
-        LOG_E("Have no enforcement policy, cannot get RootOfTrust", 0);
+        LOG_E("Have no enforcement policy, cannot get RootOfTrust");
         response.error = KM_ERROR_UNIMPLEMENTED;
         return response;
     }
@@ -1064,7 +1064,7 @@ GetHwInfoResponse AndroidKeymaster::GetHwInfo() {
 
     auto rem_prov_ctx = context_->GetRemoteProvisioningContext();
     if (!rem_prov_ctx) {
-        LOG_E("Couldn't get a pointer to the remote provisioning context, returned null.", 0);
+        LOG_E("Couldn't get a pointer to the remote provisioning context, returned null.");
         response.error = static_cast<keymaster_error_t>(kStatusFailed);
         return response;
     }
