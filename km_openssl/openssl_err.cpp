@@ -163,7 +163,7 @@ keymaster_error_t TranslateX509v3Error(int reason) {
 keymaster_error_t TranslateRsaError(int reason) {
     switch (reason) {
     case RSA_R_KEY_SIZE_TOO_SMALL:
-        LOG_W("RSA key is too small to use with selected padding/digest", 0);
+        LOG_W("RSA key is too small to use with selected padding/digest");
         return KM_ERROR_INCOMPATIBLE_PADDING_MODE;
     case RSA_R_DATA_TOO_LARGE_FOR_KEY_SIZE:
     case RSA_R_DATA_TOO_SMALL_FOR_KEY_SIZE:

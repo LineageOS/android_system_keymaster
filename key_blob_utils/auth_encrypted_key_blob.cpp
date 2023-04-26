@@ -82,7 +82,7 @@ KmErrorOr<Buffer> BuildDerivationInfo(const AuthEncryptedBlobFormat format,  //
     }
 
     if (!buf || buf != end || !info.advance_write(buf - info.peek_write())) {
-        LOG_S("Buffer management error", 0);
+        LOG_S("Buffer management error");
         return KM_ERROR_UNKNOWN_ERROR;
     }
 

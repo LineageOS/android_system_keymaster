@@ -161,7 +161,7 @@ SoftKeymasterDevice::SoftKeymasterDevice(KmVersion version)
     : wrapped_km1_device_(nullptr), context_(new (std::nothrow) SoftKeymasterContext(version)),
       impl_(new (std::nothrow) AndroidKeymaster(context_, kOperationTableSize)),
       configured_(false) {
-    LOG_I("Creating device", 0);
+    LOG_I("Creating device");
     LOG_D("Device address: %p", this);
 
     initialize_device_struct(KEYMASTER_SOFTWARE_ONLY | KEYMASTER_BLOBS_ARE_STANDALONE |
@@ -172,7 +172,7 @@ SoftKeymasterDevice::SoftKeymasterDevice(SoftKeymasterContext* context)
     : wrapped_km1_device_(nullptr), context_(context),
       impl_(new (std::nothrow) AndroidKeymaster(context_, kOperationTableSize)),
       configured_(false) {
-    LOG_I("Creating test device", 0);
+    LOG_I("Creating test device");
     LOG_D("Device address: %p", this);
 
     initialize_device_struct(KEYMASTER_SOFTWARE_ONLY | KEYMASTER_BLOBS_ARE_STANDALONE |
@@ -181,7 +181,7 @@ SoftKeymasterDevice::SoftKeymasterDevice(SoftKeymasterContext* context)
 
 keymaster_error_t SoftKeymasterDevice::SetHardwareDevice(keymaster1_device_t* keymaster1_device) {
     assert(keymaster1_device);
-    LOG_D("Reinitializing SoftKeymasterDevice to use HW keymaster1", 0);
+    LOG_D("Reinitializing SoftKeymasterDevice to use HW keymaster1");
 
     if (!context_) return KM_ERROR_UNEXPECTED_NULL_POINTER;
 
@@ -570,7 +570,7 @@ keymaster_error_t SoftKeymasterDevice::configure(const keymaster2_device_t* dev,
     ConfigureRequest request(impl_->message_version());
     if (!params_copy.GetTagValue(TAG_OS_VERSION, &request.os_version) ||
         !params_copy.GetTagValue(TAG_OS_PATCHLEVEL, &request.os_patchlevel)) {
-        LOG_E("Configuration parameters must contain OS version and patch level", 0);
+        LOG_E("Configuration parameters must contain OS version and patch level");
         return KM_ERROR_INVALID_ARGUMENT;
     }
     ConfigureResponse response(impl_->message_version());
@@ -1002,7 +1002,7 @@ keymaster_error_t SoftKeymasterDevice::attest_key(const keymaster2_device_t* dev
     keymaster_blob_t attestation_challenge = {};
     request.attest_params.GetTagValue(TAG_ATTESTATION_CHALLENGE, &attestation_challenge);
     if (attestation_challenge.data_length > kMaximumAttestationChallengeLength) {
-        LOG_E("%d-byte attestation challenge; only %d bytes allowed",
+        LOG_E("%zu-byte attestation challenge; only %zu bytes allowed",
               attestation_challenge.data_length, kMaximumAttestationChallengeLength);
         return KM_ERROR_INVALID_INPUT_LENGTH;
     }

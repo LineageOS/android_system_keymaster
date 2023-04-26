@@ -87,12 +87,12 @@ PureSoftSecureKeyStorage::~PureSoftSecureKeyStorage() {
 keymaster_error_t PureSoftSecureKeyStorage::WriteKey(const km_id_t keyid,
                                                      const KeymasterKeyBlob& /* blob */) {
     if (!pure_soft_secure_storage_map_) {
-        LOG_S("Pure software secure key storage table not allocated.", 0);
+        LOG_S("Pure software secure key storage table not allocated.");
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
     if (!pure_soft_secure_storage_map_->WriteKey(keyid)) {
-        LOG_E("Pure software secure key storage slot full.", 0);
+        LOG_E("Pure software secure key storage slot full.");
         return KM_ERROR_UNKNOWN_ERROR;
     }
 
@@ -101,7 +101,7 @@ keymaster_error_t PureSoftSecureKeyStorage::WriteKey(const km_id_t keyid,
 
 keymaster_error_t PureSoftSecureKeyStorage::KeyExists(const km_id_t keyid, bool* exists) {
     if (!pure_soft_secure_storage_map_) {
-        LOG_S("Pure software secure key storage table not allocated.", 0);
+        LOG_S("Pure software secure key storage table not allocated.");
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
@@ -111,7 +111,7 @@ keymaster_error_t PureSoftSecureKeyStorage::KeyExists(const km_id_t keyid, bool*
 
 keymaster_error_t PureSoftSecureKeyStorage::DeleteKey(const km_id_t keyid) {
     if (!pure_soft_secure_storage_map_) {
-        LOG_S("Pure software secure key storage table not allocated.", 0);
+        LOG_S("Pure software secure key storage table not allocated.");
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
@@ -121,7 +121,7 @@ keymaster_error_t PureSoftSecureKeyStorage::DeleteKey(const km_id_t keyid) {
 
 keymaster_error_t PureSoftSecureKeyStorage::DeleteAllKeys() {
     if (!pure_soft_secure_storage_map_) {
-        LOG_S("Pure software secure key storage table not allocated.", 0);
+        LOG_S("Pure software secure key storage table not allocated.");
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
@@ -131,7 +131,7 @@ keymaster_error_t PureSoftSecureKeyStorage::DeleteAllKeys() {
 
 keymaster_error_t PureSoftSecureKeyStorage::HasSlot(bool* has_slot) {
     if (!pure_soft_secure_storage_map_) {
-        LOG_S("Pure software secure key storage table not allocated.", 0);
+        LOG_S("Pure software secure key storage table not allocated.");
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
