@@ -59,7 +59,7 @@ EcdsaKeymaster1WrappedOperation::PrepareFinish(EVP_PKEY* ecdsa_key,
                                                const AuthorizationSet& input_params) {
     Keymaster1Engine::KeyData* key_data = engine_->GetData(ecdsa_key);
     if (!key_data) {
-        LOG_E("Could not get extended key data... not a Keymaster1Engine key?", 0);
+        LOG_E("Could not get extended key data... not a Keymaster1Engine key?");
         return KM_ERROR_UNKNOWN_ERROR;
     }
     key_data->op_handle = operation_handle_;
@@ -107,9 +107,8 @@ OperationPtr EcdsaKeymaster1OperationFactory::CreateOperation(Key&& key,
         return OperationPtr(new (std::nothrow) EcdsaKeymaster1Operation<EcdsaSignOperation>(
             key.hw_enforced_move(), key.sw_enforced_move(), digest, ecdsa.release(), engine_));
     default:
-        LOG_E(
-            "Bug: Pubkey operation requested.  Those should be handled by normal ECDSA operations.",
-            0);
+        LOG_E("Bug: Pubkey operation requested.  Those should be handled by normal ECDSA "
+              "operations.");
         *error = KM_ERROR_UNSUPPORTED_PURPOSE;
         return nullptr;
     }

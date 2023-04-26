@@ -88,7 +88,7 @@ bool OperationFactory::GetAndValidatePadding(const AuthorizationSet& begin_param
                                              keymaster_error_t* error) const {
     *error = KM_ERROR_UNSUPPORTED_PADDING_MODE;
     if (!begin_params.GetTagValue(TAG_PADDING, padding)) {
-        LOG_E("%d padding modes specified in begin params", begin_params.GetTagCount(TAG_PADDING));
+        LOG_E("%zu padding modes specified in begin params", begin_params.GetTagCount(TAG_PADDING));
         return false;
     } else if (!supported(*padding)) {
         LOG_E("Padding mode %d not supported", *padding);
@@ -125,7 +125,7 @@ bool OperationFactory::GetAndValidateDigest(const AuthorizationSet& begin_params
         if (key.authorizations().Contains(TAG_DIGEST, KM_DIGEST_NONE)) {
             *digest = KM_DIGEST_NONE;
         } else {
-            LOG_E("%d digests specified in begin params and NONE not authorized",
+            LOG_E("%zu digests specified in begin params and NONE not authorized",
                   begin_params.GetTagCount(TAG_DIGEST));
             return false;
         }

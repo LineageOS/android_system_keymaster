@@ -19,6 +19,7 @@
 #include <utility>
 
 #include <assert.h>
+#include <inttypes.h>
 
 #include <openssl/err.h>
 #include <openssl/rand.h>
@@ -89,7 +90,7 @@ keymaster_error_t SymmetricKeyFactory::ImportKey(const AuthorizationSet& key_des
     if (input_key_material_format != KM_KEY_FORMAT_RAW) return KM_ERROR_UNSUPPORTED_KEY_FORMAT;
 
     if (key_bits != key_size_bits(input_key_material.key_material_size)) {
-        LOG_E("Expected %d-bit key data but got %d-bit key", key_bits,
+        LOG_E("Expected %" PRIu32 "-bit key data but got %zu-bit key", key_bits,
               key_size_bits(input_key_material.key_material_size));
         return KM_ERROR_INVALID_KEY_BLOB;
     }
