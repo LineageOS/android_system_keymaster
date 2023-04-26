@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <inttypes.h>
 #include <iostream>
 #include <utility>
 
@@ -133,28 +134,28 @@ keymaster_error_t get_certificate_params(const AuthorizationSet& caller_params,
     uint64_t tmp;
     if (kmVersion < KmVersion::KEYMINT_1) {
         if (caller_params.GetTagValue(TAG_ACTIVE_DATETIME, &tmp)) {
-            LOG_D("Using TAG_ACTIVE_DATETIME: %lu", tmp);
+            LOG_D("Using TAG_ACTIVE_DATETIME: %" PRIu64, tmp);
             cert_params->active_date_time = static_cast<int64_t>(tmp);
         }
         if (caller_params.GetTagValue(TAG_ORIGINATION_EXPIRE_DATETIME, &tmp)) {
-            LOG_D("Using TAG_ORIGINATION_EXPIRE_DATETIME: %lu", tmp);
+            LOG_D("Using TAG_ORIGINATION_EXPIRE_DATETIME: %" PRIu64, tmp);
             cert_params->expire_date_time = static_cast<int64_t>(tmp);
         }
     } else {
         if (!caller_params.GetTagValue(TAG_CERTIFICATE_NOT_BEFORE, &tmp)) {
             return KM_ERROR_MISSING_NOT_BEFORE;
         }
-        LOG_D("Using TAG_CERTIFICATE_NOT_BEFORE: %lu", tmp);
+        LOG_D("Using TAG_CERTIFICATE_NOT_BEFORE: %" PRIu64, tmp);
         cert_params->active_date_time = static_cast<int64_t>(tmp);
 
         if (!caller_params.GetTagValue(TAG_CERTIFICATE_NOT_AFTER, &tmp)) {
             return KM_ERROR_MISSING_NOT_AFTER;
         }
-        LOG_D("Using TAG_CERTIFICATE_NOT_AFTER: %lu", tmp);
+        LOG_D("Using TAG_CERTIFICATE_NOT_AFTER: %" PRIu64, tmp);
         cert_params->expire_date_time = static_cast<int64_t>(tmp);
     }
 
-    LOG_D("Got certificate date params:  NotBefore = %ld, NotAfter = %ld",
+    LOG_D("Got certificate date params:  NotBefore = %" PRId64 ", NotAfter = %" PRId64,
           cert_params->active_date_time, cert_params->expire_date_time);
 
     keymaster_blob_t subject{};
@@ -269,7 +270,7 @@ keymaster_error_t make_cert_rump(const X509_NAME* issuer,
 
     // Set activation date.
     ASN1_TIME_Ptr notBefore(ASN1_TIME_new());
-    LOG_D("Setting notBefore to %ld: ", cert_params.active_date_time / 1000);
+    LOG_D("Setting notBefore to %" PRId64, cert_params.active_date_time / 1000);
     time_t notBeforeTime = static_cast<time_t>(cert_params.active_date_time / 1000);
     if (!notBefore.get() || !ASN1_TIME_set(notBefore.get(), notBeforeTime) ||
         !X509_set_notBefore(certificate.get(), notBefore.get() /* Don't release; copied */)) {
@@ -278,7 +279,7 @@ keymaster_error_t make_cert_rump(const X509_NAME* issuer,
 
     // Set expiration date.
     ASN1_TIME_Ptr notAfter(ASN1_TIME_new());
-    LOG_D("Setting notAfter to %ld: ", cert_params.expire_date_time / 1000);
+    LOG_D("Setting notAfter to %" PRId64, cert_params.expire_date_time / 1000);
     time_t notAfterTime = static_cast<time_t>(cert_params.expire_date_time / 1000);
 
     if (!notAfter.get() || !ASN1_TIME_set(notAfter.get(), notAfterTime) ||

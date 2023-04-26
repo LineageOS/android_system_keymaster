@@ -17,6 +17,7 @@
 #include <keymaster/keymaster_enforcement.h>
 
 #include <assert.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <string.h>
 
@@ -396,7 +397,7 @@ keymaster_error_t KeymasterEnforcement::AuthorizeBegin(const keymaster_purpose_t
     }
 
     if (authentication_required && !auth_token_matched) {
-        LOG_E("Auth required but no matching auth token found", 0);
+        LOG_E("Auth required but no matching auth token found");
         return KM_ERROR_KEY_USER_NOT_AUTHENTICATED;
     }
 
@@ -406,24 +407,24 @@ keymaster_error_t KeymasterEnforcement::AuthorizeBegin(const keymaster_purpose_t
 
     if (min_ops_timeout != UINT32_MAX) {
         if (!access_time_map_) {
-            LOG_S("Rate-limited keys table not allocated.  Rate-limited keys disabled", 0);
+            LOG_S("Rate-limited keys table not allocated.  Rate-limited keys disabled");
             return KM_ERROR_MEMORY_ALLOCATION_FAILED;
         }
 
         if (!access_time_map_->UpdateKeyAccessTime(keyid, get_current_time(), min_ops_timeout)) {
-            LOG_E("Rate-limited keys table full.  Entries will time out.", 0);
+            LOG_E("Rate-limited keys table full.  Entries will time out.");
             return KM_ERROR_TOO_MANY_OPERATIONS;
         }
     }
 
     if (update_access_count) {
         if (!access_count_map_) {
-            LOG_S("Usage-count limited keys table not allocated.  Count-limited keys disabled", 0);
+            LOG_S("Usage-count limited keys table not allocated.  Count-limited keys disabled");
             return KM_ERROR_MEMORY_ALLOCATION_FAILED;
         }
 
         if (!access_count_map_->IncrementKeyAccessCount(keyid)) {
-            LOG_E("Usage count-limited keys table full, until reboot.", 0);
+            LOG_E("Usage count-limited keys table full, until reboot.");
             return KM_ERROR_TOO_MANY_OPERATIONS;
         }
     }
@@ -452,13 +453,13 @@ bool KeymasterEnforcement::GetAndValidateAuthToken(const AuthorizationSet& opera
                                                    uint32_t* token_auth_type) const {
     keymaster_blob_t auth_token_blob;
     if (!operation_params.GetTagValue(TAG_AUTH_TOKEN, &auth_token_blob)) {
-        LOG_E("Authentication required, but auth token not provided", 0);
+        LOG_E("Authentication required, but auth token not provided");
         return false;
     }
 
     if (auth_token_blob.data_length != sizeof(**auth_token)) {
-        LOG_E("Bug: Auth token is the wrong size (%d expected, %d found)", sizeof(hw_auth_token_t),
-              auth_token_blob.data_length);
+        LOG_E("Bug: Auth token is the wrong size (%zu expected, %zu found)",
+              sizeof(hw_auth_token_t), auth_token_blob.data_length);
         return false;
     }
 
@@ -470,7 +471,7 @@ bool KeymasterEnforcement::GetAndValidateAuthToken(const AuthorizationSet& opera
     }
 
     if (!ValidateTokenSignature(**auth_token)) {
-        LOG_E("Auth token signature invalid", 0);
+        LOG_E("Auth token signature invalid");
         return false;
     }
 
@@ -493,18 +494,19 @@ bool KeymasterEnforcement::AuthTokenMatches(const AuthProxy& auth_set,
     if (!GetAndValidateAuthToken(operation_params, &auth_token, &token_auth_type)) return false;
 
     if (auth_timeout_index == -1 && op_handle && op_handle != auth_token->challenge) {
-        LOG_E("Auth token has the challenge %llu, need %llu", auth_token->challenge, op_handle);
+        LOG_E("Auth token has the challenge %" PRIu64 ", need %" PRIu64, auth_token->challenge,
+              op_handle);
         return false;
     }
 
     if (user_secure_id != auth_token->user_id && user_secure_id != auth_token->authenticator_id) {
-        LOG_I("Auth token SIDs %llu and %llu do not match key SID %llu", auth_token->user_id,
-              auth_token->authenticator_id, user_secure_id);
+        LOG_I("Auth token SIDs %" PRIu64 " and %" PRIu64 " do not match key SID %" PRIu64,
+              auth_token->user_id, auth_token->authenticator_id, user_secure_id);
         return false;
     }
 
     if (auth_type_index < 0 || auth_type_index > static_cast<int>(auth_set.size())) {
-        LOG_E("Auth required but no auth type found", 0);
+        LOG_E("Auth required but no auth type found");
         return false;
     }
 
@@ -513,7 +515,7 @@ bool KeymasterEnforcement::AuthTokenMatches(const AuthProxy& auth_set,
 
     uint32_t key_auth_type_mask = auth_set[auth_type_index].integer;
     if ((key_auth_type_mask & token_auth_type) == 0) {
-        LOG_E("Key requires match of auth type mask 0%uo, but token contained 0%uo",
+        LOG_E("Key requires match of auth type mask %" PRIu32 ", but token contained %" PRIu32,
               key_auth_type_mask, token_auth_type);
         return false;
     }
@@ -523,7 +525,7 @@ bool KeymasterEnforcement::AuthTokenMatches(const AuthProxy& auth_set,
         if (auth_set[auth_timeout_index].tag != KM_TAG_AUTH_TIMEOUT) return false;
 
         if (auth_token_timed_out(*auth_token, auth_set[auth_timeout_index].integer)) {
-            LOG_E("Auth token has timed out", 0);
+            LOG_E("Auth token has timed out");
             return false;
         }
     }

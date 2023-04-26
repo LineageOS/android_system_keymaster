@@ -51,35 +51,35 @@ keymaster_error_t EcdhOperation::Finish(const AuthorizationSet& /*additional_par
     const unsigned char* encodedPublicKey = input.begin();
     EVP_PKEY* pkeyRaw = d2i_PUBKEY(nullptr, &encodedPublicKey, input.available_read());
     if (pkeyRaw == nullptr) {
-        LOG_E("Error decoding key", 0);
+        LOG_E("Error decoding key");
         return KM_ERROR_INVALID_ARGUMENT;
     }
     auto pkey = EVP_PKEY_Ptr(pkeyRaw);
 
     auto ctx = EVP_PKEY_CTX_Ptr(EVP_PKEY_CTX_new(ecdh_key_.get(), nullptr));
     if (ctx.get() == nullptr) {
-        LOG_E("Memory allocation failed", 0);
+        LOG_E("Memory allocation failed");
         return TranslateLastOpenSslError();
     }
     if (EVP_PKEY_derive_init(ctx.get()) != 1) {
-        LOG_E("Context initialization failed", 0);
+        LOG_E("Context initialization failed");
         return TranslateLastOpenSslError();
     }
     if (EVP_PKEY_derive_set_peer(ctx.get(), pkey.get()) != 1) {
-        LOG_E("Error setting peer key", 0);
+        LOG_E("Error setting peer key");
         return KM_ERROR_INVALID_ARGUMENT;
     }
     size_t sharedSecretLen = 0;
     if (EVP_PKEY_derive(ctx.get(), nullptr, &sharedSecretLen) != 1) {
-        LOG_E("Error deriving key", 0);
+        LOG_E("Error deriving key");
         return TranslateLastOpenSslError();
     }
     if (!output->reserve(sharedSecretLen)) {
-        LOG_E("Error reserving data in output buffer", 0);
+        LOG_E("Error reserving data in output buffer");
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
     if (EVP_PKEY_derive(ctx.get(), output->peek_write(), &sharedSecretLen) != 1) {
-        LOG_E("Error deriving key", 0);
+        LOG_E("Error deriving key");
         return TranslateLastOpenSslError();
     }
     output->advance_write(sharedSecretLen);
@@ -94,7 +94,7 @@ keymaster_error_t X25519Operation::Finish(const AuthorizationSet& /*additional_p
     const unsigned char* encodedPublicKey = input.begin();
     EVP_PKEY* pkeyRaw = d2i_PUBKEY(nullptr, &encodedPublicKey, input.available_read());
     if (pkeyRaw == nullptr) {
-        LOG_E("Error decoding key", 0);
+        LOG_E("Error decoding key");
         return KM_ERROR_INVALID_ARGUMENT;
     }
     auto pkey = EVP_PKEY_Ptr(pkeyRaw);
@@ -108,11 +108,11 @@ keymaster_error_t X25519Operation::Finish(const AuthorizationSet& /*additional_p
     size_t pub_key_len = X25519_PUBLIC_VALUE_LEN;
     uint8_t pub_key[X25519_PUBLIC_VALUE_LEN];
     if (EVP_PKEY_get_raw_public_key(pkey.get(), pub_key, &pub_key_len) == 0) {
-        LOG_E("Error extracting key", 0);
+        LOG_E("Error extracting key");
         return KM_ERROR_INVALID_ARGUMENT;
     }
     if (pub_key_len != X25519_PUBLIC_VALUE_LEN) {
-        LOG_E("Invalid length %d of peer key", pub_key_len);
+        LOG_E("Invalid length %zu of peer key", pub_key_len);
         return KM_ERROR_INVALID_ARGUMENT;
     }
 
@@ -125,11 +125,11 @@ keymaster_error_t X25519Operation::Finish(const AuthorizationSet& /*additional_p
         return KM_ERROR_UNKNOWN_ERROR;
     }
     if (!output->reserve(X25519_SHARED_KEY_LEN)) {
-        LOG_E("Error reserving data in output buffer", 0);
+        LOG_E("Error reserving data in output buffer");
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
     if (X25519(output->peek_write(), priv_key, pub_key) != 1) {
-        LOG_E("Error deriving key", 0);
+        LOG_E("Error deriving key");
         return TranslateLastOpenSslError();
     }
     output->advance_write(X25519_SHARED_KEY_LEN);
