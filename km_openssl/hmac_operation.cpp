@@ -16,6 +16,7 @@
 
 #include "hmac_operation.h"
 
+#include <inttypes.h>
 #include <utility>
 
 #include <openssl/evp.h>
@@ -38,7 +39,7 @@ OperationPtr HmacOperationFactory::CreateOperation(Key&& key, const Authorizatio
                                                    keymaster_error_t* error) {
     uint32_t min_mac_length_bits;
     if (!key.authorizations().GetTagValue(TAG_MIN_MAC_LENGTH, &min_mac_length_bits)) {
-        LOG_E("HMAC key must have KM_TAG_MIN_MAC_LENGTH", 0);
+        LOG_E("HMAC key must have KM_TAG_MIN_MAC_LENGTH");
         *error = KM_ERROR_INVALID_KEY_BLOB;
         return nullptr;
     }
@@ -46,12 +47,12 @@ OperationPtr HmacOperationFactory::CreateOperation(Key&& key, const Authorizatio
     uint32_t mac_length_bits = UINT32_MAX;
     if (begin_params.GetTagValue(TAG_MAC_LENGTH, &mac_length_bits)) {
         if (purpose() == KM_PURPOSE_VERIFY) {
-            LOG_E("MAC length may not be specified for verify", 0);
+            LOG_E("MAC length may not be specified for verify");
             *error = KM_ERROR_INVALID_ARGUMENT;
             return nullptr;
         }
         if ((mac_length_bits % 8) != 0) {
-            LOG_E("MAC length must be a multiple of 8", mac_length_bits);
+            LOG_E("MAC length must be a multiple of 8; length is %" PRIu32, mac_length_bits);
             *error = KM_ERROR_UNSUPPORTED_MAC_LENGTH;
             return nullptr;
         }
@@ -64,7 +65,7 @@ OperationPtr HmacOperationFactory::CreateOperation(Key&& key, const Authorizatio
 
     keymaster_digest_t digest;
     if (!key.authorizations().GetTagValue(TAG_DIGEST, &digest)) {
-        LOG_E("%d digests found in HMAC key authorizations; must be exactly 1",
+        LOG_E("%zu digests found in HMAC key authorizations; must be exactly 1",
               begin_params.GetTagCount(TAG_DIGEST));
         *error = KM_ERROR_INVALID_KEY_BLOB;
         return nullptr;

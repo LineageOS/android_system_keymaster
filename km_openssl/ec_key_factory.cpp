@@ -16,6 +16,7 @@
 
 #include <keymaster/km_openssl/ec_key_factory.h>
 
+#include <inttypes.h>
 #include <utility>
 
 #include <openssl/curve25519.h>
@@ -71,8 +72,8 @@ keymaster_error_t EcKeyFactory::GetCurveAndSize(const AuthorizationSet& key_desc
         uint32_t tag_key_size_bits;
         if (key_description.GetTagValue(TAG_KEY_SIZE, &tag_key_size_bits) &&
             *key_size_bits != tag_key_size_bits) {
-            LOG_E("Curve key size %d and specified key size %d don't match", key_size_bits,
-                  tag_key_size_bits);
+            LOG_E("Curve key size %" PRIu32 " and specified key size %" PRIu32 " don't match",
+                  *key_size_bits, tag_key_size_bits);
             return KM_ERROR_INVALID_ARGUMENT;
         }
     }

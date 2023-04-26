@@ -150,12 +150,12 @@ static keymaster_error_t SetAuthorizations(const AuthorizationSet& key_descripti
         // These cannot be specified by the client.
         case KM_TAG_ROOT_OF_TRUST:
         case KM_TAG_ORIGIN:
-            LOG_E("Root of trust and origin tags may not be specified", 0);
+            LOG_E("Root of trust and origin tags may not be specified");
             return KM_ERROR_INVALID_TAG;
 
         // These don't work.
         case KM_TAG_ROLLBACK_RESISTANT:
-            LOG_E("KM_TAG_ROLLBACK_RESISTANT not supported", 0);
+            LOG_E("KM_TAG_ROLLBACK_RESISTANT not supported");
             return KM_ERROR_UNSUPPORTED_TAG;
 
         // These are hidden.
@@ -288,12 +288,12 @@ keymaster_error_t SoftKeymasterContext::ParseKeyBlob(const KeymasterKeyBlob& blo
 
     // Wasn't an integrity-assured blob.  Maybe it's an Auth-encrypted blob.
     error = ParseAuthEncryptedBlob(blob, hidden, &key_material, &hw_enforced, &sw_enforced);
-    if (error == KM_ERROR_OK) LOG_D("Parsed an old keymaster1 software key", 0);
+    if (error == KM_ERROR_OK) LOG_D("Parsed an old keymaster1 software key");
     if (error != KM_ERROR_INVALID_KEY_BLOB) return constructKey();
 
     // Wasn't an OCB-encrypted blob.  Maybe it's an old softkeymaster blob.
     error = ParseOldSoftkeymasterBlob(blob, &key_material, &hw_enforced, &sw_enforced);
-    if (error == KM_ERROR_OK) LOG_D("Parsed an old sofkeymaster key", 0);
+    if (error == KM_ERROR_OK) LOG_D("Parsed an old sofkeymaster key");
     if (error != KM_ERROR_INVALID_KEY_BLOB) return constructKey();
 
     if (km1_dev_) {
