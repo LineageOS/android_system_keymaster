@@ -49,7 +49,7 @@ keymaster_error_t HmacKeyFactory::LoadKey(KeymasterKeyBlob&& key_material,
     uint32_t min_mac_length;
     if (!hw_enforced.GetTagValue(TAG_MIN_MAC_LENGTH, &min_mac_length) &&
         !sw_enforced.GetTagValue(TAG_MIN_MAC_LENGTH, &min_mac_length)) {
-        LOG_E("HMAC key must have KM_TAG_MIN_MAC_LENGTH", 0);
+        LOG_E("HMAC key must have KM_TAG_MIN_MAC_LENGTH");
         return KM_ERROR_INVALID_KEY_BLOB;
     }
 
@@ -68,7 +68,7 @@ keymaster_error_t HmacKeyFactory::validate_algorithm_specific_new_key_params(
 
     keymaster_digest_t digest;
     if (!key_description.GetTagValue(TAG_DIGEST, &digest)) {
-        LOG_E("%d digests specified for HMAC key", key_description.GetTagCount(TAG_DIGEST));
+        LOG_E("%zu digests specified for HMAC key", key_description.GetTagCount(TAG_DIGEST));
         return KM_ERROR_UNSUPPORTED_DIGEST;
     }
 

@@ -73,12 +73,12 @@ static void UpdateToWorkAroundUnsupportedDigests(const AuthorizationSet& key_des
     }
 
     if (have_unsupported_digests && !have_digest_none) {
-        LOG_I("Adding KM_DIGEST_NONE to key authorization, to enable software digesting", 0);
+        LOG_I("Adding KM_DIGEST_NONE to key authorization, to enable software digesting");
         new_description->push_back(TAG_DIGEST, KM_DIGEST_NONE);
     }
 
     if (have_unsupported_digests && have_padding_requiring_digest && !have_pad_none) {
-        LOG_I("Adding KM_PAD_NONE to key authorization, to enable PSS or OAEP software padding", 0);
+        LOG_I("Adding KM_PAD_NONE to key authorization, to enable PSS or OAEP software padding");
         new_description->push_back(TAG_PADDING, KM_PAD_NONE);
     }
 }
