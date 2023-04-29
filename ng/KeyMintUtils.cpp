@@ -39,12 +39,6 @@ KeyParameter kmEnumParam2Aidl(const keymaster_key_param_t& param) {
     case KM_TAG_DIGEST:
         return KeyParameter{Tag::DIGEST, KeyParameterValue::make<KeyParameterValue::digest>(
                                              static_cast<Digest>(param.enumerated))};
-
-    case KM_TAG_RSA_OAEP_MGF_DIGEST:
-        return KeyParameter{Tag::RSA_OAEP_MGF_DIGEST,
-                            KeyParameterValue::make<KeyParameterValue::digest>(
-                                static_cast<Digest>(param.enumerated))};
-
     case KM_TAG_PADDING:
         return KeyParameter{Tag::PADDING, KeyParameterValue::make<KeyParameterValue::paddingMode>(
                                               static_cast<PaddingMode>(param.enumerated))};
@@ -58,17 +52,10 @@ KeyParameter kmEnumParam2Aidl(const keymaster_key_param_t& param) {
     case KM_TAG_ORIGIN:
         return KeyParameter{Tag::ORIGIN, KeyParameterValue::make<KeyParameterValue::origin>(
                                              static_cast<KeyOrigin>(param.enumerated))};
-
     case KM_TAG_BLOB_USAGE_REQUIREMENTS:
     case KM_TAG_KDF:
-        return KeyParameter{Tag::INVALID, false};
-
     default:
-        // Unknown tag.  We can't represent it properly because it's some unknown enum.  But KeyMint
-        // specs require us to return unknown tags.  Pretending it's an integer value is the best we
-        // can do.  Upstream will have to deal with it.
-        return KeyParameter{static_cast<Tag>(param.tag),
-                            KeyParameterValue::make<KeyParameterValue::integer>(param.enumerated)};
+        return KeyParameter{Tag::INVALID, false};
     }
 }
 
@@ -103,11 +90,9 @@ keymaster_key_param_t aidlEnumParam2Km(const KeyParameter& param) {
         return aidlEnumVal2Km<KeyParameterValue::origin>(tag, param.value);
     case KM_TAG_BLOB_USAGE_REQUIREMENTS:
     case KM_TAG_KDF:
-        CHECK(false) << "Unused enum tag: Something is broken";
-        return keymaster_param_enum(KM_TAG_INVALID, false);
     default:
-        // Unknown tag.  This can happen when system is newer than secure world.  Pass it through.
-        return keymaster_param_enum(tag, param.value.get<KeyParameterValue::integer>());
+        CHECK(false) << "Unknown or unused enum tag: Something is broken";
+        return keymaster_param_enum(tag, false);
     }
 }
 
@@ -144,6 +129,7 @@ KeyParameter kmParam2Aidl(const keymaster_key_param_t& param) {
     case KM_ENUM:
     case KM_ENUM_REP:
         return kmEnumParam2Aidl(param);
+        break;
 
     case KM_UINT:
     case KM_UINT_REP:
@@ -154,23 +140,28 @@ KeyParameter kmParam2Aidl(const keymaster_key_param_t& param) {
     case KM_ULONG_REP:
         return KeyParameter{
             tag, KeyParameterValue::make<KeyParameterValue::longInteger>(param.long_integer)};
+        break;
 
     case KM_DATE:
         return KeyParameter{tag,
                             KeyParameterValue::make<KeyParameterValue::dateTime>(param.date_time)};
+        break;
 
     case KM_BOOL:
         return KeyParameter{tag, param.boolean};
+        break;
 
     case KM_BIGNUM:
     case KM_BYTES:
         return {tag, KeyParameterValue::make<KeyParameterValue::blob>(
                          std::vector(param.blob.data, param.blob.data + param.blob.data_length))};
+        break;
 
     case KM_INVALID:
     default:
         CHECK(false) << "Unknown or unused tag type: Something is broken";
         return KeyParameter{Tag::INVALID, false};
+        break;
     }
 }
 
