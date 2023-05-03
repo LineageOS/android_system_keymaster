@@ -492,7 +492,7 @@ cc_fuzz {
 }
 
 cc_fuzz {
-    name: "libkeymaster_fuzz_serializable",
+    name: "libkeymaster_fuzz_deserialize",
     defaults: ["keymaster_fuzz_defaults"],
     srcs: [
         "tests/fuzzers/message_serializable_fuzz.cpp",
