@@ -23,6 +23,7 @@
 #include <keymaster/keymaster_tags.h>
 
 #include "android_keymaster_test_utils.h"
+#include "fuzzers/serializable_types.h"
 
 namespace keymaster {
 namespace test {
@@ -984,6 +985,27 @@ TEST(RoundTrip, SetAttestationIdsKM3Request) {
         CHECK_ID(base.imei);
         CHECK_ID(base.model);
         CHECK_ID(second_imei);
+    }
+}
+
+TEST(Serialize, ShortBuffer) {
+    for (int typ = 0; typ <= static_cast<int>(keymaster::SerializableType::kMaxValue); typ++) {
+        // Get a default-constructed object of the relevant serializable type, and ask it
+        // how much space it needs for serialization.
+        auto stype = static_cast<keymaster::SerializableType>(typ);
+        std::unique_ptr<keymaster::Serializable> ser = keymaster::getSerializable(stype);
+        uint16_t expected_size = ser->SerializedSize();
+
+        // Perform serialization of the object into variously sized buffers, mostly too small.
+        // There's no mechanism for indicating failure, so this test mostly just checks for
+        // memory errors (and so is a good candidate for running under ASAN/HWASAN).
+        for (uint16_t actual_size = 0; actual_size <= expected_size; actual_size++) {
+            std::unique_ptr<uint8_t[]> out_buf =
+                std::unique_ptr<uint8_t[]>(new uint8_t[actual_size]);
+            uint8_t* next = ser->Serialize(out_buf.get(), out_buf.get() + actual_size);
+            EXPECT_TRUE(next <= out_buf.get() + actual_size)
+                << "Serialization of " << typ << " returned a next offset beyond end+1";
+        }
     }
 }
 
