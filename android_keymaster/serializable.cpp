@@ -29,7 +29,7 @@ bool __buffer_bound_check(const uint8_t* buf, const uint8_t* end, size_t len) {
 }
 
 uint8_t* append_to_buf(uint8_t* buf, const uint8_t* end, const void* data, size_t data_len) {
-    if (__buffer_bound_check(buf, end, data_len)) {
+    if (__buffer_bound_check(buf, end, data_len) && data != nullptr) {
         memcpy(buf, data, data_len);
         return buf + data_len;
     } else {
