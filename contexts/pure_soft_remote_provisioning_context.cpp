@@ -207,6 +207,7 @@ void PureSoftRemoteProvisioningContext::GetHwInfo(GetHwInfoResponse* hwInfo) con
 cppcose::ErrMsgOr<cppbor::Array>
 PureSoftRemoteProvisioningContext::BuildCsr(const std::vector<uint8_t>& challenge,
                                             cppbor::Array keysToSign) const {
+    LazyInitProdBcc();
     uint32_t csrVersion = 3;
     auto deviceInfo = std::move(*CreateDeviceInfo(csrVersion));
     auto csrPayload = cppbor::Array()
