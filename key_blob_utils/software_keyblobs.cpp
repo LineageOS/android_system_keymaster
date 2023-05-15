@@ -119,8 +119,8 @@ keymaster_error_t FakeKeyAuthorizations(EVP_PKEY* pubkey, AuthorizationSet* hw_e
         RSA_Ptr rsa(EVP_PKEY_get1_RSA(pubkey));
         if (!rsa) return TranslateLastOpenSslError();
         hw_enforced->push_back(TAG_KEY_SIZE, RSA_size(rsa.get()) * 8);
-        uint64_t public_exponent = BN_get_word(rsa->e);
-        if (public_exponent == 0xffffffffL) return KM_ERROR_INVALID_KEY_BLOB;
+        uint64_t public_exponent;
+        if (!BN_get_u64(RSA_get0_e(rsa.get()), &public_exponent)) return KM_ERROR_INVALID_KEY_BLOB;
         hw_enforced->push_back(TAG_RSA_PUBLIC_EXPONENT, public_exponent);
         break;
     }
