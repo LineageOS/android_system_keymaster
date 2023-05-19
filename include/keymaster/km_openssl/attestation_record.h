@@ -205,7 +205,7 @@ typedef struct km_key_description {
     ASN1_OCTET_STRING* attestation_challenge;
     KM_AUTH_LIST* software_enforced;
     KM_AUTH_LIST* tee_enforced;
-    ASN1_INTEGER* unique_id;
+    ASN1_OCTET_STRING* unique_id;
 } KM_KEY_DESCRIPTION;
 
 ASN1_SEQUENCE(KM_KEY_DESCRIPTION) = {
