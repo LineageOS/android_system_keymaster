@@ -1094,9 +1094,7 @@ keymaster_error_t build_attestation_record(const AuthorizationSet& attestation_p
             attestation_params.GetTagValue(TAG_RESET_SINCE_ID_ROTATION), &error);
         if (error != KM_ERROR_OK) return error;
 
-        key_desc->unique_id = ASN1_OCTET_STRING_new();
-        if (!key_desc->unique_id ||
-            !ASN1_OCTET_STRING_set(key_desc->unique_id, unique_id.peek_read(),
+        if (!ASN1_OCTET_STRING_set(key_desc->unique_id, unique_id.peek_read(),
                                    unique_id.available_read()))
             return TranslateLastOpenSslError();
     }
