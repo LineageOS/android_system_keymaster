@@ -60,7 +60,11 @@ uint64_t SoftKeymasterEnforcement::get_current_time_ms() const {
     return GetTickCount64();
 #else
     struct timespec tp;
+#ifdef __linux__
     int err = clock_gettime(CLOCK_BOOTTIME, &tp);
+#else
+    int err = clock_gettime(CLOCK_MONOTONIC, &tp);
+#endif
     if (err || tp.tv_sec < 0) return 0;
 
     return static_cast<uint64_t>(tp.tv_sec) * 1000 + static_cast<uint64_t>(tp.tv_nsec) / 1000000;
