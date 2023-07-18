@@ -697,5 +697,56 @@ TEST(Difference, NullSet) {
     EXPECT_EQ(expected, set1);
 }
 
+TEST(Proxy, Contains) {
+    AuthorizationSet hw_set(AuthorizationSetBuilder()
+                                .Authorization(TAG_PURPOSE, KM_PURPOSE_SIGN)
+                                .Authorization(TAG_PURPOSE, KM_PURPOSE_VERIFY));
+    AuthorizationSet sw_set(AuthorizationSetBuilder()
+                                .Authorization(TAG_ACTIVE_DATETIME, 10)
+                                .Authorization(TAG_APPLICATION_DATA, "data", 4));
+    AuthProxy proxy(hw_set, sw_set);
+
+    EXPECT_TRUE(proxy.Contains(TAG_PURPOSE));
+    EXPECT_TRUE(proxy.Contains(TAG_ACTIVE_DATETIME));
+    EXPECT_TRUE(proxy.Contains(TAG_APPLICATION_DATA));
+    EXPECT_FALSE(proxy.Contains(TAG_USER_ID));
+}
+
+TEST(Proxy, GetTagValue) {
+    AuthorizationSet hw_set(
+        AuthorizationSetBuilder().Authorization(TAG_PURPOSE, KM_PURPOSE_VERIFY));
+    AuthorizationSet sw_set(
+        AuthorizationSetBuilder().Authorization(TAG_ALGORITHM, KM_ALGORITHM_RSA));
+    AuthProxy proxy(hw_set, sw_set);
+
+    keymaster_purpose_t purpose;
+    EXPECT_TRUE(proxy.GetTagValue(TAG_PURPOSE, &purpose));
+    EXPECT_EQ(KM_PURPOSE_VERIFY, purpose);
+
+    keymaster_algorithm_t algo;
+    EXPECT_TRUE(proxy.GetTagValue(TAG_ALGORITHM, &algo));
+    EXPECT_EQ(KM_ALGORITHM_RSA, algo);
+
+    keymaster_block_mode_t mode;
+    EXPECT_FALSE(proxy.GetTagValue(TAG_BLOCK_MODE, &mode));
+}
+
+TEST(Proxy, GetTagCount) {
+    AuthorizationSet hw_set(AuthorizationSetBuilder()
+                                .Authorization(TAG_PURPOSE, KM_PURPOSE_SIGN)
+                                .Authorization(TAG_PURPOSE, KM_PURPOSE_VERIFY));
+    // Note: would not normally expect a tag to appear in both hw_enforced and sw_enforced.
+    AuthorizationSet sw_set(AuthorizationSetBuilder()
+                                .Authorization(TAG_ACTIVE_DATETIME, 10)
+                                .Authorization(TAG_PURPOSE, KM_PURPOSE_ENCRYPT)
+                                .Authorization(TAG_APPLICATION_DATA, "data", 4));
+    AuthProxy proxy(hw_set, sw_set);
+
+    EXPECT_EQ((size_t)3, proxy.GetTagCount(TAG_PURPOSE));
+    EXPECT_EQ((size_t)1, proxy.GetTagCount(TAG_ACTIVE_DATETIME));
+    EXPECT_EQ((size_t)1, proxy.GetTagCount(TAG_APPLICATION_DATA));
+    EXPECT_EQ((size_t)0, proxy.GetTagCount(TAG_USER_ID));
+}
+
 }  // namespace test
 }  // namespace keymaster
