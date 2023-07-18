@@ -703,8 +703,8 @@ class AuthProxy {
                sw_enforced_.GetTagValue(std::forward<ARGS>(args)...);
     }
 
-    template <typename... ARGS> bool GetTagCount(ARGS&&... args) const {
-        return hw_enforced_.GetTagCount(std::forward<ARGS>(args)...) ||
+    template <typename... ARGS> size_t GetTagCount(ARGS&&... args) const {
+        return hw_enforced_.GetTagCount(std::forward<ARGS>(args)...) +
                sw_enforced_.GetTagCount(std::forward<ARGS>(args)...);
     }
 
