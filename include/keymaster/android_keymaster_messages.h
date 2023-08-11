@@ -697,6 +697,12 @@ struct DeleteAllKeysRequest : public EmptyKeymasterRequest {
 
 using DeleteAllKeysResponse = EmptyKeymasterResponse;
 
+struct DestroyAttestationIdsRequest : public EmptyKeymasterRequest {
+    explicit DestroyAttestationIdsRequest(int32_t ver) : EmptyKeymasterRequest(ver) {}
+};
+
+using DestroyAttestationIdsResponse = EmptyKeymasterResponse;
+
 struct GetVersionRequest : public EmptyKeymasterRequest {
     // GetVersionRequest ctor takes a version arg so it has the same signature as others, but the
     // value is ignored because it is not not versionable.
