@@ -954,15 +954,17 @@ void AndroidKeymaster::ImportWrappedKey(const ImportWrappedKeyRequest& request,
         if (sids & HW_AUTH_FINGERPRINT) {
             key_description.push_back(TAG_USER_SECURE_ID, request.biometric_sid);
         }
-
-        if (context_->GetKmVersion() >= KmVersion::KEYMINT_1) {
-            key_description.push_back(TAG_CERTIFICATE_NOT_BEFORE, 0);
-            key_description.push_back(TAG_CERTIFICATE_NOT_AFTER, kUndefinedExpirationDateTime);
-        }
     }
 
     const KeyFactory* factory = get_key_factory(key_description, *context_, &response->error);
     if (!factory) return;
+
+    // There is no way for clients to pass CERTIFICATE_NOT_BEFORE and CERTIFICATE_NOT_AFTER.
+    // importWrappedKey must use validity with no well-defined expiration date.
+    if (context_->GetKmVersion() >= KmVersion::KEYMINT_1) {
+        key_description.push_back(TAG_CERTIFICATE_NOT_BEFORE, 0);
+        key_description.push_back(TAG_CERTIFICATE_NOT_AFTER, kUndefinedExpirationDateTime);
+    }
 
     response->error = factory->ImportKey(key_description,          //
                                          key_format,               //
