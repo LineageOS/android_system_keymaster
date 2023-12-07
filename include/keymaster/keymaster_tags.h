@@ -102,7 +102,7 @@ template <keymaster_tag_type_t tag_type, keymaster_tag_t tag> class TypedTag {
         // Ensure that it's impossible to create a TypedTag instance whose 'tag' doesn't have type
         // 'tag_type'.  Attempting to instantiate a tag with the wrong type will result in a compile
         // error (no match for template specialization StaticAssert<false>), with no run-time cost.
-        StaticAssert<(tag & tag_type) == tag_type>::check();
+        StaticAssert<(static_cast<keymaster_tag_type_t>(tag) & tag_type) == tag_type>::check();
         StaticAssert<(tag_type != KM_ENUM) && (tag_type != KM_ENUM_REP)>::check();
     }
     // NOLINTNEXTLINE(google-explicit-constructor)
@@ -120,7 +120,7 @@ class TypedEnumTag {
         // Ensure that it's impossible to create a TypedTag instance whose 'tag' doesn't have type
         // 'tag_type'.  Attempting to instantiate a tag with the wrong type will result in a compile
         // error (no match for template specialization StaticAssert<false>), with no run-time cost.
-        StaticAssert<(tag & tag_type) == tag_type>::check();
+        StaticAssert<(static_cast<keymaster_tag_type_t>(tag) & tag_type) == tag_type>::check();
         StaticAssert<(tag_type == KM_ENUM) || (tag_type == KM_ENUM_REP)>::check();
     }
     // NOLINTNEXTLINE(google-explicit-constructor)
