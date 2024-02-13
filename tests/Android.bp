@@ -1,4 +1,5 @@
 package {
+    default_team: "trendy_team_android_hardware_backed_security",
     // See: http://go/android-license-faq
     // A large-scale-change added 'default_applicable_licenses' to import
     // all of the 'license_kinds' from "system_keymaster_license"
@@ -55,7 +56,7 @@ cc_test {
         "authorization_set_test.cpp",
         "key_blob_test.cpp",
         "android_keymaster_messages_test.cpp",
-         "keymaster_enforcement_test.cpp",
+        "keymaster_enforcement_test.cpp",
         "attestation_record_test.cpp",
         "wrapped_key_test.cpp",
     ],
