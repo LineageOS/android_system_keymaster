@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
-#include "keymaster/cppcose/cppcose.h"
-#include <keymaster/logger.h>
 #include <keymaster/remote_provisioning_utils.h>
-#include <string_view>
+
+#include <algorithm>
+#include <span>
+
+#include <keymaster/cppcose/cppcose.h>
+#include <keymaster/logger.h>
 
 namespace keymaster {
 
@@ -40,7 +43,7 @@ using cppcose::OCTET_KEY_PAIR;
 using cppcose::P256;
 using cppcose::verifyAndParseCoseSign1;
 
-using byte_view = std::basic_string_view<uint8_t>;
+using byte_view = std::span<const uint8_t>;
 
 struct KeyInfo {
     CoseKeyCurve curve;
@@ -49,7 +52,8 @@ struct KeyInfo {
     //       that all root keys are EDDSA.
 
     bool operator==(const KeyInfo& other) const {
-        return curve == other.curve && pubkey == other.pubkey;
+        return curve == other.curve &&
+               std::equal(pubkey.begin(), pubkey.end(), other.pubkey.begin(), other.pubkey.end());
     }
 };
 
