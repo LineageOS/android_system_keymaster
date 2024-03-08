@@ -119,8 +119,8 @@ keymaster_error_t FakeKeyAuthorizations(EVP_PKEY* pubkey, AuthorizationSet* hw_e
         RSA_Ptr rsa(EVP_PKEY_get1_RSA(pubkey));
         if (!rsa) return TranslateLastOpenSslError();
         hw_enforced->push_back(TAG_KEY_SIZE, RSA_size(rsa.get()) * 8);
-        uint64_t public_exponent = BN_get_word(rsa->e);
-        if (public_exponent == 0xffffffffL) return KM_ERROR_INVALID_KEY_BLOB;
+        uint64_t public_exponent;
+        if (!BN_get_u64(RSA_get0_e(rsa.get()), &public_exponent)) return KM_ERROR_INVALID_KEY_BLOB;
         hw_enforced->push_back(TAG_RSA_PUBLIC_EXPONENT, public_exponent);
         break;
     }
@@ -175,7 +175,7 @@ keymaster_error_t ParseOldSoftkeymasterBlob(const KeymasterKeyBlob& blob,
     ptrdiff_t min_size =
         sizeof(SOFT_KEY_MAGIC) + sizeof(type) + sizeof(publicLen) + 1 + sizeof(privateLen) + 1;
     if (end - p < min_size) {
-        LOG_W("key blob appears to be truncated (if an old SW key)", 0);
+        LOG_W("key blob appears to be truncated (if an old SW key)");
         return KM_ERROR_INVALID_KEY_BLOB;
     }
 
@@ -197,7 +197,7 @@ keymaster_error_t ParseOldSoftkeymasterBlob(const KeymasterKeyBlob& blob,
     p += publicLen;
 
     if (end - p < sizeof(type)) {
-        LOG_W("key blob appears to be truncated (if an old SW key)", 0);
+        LOG_W("key blob appears to be truncated (if an old SW key)");
         return KM_ERROR_INVALID_KEY_BLOB;
     }
 
@@ -214,7 +214,7 @@ keymaster_error_t ParseOldSoftkeymasterBlob(const KeymasterKeyBlob& blob,
     const uint8_t* key_start = p;
     EVP_PKEY_Ptr pkey(d2i_PrivateKey(type, nullptr, &p, privateLen));
     if (pkey.get() == nullptr) {
-        LOG_W("Failed to parse PKCS#8 key material (if old SW key)", 0);
+        LOG_W("Failed to parse PKCS#8 key material (if old SW key)");
         return KM_ERROR_INVALID_KEY_BLOB;
     }
 
@@ -267,7 +267,7 @@ keymaster_error_t SetKeyBlobAuthorizations(const AuthorizationSet& key_descripti
         case KM_TAG_OS_VERSION:
         case KM_TAG_ROOT_OF_TRUST:
         case KM_TAG_VENDOR_PATCHLEVEL:
-            LOG_E("Root of trust and origin tags may not be specified", 0);
+            LOG_E("Root of trust and origin tags may not be specified");
             return KM_ERROR_INVALID_TAG;
 
         case KM_TAG_ALLOW_WHILE_ON_BODY:

@@ -58,7 +58,7 @@ static void UpdateToWorkAroundUnsupportedDigests(const AuthorizationSet& key_des
     }
 
     if (have_unsupported_digests && !have_digest_none) {
-        LOG_I("Adding KM_DIGEST_NONE to key authorization, to enable software digesting", 0);
+        LOG_I("Adding KM_DIGEST_NONE to key authorization, to enable software digesting");
         new_description->push_back(TAG_DIGEST, KM_DIGEST_NONE);
     }
 }

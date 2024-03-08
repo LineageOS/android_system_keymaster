@@ -128,7 +128,7 @@ inline uint8_t* append_size_and_data_to_buf(uint8_t* buf, const uint8_t* end, co
 template <typename T>
 uint8_t* append_collection_to_buf(uint8_t* buf, const uint8_t* end, const T& value) {
     if (value.size() > UINT32_MAX) {
-        LOG_E("Skip collection serialization due to integer overflow", 0);
+        LOG_E("Skip collection serialization due to integer overflow");
         return buf;
     }
     return append_size_and_data_to_buf(buf, end, value.data(), value.size());
@@ -229,7 +229,7 @@ bool copy_collection_from_buf(const uint8_t** buf_ptr, const uint8_t* end, T* va
     }
 
     if (!__buffer_bound_check(*buf_ptr, end, buf_size)) {
-        LOG_E("Skip collection deserialization due size mismatch", 0);
+        LOG_E("Skip collection deserialization due size mismatch");
         return false;
     }
 

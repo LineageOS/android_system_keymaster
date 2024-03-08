@@ -418,7 +418,7 @@ uint8_t* AuthorizationSet::Serialize(uint8_t* buf, const uint8_t* end) const {
 bool AuthorizationSet::DeserializeIndirectData(const uint8_t** buf_ptr, const uint8_t* end) {
     UniquePtr<uint8_t[]> indirect_buf;
     if (!copy_size_and_data_from_buf(buf_ptr, end, &indirect_data_size_, &indirect_buf)) {
-        LOG_E("Malformed data found in AuthorizationSet deserialization", 0);
+        LOG_E("Malformed data found in AuthorizationSet deserialization");
         set_invalid(MALFORMED_DATA);
         return false;
     }
@@ -431,7 +431,7 @@ bool AuthorizationSet::DeserializeElementsData(const uint8_t** buf_ptr, const ui
     uint32_t elements_size;
     if (!copy_uint32_from_buf(buf_ptr, end, &elements_count) ||
         !copy_uint32_from_buf(buf_ptr, end, &elements_size)) {
-        LOG_E("Malformed data found in AuthorizationSet deserialization", 0);
+        LOG_E("Malformed data found in AuthorizationSet deserialization");
         set_invalid(MALFORMED_DATA);
         return false;
     }
@@ -452,7 +452,7 @@ bool AuthorizationSet::DeserializeElementsData(const uint8_t** buf_ptr, const ui
         refs_size_overflow ||
         /* If the resulting allocation would overflow, bail */
         alloc_size_overflow) {
-        LOG_E("Malformed data found in AuthorizationSet deserialization", 0);
+        LOG_E("Malformed data found in AuthorizationSet deserialization");
         set_invalid(MALFORMED_DATA);
         return false;
     }
@@ -463,7 +463,7 @@ bool AuthorizationSet::DeserializeElementsData(const uint8_t** buf_ptr, const ui
     const uint8_t* elements_end = *buf_ptr + elements_size;
     for (size_t i = 0; i < elements_count; ++i) {
         if (!deserialize(elems_ + i, buf_ptr, elements_end, indirect_data_, indirect_end)) {
-            LOG_E("Malformed data found in AuthorizationSet deserialization", 0);
+            LOG_E("Malformed data found in AuthorizationSet deserialization");
             set_invalid(MALFORMED_DATA);
             return false;
         }
@@ -472,7 +472,7 @@ bool AuthorizationSet::DeserializeElementsData(const uint8_t** buf_ptr, const ui
     // Check if all the elements were consumed. If not, something was malformed as the
     // retrieved elements_count and elements_size are not consistent with each other.
     if (*buf_ptr != elements_end) {
-        LOG_E("Malformed data found in AuthorizationSet deserialization", 0);
+        LOG_E("Malformed data found in AuthorizationSet deserialization");
         set_invalid(MALFORMED_DATA);
         return false;
     }
@@ -488,7 +488,7 @@ bool AuthorizationSet::Deserialize(const uint8_t** buf_ptr, const uint8_t* end) 
         return false;
 
     if (indirect_data_size_ != ComputeIndirectDataSize(elems_, elems_size_)) {
-        LOG_E("Malformed data found in AuthorizationSet deserialization", 0);
+        LOG_E("Malformed data found in AuthorizationSet deserialization");
         set_invalid(MALFORMED_DATA);
         return false;
     }

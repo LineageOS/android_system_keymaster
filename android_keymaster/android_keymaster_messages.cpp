@@ -19,6 +19,9 @@
 
 namespace keymaster {
 
+// Maximum supported number of entries in an HmacSharingParamsArray.
+const size_t kMaxSharingParams = 10;
+
 namespace {
 
 /*
@@ -829,6 +832,7 @@ uint8_t* HmacSharingParametersArray::Serialize(uint8_t* buf, const uint8_t* end)
 
 bool HmacSharingParametersArray::Deserialize(const uint8_t** buf_ptr, const uint8_t* end) {
     if (!copy_uint32_from_buf(buf_ptr, end, &num_params)) return false;
+    if (num_params > kMaxSharingParams) return false;
     params_array = new (std::nothrow) HmacSharingParameters[num_params];
     if (!params_array) return false;
     for (size_t i = 0; i < num_params; ++i) {

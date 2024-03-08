@@ -922,7 +922,7 @@ keymaster_error_t build_eat_record(const AuthorizationSet& attestation_params,
         // Only check sw_enforced for TAG_CREATION_DATETIME, since it shouldn't be in tee_enforced,
         // since this implementation has no secure wall clock.
         if (!sw_enforced.GetTagValue(TAG_CREATION_DATETIME, &creation_datetime)) {
-            LOG_E("Unique ID cannot be created without creation datetime", 0);
+            LOG_E("Unique ID cannot be created without creation datetime");
             return KM_ERROR_INVALID_KEY_BLOB;
         }
 
@@ -1085,7 +1085,7 @@ keymaster_error_t build_attestation_record(const AuthorizationSet& attestation_p
         // Only check sw_enforced for TAG_CREATION_DATETIME, since it shouldn't be in tee_enforced,
         // since this implementation has no secure wall clock.
         if (!sw_enforced.GetTagValue(TAG_CREATION_DATETIME, &creation_datetime)) {
-            LOG_E("Unique ID cannot be created without creation datetime", 0);
+            LOG_E("Unique ID cannot be created without creation datetime");
             return KM_ERROR_INVALID_KEY_BLOB;
         }
 
@@ -1094,9 +1094,7 @@ keymaster_error_t build_attestation_record(const AuthorizationSet& attestation_p
             attestation_params.GetTagValue(TAG_RESET_SINCE_ID_ROTATION), &error);
         if (error != KM_ERROR_OK) return error;
 
-        key_desc->unique_id = ASN1_OCTET_STRING_new();
-        if (!key_desc->unique_id ||
-            !ASN1_OCTET_STRING_set(key_desc->unique_id, unique_id.peek_read(),
+        if (!ASN1_OCTET_STRING_set(key_desc->unique_id, unique_id.peek_read(),
                                    unique_id.available_read()))
             return TranslateLastOpenSslError();
     }

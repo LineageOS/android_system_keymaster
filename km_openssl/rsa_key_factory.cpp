@@ -16,6 +16,7 @@
 
 #include <keymaster/km_openssl/rsa_key_factory.h>
 
+#include <inttypes.h>
 #include <utility>
 
 #include <keymaster/keymaster_context.h>
@@ -61,21 +62,21 @@ keymaster_error_t RsaKeyFactory::GenerateKey(const AuthorizationSet& key_descrip
 
     uint64_t public_exponent;
     if (!key_description.GetTagValue(TAG_RSA_PUBLIC_EXPONENT, &public_exponent)) {
-        LOG_E("No public exponent specified for RSA key generation", 0);
+        LOG_E("No public exponent specified for RSA key generation");
         return KM_ERROR_INVALID_ARGUMENT;
     }
     if (public_exponent < kMinimumRsaExponent || public_exponent % 2 != 1) {
-        LOG_E("Invalid public exponent specified for RSA key generation", 0);
+        LOG_E("Invalid public exponent specified for RSA key generation");
         return KM_ERROR_INVALID_ARGUMENT;
     }
 
     uint32_t key_size;
     if (!key_description.GetTagValue(TAG_KEY_SIZE, &key_size)) {
-        LOG_E("No key size specified for RSA key generation", 0);
+        LOG_E("No key size specified for RSA key generation");
         return KM_ERROR_UNSUPPORTED_KEY_SIZE;
     }
     if (key_size % 8 != 0 || key_size > kMaximumRsaKeySize || key_size < kMinimumRsaKeySize) {
-        LOG_E("Invalid key size of %u bits specified for RSA key generation", key_size);
+        LOG_E("Invalid key size of %" PRIu32 " bits specified for RSA key generation", key_size);
         return KM_ERROR_UNSUPPORTED_KEY_SIZE;
     }
 
@@ -184,13 +185,16 @@ keymaster_error_t RsaKeyFactory::UpdateImportKeyDescription(const AuthorizationS
 
     updated_description->Reinitialize(key_description);
 
-    *public_exponent = BN_get_word(rsa_key->e);
-    if (*public_exponent == 0xffffffffL) return KM_ERROR_INVALID_KEY_BLOB;
-    if (!updated_description->GetTagValue(TAG_RSA_PUBLIC_EXPONENT, public_exponent))
+    uint64_t e;
+    if (!BN_get_u64(RSA_get0_e(rsa_key.get()), &e)) return KM_ERROR_INVALID_KEY_BLOB;
+    if (!updated_description->GetTagValue(TAG_RSA_PUBLIC_EXPONENT, public_exponent)) {
+        *public_exponent = e;
         updated_description->push_back(TAG_RSA_PUBLIC_EXPONENT, *public_exponent);
-    if (*public_exponent != BN_get_word(rsa_key->e)) {
-        LOG_E("Imported public exponent (%u) does not match specified public exponent (%u)",
-              *public_exponent, BN_get_word(rsa_key->e));
+    }
+    if (*public_exponent != e) {
+        LOG_E("Imported public exponent (%" PRIu64 ") does not match specified "
+              "public exponent (%" PRIu64 ")",
+              *public_exponent, e);
         return KM_ERROR_IMPORT_PARAMETER_MISMATCH;
     }
 
