@@ -21,7 +21,7 @@ shared_test_libs = [
 ]
 
 static_test_libs = [
-    "libcppbor_external",
+    "libcppbor",
     "libsoftkeymasterdevice",
     "libcppcose_rkp",
 ]
