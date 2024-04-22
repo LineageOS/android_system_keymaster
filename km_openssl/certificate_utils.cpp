@@ -271,8 +271,8 @@ keymaster_error_t make_cert_rump(const X509_NAME* issuer,
     // Set activation date.
     ASN1_TIME_Ptr notBefore(ASN1_TIME_new());
     LOG_D("Setting notBefore to %" PRId64, cert_params.active_date_time / 1000);
-    time_t notBeforeTime = static_cast<time_t>(cert_params.active_date_time / 1000);
-    if (!notBefore.get() || !ASN1_TIME_set(notBefore.get(), notBeforeTime) ||
+    int64_t notBeforeTime = cert_params.active_date_time / 1000;
+    if (!notBefore.get() || !ASN1_TIME_set_posix(notBefore.get(), notBeforeTime) ||
         !X509_set_notBefore(certificate.get(), notBefore.get() /* Don't release; copied */)) {
         return TranslateLastOpenSslError();
     }
@@ -280,9 +280,9 @@ keymaster_error_t make_cert_rump(const X509_NAME* issuer,
     // Set expiration date.
     ASN1_TIME_Ptr notAfter(ASN1_TIME_new());
     LOG_D("Setting notAfter to %" PRId64, cert_params.expire_date_time / 1000);
-    time_t notAfterTime = static_cast<time_t>(cert_params.expire_date_time / 1000);
+    int64_t notAfterTime = cert_params.expire_date_time / 1000;
 
-    if (!notAfter.get() || !ASN1_TIME_set(notAfter.get(), notAfterTime) ||
+    if (!notAfter.get() || !ASN1_TIME_set_posix(notAfter.get(), notAfterTime) ||
         !X509_set_notAfter(certificate.get(), notAfter.get() /* Don't release; copied */)) {
         return TranslateLastOpenSslError();
     }
