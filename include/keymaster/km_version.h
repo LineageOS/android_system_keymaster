@@ -23,7 +23,7 @@ namespace keymaster {
  * versions are deprecated and removed they should be removed from this enum, which will make it
  * possible to easily find the version-dependent code and remove dead branches.
  */
-enum class KmVersion {
+enum class KmVersion : int {
     KEYMASTER_1 = 10,
     KEYMASTER_1_1 = 11,
     KEYMASTER_2 = 20,
