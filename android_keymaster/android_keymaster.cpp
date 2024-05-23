@@ -186,8 +186,8 @@ GetVersion2Response AndroidKeymaster::GetVersion2(const GetVersion2Request& req)
     // Determine what message version we should use.
     message_version_ = NegotiateMessageVersion(req, rsp);
 
-    LOG_D("GetVersion2 results: %d, %d, %d, %d", rsp.km_version, rsp.km_date,
-          rsp.max_message_version, message_version_);
+    LOG_D("GetVersion2 results: %d, %d, %d, %d", static_cast<int>(rsp.km_version),
+          rsp.km_date, rsp.max_message_version, message_version_);
     return rsp;
 }
 
