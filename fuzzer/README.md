@@ -33,7 +33,7 @@ chance of identifying vulnerabilities.
 
 ## Build
 
-This describes steps to build k4_AndroidKeymaster4Device_fuzzer and k4_keymaster_configuration_fuzzer binaries
+This describes steps to build k4_AndroidKeymaster4Device_fuzzer binary
 
 ### Android
 
@@ -41,14 +41,12 @@ This describes steps to build k4_AndroidKeymaster4Device_fuzzer and k4_keymaster
 Build the fuzzer
 ```
   $ mm k4_AndroidKeymaster4Device_fuzzer
-  $ mm k4_keymaster_configuration_fuzzer
 ```
 #### Steps to run
 To run on device
 ```
   $ adb sync data
   $ adb shell /data/fuzz/${TARGET_ARCH}/k4_AndroidKeymaster4Device_fuzzer/k4_AndroidKeymaster4Device_fuzzer
-  $ adb shell /data/fuzz/${TARGET_ARCH}/k4_keymaster_configuration_fuzzer/k4_keymaster_configuration_fuzzer
 ```
 
 ## References:
