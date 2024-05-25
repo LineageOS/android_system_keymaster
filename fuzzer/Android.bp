@@ -72,13 +72,3 @@ cc_fuzz {
         "k4_AndroidKeymaster4Device_fuzzer.cpp",
     ],
 }
-
-cc_fuzz {
-    name: "k4_keymaster_configuration_fuzzer",
-    defaults: [
-        "libkeymaster4_fuzzer_defaults",
-    ],
-    srcs: [
-        "k4_keymaster_configuration_fuzzer.cpp",
-    ],
-}
