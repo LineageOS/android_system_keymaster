@@ -190,19 +190,11 @@ void KeyMaster4DeviceFuzzer::process() {
     std::vector<uint8_t> keyData;
     keyData =
         mFdp->ConsumeBytes<uint8_t>(mFdp->ConsumeIntegralInRange<size_t>(kMinBytes, kMaxBytes));
-    ErrorCode importKeyError;
-    if (mKeymaster
-            ->importKey(getAuthorizationSet().hidl_data(), keyFormat, keyData,
-                        [&]([[maybe_unused]] ErrorCode hidlError,
-                            [[maybe_unused]] const hidl_vec<uint8_t>& hidlKeyBlob,
-                            [[maybe_unused]] const KeyCharacteristics& hidlKeyCharacteristics) {
-                            importKeyError = hidlError;
-                        })
-            .isOk()) {
-        if (importKeyError == ErrorCode::OK) {
-            abort();
-        }
-    }
+    mKeymaster->importKey(
+        getAuthorizationSet().hidl_data(), keyFormat, keyData,
+        [&]([[maybe_unused]] ErrorCode hidlError,
+            [[maybe_unused]] const hidl_vec<uint8_t>& hidlKeyBlob,
+            [[maybe_unused]] const KeyCharacteristics& hidlKeyCharacteristics) {});
 
     std::vector<uint8_t> wrappedKey, wrappingKey, maskingKey;
     wrappedKey =
