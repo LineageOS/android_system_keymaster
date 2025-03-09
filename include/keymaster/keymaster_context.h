@@ -291,6 +291,13 @@ class KeymasterContext {
         return KM_ERROR_UNIMPLEMENTED;
     }
 
+    /**
+     * Sets the apex module hash for the implementation.
+     */
+    virtual keymaster_error_t SetModuleHash(const keymaster_blob_t& /* module_hash */) {
+        return KM_ERROR_UNIMPLEMENTED;
+    }
+
   private:
     // Uncopyable.
     KeymasterContext(const KeymasterContext&);

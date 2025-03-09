@@ -396,6 +396,50 @@ cc_library {
 }
 
 cc_library {
+    name: "libkeymasterconfig",
+    vendor_available: true,
+    srcs: [
+        "android_keymaster/keymaster_configuration.cpp",
+    ],
+    defaults: [
+        "keymaster_defaults",
+    ],
+    shared_libs: [
+        "lib_android_keymaster_keymint_utils",
+        "libbase",
+        "libcutils",
+        "libhardware",
+        "libkeymaster_messages",
+        "liblog",
+    ],
+    export_include_dirs: [
+        "include",
+    ],
+}
+
+cc_library {
+    name: "libkeymasterconfig_V3",
+    vendor_available: true,
+    srcs: [
+        "android_keymaster/keymaster_configuration.cpp",
+    ],
+    defaults: [
+        "keymaster_defaults",
+    ],
+    shared_libs: [
+        "lib_android_keymaster_keymint_utils_V3",
+        "libbase",
+        "libcutils",
+        "libhardware",
+        "libkeymaster_messages",
+        "liblog",
+    ],
+    export_include_dirs: [
+        "include",
+    ],
+}
+
+cc_library {
     name: "libkeymint",
     vendor_available: true,
     srcs: [
@@ -433,6 +477,46 @@ cc_library {
     export_include_dirs: [
         "include",
         "ng/include",
+    ],
+}
+
+cc_library {
+    name: "lib_android_keymaster_keymint_utils_V3",
+    vendor_available: true,
+    srcs: [
+        "ng/KeyMintUtils.cpp",
+    ],
+    defaults: [
+        "keymaster_defaults",
+    ],
+    shared_libs: [
+        "android.hardware.security.keymint-V3-ndk",
+        "libbase",
+        "libhardware",
+    ],
+    export_include_dirs: [
+        "ng/include",
+        "include",
+    ],
+}
+
+cc_library {
+    name: "lib_android_keymaster_keymint_utils_V2",
+    vendor_available: true,
+    srcs: [
+        "ng/KeyMintUtils.cpp",
+    ],
+    defaults: [
+        "keymaster_defaults",
+    ],
+    shared_libs: [
+        "android.hardware.security.keymint-V2-ndk",
+        "libbase",
+        "libhardware",
+    ],
+    export_include_dirs: [
+        "ng/include",
+        "include",
     ],
 }
 
@@ -498,4 +582,10 @@ cc_fuzz {
     srcs: [
         "tests/fuzzers/message_serializable_fuzz.cpp",
     ],
+}
+
+dirgroup {
+    name: "trusty_dirgroup_system_keymaster",
+    dirs: ["."],
+    visibility: ["//trusty/vendor/google/aosp/scripts"],
 }

@@ -1090,4 +1090,17 @@ AndroidKeymaster::SetAttestationIdsKM3(const SetAttestationIdsKM3Request& reques
     return response;
 }
 
+SetAdditionalAttestationInfoResponse
+AndroidKeymaster::SetAdditionalAttestationInfo(const SetAdditionalAttestationInfoRequest& request) {
+    SetAdditionalAttestationInfoResponse response(message_version());
+    response.error = KM_ERROR_OK;
+
+    keymaster_blob_t module_hash;
+    if (request.info.GetTagValue(TAG_MODULE_HASH, &module_hash)) {
+        response.error = context_->SetModuleHash(module_hash);
+    }
+
+    return response;
+}
+
 }  // namespace keymaster

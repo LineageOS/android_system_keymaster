@@ -62,7 +62,7 @@ class PureSoftKeymasterContext : public KeymasterContext,
     KeyFactory* GetKeyFactory(keymaster_algorithm_t algorithm) const override;
     OperationFactory* GetOperationFactory(keymaster_algorithm_t algorithm,
                                           keymaster_purpose_t purpose) const override;
-    keymaster_algorithm_t* GetSupportedAlgorithms(size_t* algorithms_count) const override;
+    const keymaster_algorithm_t* GetSupportedAlgorithms(size_t* algorithms_count) const override;
     keymaster_error_t UpgradeKeyBlob(const KeymasterKeyBlob& key_to_upgrade,
                                      const AuthorizationSet& upgrade_params,
                                      KeymasterKeyBlob* upgraded_key) const override;
@@ -106,6 +106,8 @@ class PureSoftKeymasterContext : public KeymasterContext,
 
     std::optional<uint32_t> GetBootPatchlevel() const override { return boot_patchlevel_; }
 
+    keymaster_error_t SetModuleHash(const keymaster_blob_t& module_hash) override;
+
     /*********************************************************************************************
      * Implement SoftwareKeyBlobMaker
      */
@@ -141,6 +143,7 @@ class PureSoftKeymasterContext : public KeymasterContext,
     std::optional<std::vector<uint8_t>> vbmeta_digest_;
     std::optional<uint32_t> vendor_patchlevel_;
     std::optional<uint32_t> boot_patchlevel_;
+    std::optional<std::vector<uint8_t>> module_hash_;
     SoftKeymasterEnforcement soft_keymaster_enforcement_;
     const keymaster_security_level_t security_level_;
     std::unique_ptr<SecureKeyStorage> pure_soft_secure_key_storage_;

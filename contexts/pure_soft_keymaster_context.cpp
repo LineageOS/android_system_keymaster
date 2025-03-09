@@ -141,6 +141,22 @@ keymaster_error_t PureSoftKeymasterContext::SetBootPatchlevel(uint32_t boot_patc
     return KM_ERROR_OK;
 }
 
+keymaster_error_t PureSoftKeymasterContext::SetModuleHash(const keymaster_blob_t& mod_hash) {
+    std::vector<uint8_t> module_hash(mod_hash.data, mod_hash.data + mod_hash.data_length);
+    if (module_hash_.has_value()) {
+        if (module_hash != module_hash_.value()) {
+            // Can't set module hash to a different value.
+            return KM_ERROR_MODULE_HASH_ALREADY_SET;
+        } else {
+            LOG_I("module hash already set, ignoring repeated attempt to set same info");
+            return KM_ERROR_OK;
+        }
+    } else {
+        module_hash_ = module_hash;
+        return KM_ERROR_OK;
+    }
+}
+
 KeyFactory* PureSoftKeymasterContext::GetKeyFactory(keymaster_algorithm_t algorithm) const {
     switch (algorithm) {
     case KM_ALGORITHM_RSA:
@@ -161,7 +177,7 @@ KeyFactory* PureSoftKeymasterContext::GetKeyFactory(keymaster_algorithm_t algori
 static keymaster_algorithm_t supported_algorithms[] = {KM_ALGORITHM_RSA, KM_ALGORITHM_EC,
                                                        KM_ALGORITHM_AES, KM_ALGORITHM_HMAC};
 
-keymaster_algorithm_t*
+const keymaster_algorithm_t*
 PureSoftKeymasterContext::GetSupportedAlgorithms(size_t* algorithms_count) const {
     *algorithms_count = array_length(supported_algorithms);
     return supported_algorithms;
@@ -245,6 +261,10 @@ keymaster_error_t PureSoftKeymasterContext::CreateKeyBlob(const AuthorizationSet
     error =
         ExtendKeyBlobAuthorizations(hw_enforced, sw_enforced, vendor_patchlevel_, boot_patchlevel_);
     if (error != KM_ERROR_OK) return error;
+    if (module_hash_.has_value()) {
+        keymaster_blob_t mod_hash = {module_hash_.value().data(), module_hash_.value().size()};
+        sw_enforced->push_back(TAG_MODULE_HASH, mod_hash);
+    }
 
     AuthorizationSet hidden;
     error = BuildHiddenAuthorizations(key_description, &hidden, softwareRootOfTrust);

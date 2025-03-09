@@ -87,6 +87,9 @@ class AndroidKeyMintDevice : public BnKeyMintDevice {
                                  vector<uint8_t>* rootOfTrust) override;
     ScopedAStatus sendRootOfTrust(const vector<uint8_t>& rootOfTrust) override;
 
+    ScopedAStatus
+    setAdditionalAttestationInfo(const vector<KeyParameter>& additionalAttestationInfo) override;
+
     shared_ptr<::keymaster::AndroidKeymaster>& getKeymasterImpl() { return impl_; }
 
   protected:

@@ -330,6 +330,7 @@ keymaster_error_t SetKeyBlobAuthorizations(const AuthorizationSet& key_descripti
         case KM_TAG_CERTIFICATE_NOT_AFTER:
         case KM_TAG_INCLUDE_UNIQUE_ID:
         case KM_TAG_RESET_SINCE_ID_ROTATION:
+        case KM_TAG_MODULE_HASH:
             break;
 
         // Everything else we just copy into sw_enforced, unless the KeyFactory has placed it in
