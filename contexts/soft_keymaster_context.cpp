@@ -114,7 +114,7 @@ KeyFactory* SoftKeymasterContext::GetKeyFactory(keymaster_algorithm_t algorithm)
 static keymaster_algorithm_t supported_algorithms[] = {KM_ALGORITHM_RSA, KM_ALGORITHM_EC,
                                                        KM_ALGORITHM_AES, KM_ALGORITHM_HMAC};
 
-keymaster_algorithm_t*
+const keymaster_algorithm_t*
 SoftKeymasterContext::GetSupportedAlgorithms(size_t* algorithms_count) const {
     *algorithms_count = array_length(supported_algorithms);
     return supported_algorithms;
