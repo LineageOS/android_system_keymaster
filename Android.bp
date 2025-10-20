@@ -448,8 +448,8 @@ cc_library {
     ],
 }
 
-cc_library {
-    name: "libkeymint",
+cc_defaults {
+    name: "libkeymint_defaults",
     vendor_available: true,
     srcs: [
         "android_keymaster/keymaster_configuration.cpp",
@@ -464,14 +464,12 @@ cc_library {
     ],
     defaults: [
         "keymaster_defaults",
-        "keymint_cpp_impl_hal_aidl_ndk_shared",
     ],
     shared_libs: [
         "libhidlbase",
         "android.hardware.security.rkp-V3-ndk",
         "android.hardware.security.secureclock-V1-ndk",
         "android.hardware.security.sharedsecret-V1-ndk",
-        "lib_android_keymaster_keymint_utils",
         "libbase",
         "libbinder_ndk",
         "libcppbor",
@@ -486,6 +484,63 @@ cc_library {
     export_include_dirs: [
         "include",
         "ng/include",
+    ],
+}
+
+// C++ implementation of KeyMint, which only supports v4 of the HAL.
+cc_library {
+    name: "libkeymint",
+    vendor_available: true,
+    shared_libs: [
+        "lib_android_keymaster_keymint_utils",
+    ],
+    defaults: [
+        "keymint_cpp_impl_hal_aidl_ndk_shared",
+        "libkeymint_defaults",
+    ],
+}
+
+// C++ implementation of KeyMint that fakes support for the latest version of the HAL, despite the
+// code itself only supporting v4.
+//
+// This target is only intended for use within Android Keystore; it should not be used as the basis
+// of a device's KeyMint implementation (it will fail VTS tests).
+cc_library {
+    name: "lib_android_keymaster_keymint_utils_fake_latest",
+    vendor_available: false,
+    visibility: [
+        ":__subpackages__",
+        "//system/security/keystore2/src/km_compat",
+    ],
+    srcs: [
+        "ng/KeyMintUtils.cpp",
+    ],
+    defaults: [
+        "keymaster_defaults",
+        "keymint_use_latest_hal_aidl_ndk_shared",
+    ],
+    shared_libs: [
+        "libbase",
+        "libhardware",
+    ],
+    export_include_dirs: [
+        "ng/include",
+        "include",
+    ],
+}
+
+cc_library {
+    name: "libkeymint_fake_latest",
+    vendor_available: false,
+    visibility: [
+        "//system/security/keystore2/src/km_compat",
+    ],
+    shared_libs: [
+        "lib_android_keymaster_keymint_utils_fake_latest",
+    ],
+    defaults: [
+        "keymint_use_latest_hal_aidl_ndk_shared",
+        "libkeymint_defaults",
     ],
 }
 
