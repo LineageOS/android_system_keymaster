@@ -62,7 +62,7 @@ class Keymaster1PassthroughContext : public KeymasterContext,
     KeyFactory* GetKeyFactory(keymaster_algorithm_t algorithm) const override;
     OperationFactory* GetOperationFactory(keymaster_algorithm_t algorithm,
                                           keymaster_purpose_t purpose) const override;
-    keymaster_algorithm_t* GetSupportedAlgorithms(size_t* algorithms_count) const override;
+    const keymaster_algorithm_t* GetSupportedAlgorithms(size_t* algorithms_count) const override;
 
     /**
      * UpgradeKeyBlob takes an existing blob, parses out key material and constructs a new blob with

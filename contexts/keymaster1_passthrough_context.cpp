@@ -92,7 +92,7 @@ Keymaster1PassthroughContext::GetOperationFactory(keymaster_algorithm_t algorith
     auto keyfactory = GetKeyFactory(algorithm);
     return keyfactory->GetOperationFactory(purpose);
 }
-keymaster_algorithm_t*
+const keymaster_algorithm_t*
 Keymaster1PassthroughContext::GetSupportedAlgorithms(size_t* algorithms_count) const {
     if (algorithms_count) *algorithms_count = 0;
     return nullptr;
