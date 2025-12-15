@@ -545,6 +545,26 @@ cc_library {
 }
 
 cc_library {
+    name: "lib_android_keymaster_keymint_utils_V4",
+    vendor_available: true,
+    srcs: [
+        "ng/KeyMintUtils.cpp",
+    ],
+    defaults: [
+        "keymaster_defaults",
+    ],
+    shared_libs: [
+        "android.hardware.security.keymint-V4-ndk",
+        "libbase",
+        "libhardware",
+    ],
+    export_include_dirs: [
+        "ng/include",
+        "include",
+    ],
+}
+
+cc_library {
     name: "lib_android_keymaster_keymint_utils_V3",
     vendor_available: true,
     srcs: [
