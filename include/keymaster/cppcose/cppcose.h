@@ -132,6 +132,44 @@ template <typename T> class ErrMsgOr {
     std::optional<T> value_;
 };
 
+template <> class ErrMsgOr<std::string> {
+  public:
+    static ErrMsgOr Ok(std::string s) { return ErrMsgOr(std::move(s), {}); }
+    static ErrMsgOr Err(std::string e) { return ErrMsgOr({}, std::move(e)); }
+
+    explicit operator bool() const { return value_.has_value(); }
+
+    std::string* operator->() & {
+        assert(value_);
+        return &value_.value();
+    }
+
+    std::string& operator*() & {
+        assert(value_);
+        return value_.value();
+    }
+
+    std::string&& operator*() && {
+        assert(value_);
+        return std::move(value_).value();
+    }
+
+    const std::string& message() const { return errMsg_; }
+    std::string moveMessage() { return std::move(errMsg_); }
+
+    std::string moveValue() {
+        assert(value_);
+        return std::move(value_).value();
+    }
+
+  private:
+    ErrMsgOr(std::optional<std::string> v, std::string e)
+        : errMsg_(std::move(e)), value_(std::move(v)) {}
+
+    std::string errMsg_;
+    std::optional<std::string> value_;
+};
+
 class CoseKey {
   public:
     CoseKey() {}
