@@ -93,6 +93,7 @@ typedef struct km_auth_list {
     ASN1_INTEGER* origination_expire_date_time;
     ASN1_INTEGER* usage_expire_date_time;
     ASN1_INTEGER* usage_count_limit;
+    ASN1_INTEGER* user_secure_id;
     ASN1_NULL* no_auth_required;
     ASN1_INTEGER* user_auth_type;
     ASN1_INTEGER* auth_timeout;
@@ -149,6 +150,7 @@ ASN1_SEQUENCE(KM_AUTH_LIST) = {
     ASN1_EXP_OPT(KM_AUTH_LIST, usage_expire_date_time, ASN1_INTEGER,
                  TAG_USAGE_EXPIRE_DATETIME.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, usage_count_limit, ASN1_INTEGER, TAG_USAGE_COUNT_LIMIT.masked_tag()),
+    ASN1_EXP_OPT(KM_AUTH_LIST, user_secure_id, ASN1_INTEGER, TAG_USER_SECURE_ID.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, no_auth_required, ASN1_NULL, TAG_NO_AUTH_REQUIRED.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, user_auth_type, ASN1_INTEGER, TAG_USER_AUTH_TYPE.masked_tag()),
     ASN1_EXP_OPT(KM_AUTH_LIST, auth_timeout, ASN1_INTEGER, TAG_AUTH_TIMEOUT.masked_tag()),
@@ -387,6 +389,26 @@ keymaster_error_t build_eat_submod(const AuthorizationSet& auth_list,
                                    EatSecurityLevel security_level, cppbor::Map* submod);
 
 keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIST* record);
+
+// This function takes a key parameter and inserts into the relevant provided ASN1 type.
+// It handles adding a key parameter to an authorization list by
+// expecting a set of pointers to the underlying ASN.1 storage types that
+// make up the KM_AUTH_LIST. The caller must determine the correct ASN.1 type
+// (INTEGER_SET, INTEGER, OCTET_STRING, or BOOL) corresponding to the
+// 'param.tag' and provide the correct non-NULL pointer for that specific type,
+// setting the other three pointers to NULL.
+//
+// For example:
+// - If 'param' has an INTEGER_SET-based tag (e.g., KM_TAG_PURPOSE),
+// 'integer_set' must be non-NULL, and the others must be NULL.
+// - If 'param' has an ASN1_BOOL-based tag (e.g., KM_TAG_NO_AUTH_REQUIRED),
+// 'bool_ptr' must be non-NULL, and the others must be NULL.
+//
+// The function allocates and populates the appropriate ASN.1 object based on
+// the 'param.tag' and updates the provided pointer.
+keymaster_error_t auth_list_add_param(keymaster_key_param_t& param, ASN1_INTEGER_SET** integer_set,
+                                      ASN1_INTEGER** integer_ptr, ASN1_OCTET_STRING** string_ptr,
+                                      ASN1_NULL** bool_ptr);
 
 keymaster_error_t parse_eat_record(
     const uint8_t* eat_key_desc, size_t eat_key_desc_len, uint32_t* attestation_version,

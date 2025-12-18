@@ -507,10 +507,12 @@ cc_library {
 // of a device's KeyMint implementation (it will fail VTS tests).
 cc_library {
     name: "lib_android_keymaster_keymint_utils_fake_latest",
-    vendor_available: false,
+    vendor_available: true,
     visibility: [
         ":__subpackages__",
         "//system/security/keystore2/src/km_compat",
+        "//hardware/interfaces/security/keymint/aidl/vts/functional",
+        "//hardware/interfaces/security/keymint/support/wrapped_key",
     ],
     srcs: [
         "ng/KeyMintUtils.cpp",
@@ -541,6 +543,26 @@ cc_library {
     defaults: [
         "keymint_use_latest_hal_aidl_ndk_shared",
         "libkeymint_defaults",
+    ],
+}
+
+cc_library {
+    name: "lib_android_keymaster_keymint_utils_V4",
+    vendor_available: true,
+    srcs: [
+        "ng/KeyMintUtils.cpp",
+    ],
+    defaults: [
+        "keymaster_defaults",
+    ],
+    shared_libs: [
+        "android.hardware.security.keymint-V4-ndk",
+        "libbase",
+        "libhardware",
+    ],
+    export_include_dirs: [
+        "ng/include",
+        "include",
     ],
 }
 

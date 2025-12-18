@@ -697,82 +697,9 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
             break;
         }
 
-        keymaster_tag_type_t type = keymaster_tag_get_type(entry.tag);
-        switch (type) {
-        case KM_ENUM:
-        case KM_ENUM_REP:
-        case KM_UINT:
-        case KM_UINT_REP: {
-            ASSERT_OR_RETURN_ERROR((keymaster_tag_repeatable(entry.tag) && integer_set) ||
-                                       (!keymaster_tag_repeatable(entry.tag) && integer_ptr),
-                                   KM_ERROR_INVALID_TAG);
-
-            UniquePtr<ASN1_INTEGER, ASN1_INTEGER_Delete> value(ASN1_INTEGER_new());
-            if (!value.get()) {
-                return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-            }
-            if (!ASN1_INTEGER_set(value.get(), get_uint32_value(entry))) {
-                return TranslateLastOpenSslError();
-            }
-
-            insert_integer(value.release(), integer_ptr, integer_set);
-            break;
-        }
-
-        case KM_ULONG:
-        case KM_ULONG_REP:
-        case KM_DATE: {
-            ASSERT_OR_RETURN_ERROR((keymaster_tag_repeatable(entry.tag) && integer_set) ||
-                                       (!keymaster_tag_repeatable(entry.tag) && integer_ptr),
-                                   KM_ERROR_INVALID_TAG);
-
-            UniquePtr<BIGNUM, BIGNUM_Delete> bn_value(BN_new());
-            if (!bn_value.get()) {
-                return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-            }
-
-            if (type == KM_DATE) {
-                if (!BN_set_u64(bn_value.get(), entry.date_time)) {
-                    return TranslateLastOpenSslError();
-                }
-            } else {
-                if (!BN_set_u64(bn_value.get(), entry.long_integer)) {
-                    return TranslateLastOpenSslError();
-                }
-            }
-
-            UniquePtr<ASN1_INTEGER, ASN1_INTEGER_Delete> value(
-                BN_to_ASN1_INTEGER(bn_value.get(), nullptr));
-            if (!value.get()) {
-                return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-            }
-
-            insert_integer(value.release(), integer_ptr, integer_set);
-            break;
-        }
-
-        case KM_BOOL:
-            ASSERT_OR_RETURN_ERROR(bool_ptr, KM_ERROR_INVALID_TAG);
-            if (!*bool_ptr) *bool_ptr = ASN1_NULL_new();
-            if (!*bool_ptr) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-            break;
-
-        /* Byte arrays*/
-        case KM_BYTES:
-            ASSERT_OR_RETURN_ERROR(string_ptr, KM_ERROR_INVALID_TAG);
-            if (!*string_ptr) {
-                *string_ptr = ASN1_OCTET_STRING_new();
-            }
-            if (!*string_ptr) {
-                return KM_ERROR_MEMORY_ALLOCATION_FAILED;
-            }
-            if (!ASN1_OCTET_STRING_set(*string_ptr, entry.blob.data, entry.blob.data_length)) {
-                return TranslateLastOpenSslError();
-            }
-            break;
-
-        default:
-            return KM_ERROR_UNIMPLEMENTED;
+        auto err = auth_list_add_param(entry, integer_set, integer_ptr, string_ptr, bool_ptr);
+        if (err != KM_ERROR_OK) {
+            return err;
         }
     }
 
@@ -797,6 +724,90 @@ keymaster_error_t build_auth_list(const AuthorizationSet& auth_list, KM_AUTH_LIS
         }
 
         insert_integer(value.release(), &record->ec_curve, nullptr);
+    }
+
+    return KM_ERROR_OK;
+}
+
+keymaster_error_t auth_list_add_param(keymaster_key_param_t& param, ASN1_INTEGER_SET** integer_set,
+                                      ASN1_INTEGER** integer_ptr, ASN1_OCTET_STRING** string_ptr,
+                                      ASN1_NULL** bool_ptr) {
+    keymaster_tag_type_t type = keymaster_tag_get_type(param.tag);
+    switch (type) {
+    case KM_ENUM:
+    case KM_ENUM_REP:
+    case KM_UINT:
+    case KM_UINT_REP: {
+        ASSERT_OR_RETURN_ERROR((keymaster_tag_repeatable(param.tag) && integer_set) ||
+                                   (!keymaster_tag_repeatable(param.tag) && integer_ptr),
+                               KM_ERROR_INVALID_TAG);
+
+        UniquePtr<ASN1_INTEGER, ASN1_INTEGER_Delete> value(ASN1_INTEGER_new());
+        if (!value.get()) {
+            return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+        }
+        if (!ASN1_INTEGER_set(value.get(), get_uint32_value(param))) {
+            return TranslateLastOpenSslError();
+        }
+
+        insert_integer(value.release(), integer_ptr, integer_set);
+        break;
+    }
+
+    case KM_ULONG:
+    case KM_ULONG_REP:
+    case KM_DATE: {
+        ASSERT_OR_RETURN_ERROR((keymaster_tag_repeatable(param.tag) && integer_set) ||
+                                   (!keymaster_tag_repeatable(param.tag) && integer_ptr),
+                               KM_ERROR_INVALID_TAG);
+
+        UniquePtr<BIGNUM, BIGNUM_Delete> bn_value(BN_new());
+        if (!bn_value.get()) {
+            return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+        }
+
+        if (type == KM_DATE) {
+            if (!BN_set_u64(bn_value.get(), param.date_time)) {
+                return TranslateLastOpenSslError();
+            }
+        } else {
+            if (!BN_set_u64(bn_value.get(), param.long_integer)) {
+                return TranslateLastOpenSslError();
+            }
+        }
+
+        UniquePtr<ASN1_INTEGER, ASN1_INTEGER_Delete> value(
+            BN_to_ASN1_INTEGER(bn_value.get(), nullptr));
+        if (!value.get()) {
+            return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+        }
+
+        insert_integer(value.release(), integer_ptr, integer_set);
+        break;
+    }
+
+    case KM_BOOL:
+        ASSERT_OR_RETURN_ERROR(bool_ptr, KM_ERROR_INVALID_TAG);
+        if (!*bool_ptr) *bool_ptr = ASN1_NULL_new();
+        if (!*bool_ptr) return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+        break;
+
+    /* Byte arrays*/
+    case KM_BYTES:
+        ASSERT_OR_RETURN_ERROR(string_ptr, KM_ERROR_INVALID_TAG);
+        if (!*string_ptr) {
+            *string_ptr = ASN1_OCTET_STRING_new();
+        }
+        if (!*string_ptr) {
+            return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+        }
+        if (!ASN1_OCTET_STRING_set(*string_ptr, param.blob.data, param.blob.data_length)) {
+            return TranslateLastOpenSslError();
+        }
+        break;
+
+    default:
+        return KM_ERROR_UNIMPLEMENTED;
     }
 
     return KM_ERROR_OK;
@@ -1243,6 +1254,14 @@ keymaster_error_t extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet
     // Usage count limit
     if (record->usage_count_limit &&
         !auth_list->push_back(TAG_USAGE_COUNT_LIMIT, ASN1_INTEGER_get(record->usage_count_limit))) {
+        return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+    }
+
+    // User Secure Id
+    // The USER_SECURE_ID tag is defined as a repeated tag in the documentation. However, the ASN.1
+    // schema only supports a single value for this tag. Its specific use is limited to the
+    // importing of wrapped keys, where it has a special, non-standard meaning.
+    if (!get_ulong(record->user_secure_id, TAG_USER_SECURE_ID, auth_list)) {
         return KM_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
