@@ -83,7 +83,7 @@ cc_defaults {
     },
 }
 
-cc_library_shared {
+cc_library {
     name: "libkeymaster_messages",
     srcs: [
         "android_keymaster/android_keymaster_messages.cpp",
