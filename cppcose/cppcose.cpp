@@ -16,14 +16,13 @@
 
 #include <keymaster/cppcose/cppcose.h>
 
-#include <iostream>
 #include <stdio.h>
 
 #include <cppbor.h>
 #include <cppbor_parse.h>
 #include <openssl/ecdsa.h>
-
 #include <openssl/err.h>
+#include <openssl/mldsa.h>
 
 namespace cppcose {
 constexpr int kP256AffinePointSize = 32;
@@ -303,65 +302,98 @@ ErrMsgOr<bytevec /* payload */> verifyAndParseCoseMac0(const cppbor::Item* macIt
 
 ErrMsgOr<bytevec> createECDSACoseSign1Signature(const bytevec& key, const bytevec& protectedParams,
                                                 const bytevec& payload, const bytevec& aad) {
-    bytevec signatureInput = cppbor::Array()
-                                 .add("Signature1")  //
-                                 .add(protectedParams)
-                                 .add(aad)
-                                 .add(payload)
-                                 .encode();
-    auto ecdsaSignature = signP256Digest(key, sha256(signatureInput));
-    if (!ecdsaSignature) return ecdsaSignature.moveMessage();
-
-    return ecdsaDerSignatureToCose(kP256AffinePointSize, *ecdsaSignature);
+    return createCoseSign1Signature(key, protectedParams, payload, aad, ES256);
 }
 
 ErrMsgOr<bytevec> createCoseSign1Signature(const bytevec& key, const bytevec& protectedParams,
                                            const bytevec& payload, const bytevec& aad) {
-    bytevec signatureInput = cppbor::Array()
-                                 .add("Signature1")  //
-                                 .add(protectedParams)
-                                 .add(aad)
-                                 .add(payload)
-                                 .encode();
+    return createCoseSign1Signature(key, protectedParams, payload, aad, EDDSA);
+}
 
-    if (key.size() != ED25519_PRIVATE_KEY_LEN) return "Invalid signing key";
-    bytevec signature(ED25519_SIGNATURE_LEN);
-    if (!ED25519_sign(signature.data(), signatureInput.data(), signatureInput.size(), key.data())) {
-        return "Signing failed";
+ErrMsgOr<bytevec> createCoseSign1Signature(const bytevec& key, const bytevec& protectedParams,
+                                           const bytevec& payload, const bytevec& aad,
+                                           const CoseKeyAlgorithm algorithm) {
+    bytevec signatureInput =
+        cppbor::Array().add("Signature1").add(protectedParams).add(aad).add(payload).encode();
+
+    if (algorithm == ML_DSA_65) {
+        if (key.size() != MLDSA_SEED_BYTES) {
+            return "Invalid signing key";
+        }
+        MLDSA65_private_key mlDsa65PrivateKey;
+        if (!MLDSA65_private_key_from_seed(&mlDsa65PrivateKey, key.data(), key.size())) {
+            return "Failed to create ML-DSA-65 private key";
+        }
+        bytevec signature(MLDSA65_SIGNATURE_BYTES);
+        if (!MLDSA65_sign(signature.data(), &mlDsa65PrivateKey, signatureInput.data(),
+                          signatureInput.size(), nullptr, 0)) {
+            return "Signing failed";
+        }
+        return signature;
+    } else if (algorithm == ML_DSA_87) {
+        if (key.size() != MLDSA_SEED_BYTES) {
+            return "Invalid signing key";
+        }
+        MLDSA87_private_key mlDsa87PrivateKey;
+        if (!MLDSA87_private_key_from_seed(&mlDsa87PrivateKey, key.data(), key.size())) {
+            return "Failed to create ML-DSA-87 private key";
+        }
+        bytevec signature(MLDSA87_SIGNATURE_BYTES);
+        if (!MLDSA87_sign(signature.data(), &mlDsa87PrivateKey, signatureInput.data(),
+                          signatureInput.size(), nullptr, 0)) {
+            return "Signing failed";
+        }
+        return signature;
+    } else if (algorithm == EDDSA) {
+        if (key.size() != ED25519_PRIVATE_KEY_LEN) {
+            return "Invalid signing key";
+        }
+        bytevec signature(ED25519_SIGNATURE_LEN);
+        if (!ED25519_sign(signature.data(), signatureInput.data(), signatureInput.size(),
+                          key.data())) {
+            return "Signing failed";
+        }
+        return signature;
+    } else if (algorithm == ES256) {
+        auto ecdsaSignature = signP256Digest(key, sha256(signatureInput));
+        if (!ecdsaSignature) {
+            return ecdsaSignature.moveMessage();
+        }
+        return ecdsaDerSignatureToCose(kP256AffinePointSize, *ecdsaSignature);
+    } else {
+        return "Unsupported signature algorithm";
+    }
+}
+
+ErrMsgOr<cppbor::Array> constructCoseSign1(const bytevec& key, cppbor::Map protectedParams,
+                                           const bytevec& payload, const bytevec& aad,
+                                           const CoseKeyAlgorithm algorithm) {
+    bytevec protParms = protectedParams.add(ALGORITHM, algorithm).canonicalize().encode();
+    auto signature = createCoseSign1Signature(key, protParms, payload, aad, algorithm);
+    if (!signature) {
+        return signature.moveMessage();
     }
 
-    return signature;
+    return cppbor::Array()
+        .add(std::move(protParms))
+        .add(cppbor::Map() /* unprotected parameters */)
+        .add(std::move(payload))
+        .add(std::move(*signature));
 }
 
 ErrMsgOr<cppbor::Array> constructECDSACoseSign1(const bytevec& key, cppbor::Map protectedParams,
                                                 const bytevec& payload, const bytevec& aad) {
-    bytevec protParms = protectedParams.add(ALGORITHM, ES256).canonicalize().encode();
-    auto signature = createECDSACoseSign1Signature(key, protParms, payload, aad);
-    if (!signature) return signature.moveMessage();
-
-    return cppbor::Array()
-        .add(std::move(protParms))
-        .add(cppbor::Map() /* unprotected parameters */)
-        .add(std::move(payload))
-        .add(std::move(*signature));
+    return constructCoseSign1(key, std::move(protectedParams), payload, aad, ES256);
 }
 
-ErrMsgOr<cppbor::Array> constructCoseSign1(const bytevec& key, cppbor::Map protectedParams,
+ErrMsgOr<cppbor::Array> constructCoseSign1(const bytevec& key, cppbor::Map protectedParameters,
                                            const bytevec& payload, const bytevec& aad) {
-    bytevec protParms = protectedParams.add(ALGORITHM, EDDSA).canonicalize().encode();
-    auto signature = createCoseSign1Signature(key, protParms, payload, aad);
-    if (!signature) return signature.moveMessage();
-
-    return cppbor::Array()
-        .add(std::move(protParms))
-        .add(cppbor::Map() /* unprotected parameters */)
-        .add(std::move(payload))
-        .add(std::move(*signature));
+    return constructCoseSign1(key, std::move(protectedParameters), payload, aad, EDDSA);
 }
 
 ErrMsgOr<cppbor::Array> constructCoseSign1(const bytevec& key, const bytevec& payload,
                                            const bytevec& aad) {
-    return constructCoseSign1(key, {} /* protectedParams */, payload, aad);
+    return constructCoseSign1(key, {} /* protectedParams */, payload, aad, EDDSA);
 }
 
 ErrMsgOr<bytevec> verifyAndParseCoseSign1(const cppbor::Array* coseSign1,
@@ -389,7 +421,8 @@ ErrMsgOr<bytevec> verifyAndParseCoseSign1(const cppbor::Array* coseSign1,
     auto& algorithm = parsedProtParams->asMap()->get(ALGORITHM);
     if (!algorithm || !algorithm->asInt() ||
         !(algorithm->asInt()->value() == EDDSA || algorithm->asInt()->value() == ES256 ||
-          algorithm->asInt()->value() == ES384)) {
+          algorithm->asInt()->value() == ES384 || algorithm->asInt()->value() == ML_DSA_65 ||
+          algorithm->asInt()->value() == ML_DSA_87)) {
         return "Unsupported signature algorithm";
     }
 
@@ -430,7 +463,7 @@ ErrMsgOr<bytevec> verifyAndParseCoseSign1(const cppbor::Array* coseSign1,
                                *ecdsaDerSignature)) {
             return "Signature verification failed";
         }
-    } else {  // ES384
+    } else if (algorithm->asInt()->value() == ES384) {
         auto key = CoseKey::parseP384(selfSigned ? payload->value() : signingCoseKey);
         if (!key || key->getBstrValue(CoseKey::PUBKEY_X)->empty() ||
             key->getBstrValue(CoseKey::PUBKEY_Y)->empty()) {
@@ -447,6 +480,38 @@ ErrMsgOr<bytevec> verifyAndParseCoseSign1(const cppbor::Array* coseSign1,
 
         if (!verifyEcdsaDigest(NID_secp384r1, publicKey.moveValue(), sha384(signatureInput),
                                *ecdsaDerSignature)) {
+            return "Signature verification failed";
+        }
+    } else if (algorithm->asInt()->value() == ML_DSA_65) {
+        auto key = CoseKey::parseMldsa65(selfSigned ? payload->value() : signingCoseKey);
+        if (!key || key->getBstrValue(CoseKey::AKP_PUBLIC_KEY)->empty()) {
+            return "Bad signing key: " + key.moveMessage();
+        }
+        auto pubkey = key->getBstrValue(CoseKey::AKP_PUBLIC_KEY);
+        MLDSA65_public_key mlDsa65PublicKey;
+        CBS cbs;
+        CBS_init(&cbs, pubkey->data(), pubkey->size());
+        if (!MLDSA65_parse_public_key(&mlDsa65PublicKey, &cbs)) {
+            return "Bad signing key: " + key.moveMessage();
+        }
+        if (!MLDSA65_verify(&mlDsa65PublicKey, signature->value().data(), signature->value().size(),
+                            signatureInput.data(), signatureInput.size(), nullptr, 0)) {
+            return "Signature verification failed";
+        }
+    } else {  // ML_DSA_87
+        auto key = CoseKey::parseMldsa87(selfSigned ? payload->value() : signingCoseKey);
+        if (!key || key->getBstrValue(CoseKey::AKP_PUBLIC_KEY)->empty()) {
+            return "Bad signing key: " + key.moveMessage();
+        }
+        auto pubkey = key->getBstrValue(CoseKey::AKP_PUBLIC_KEY);
+        MLDSA87_public_key mlDsa87PublicKey;
+        CBS cbs;
+        CBS_init(&cbs, pubkey->data(), pubkey->size());
+        if (!MLDSA87_parse_public_key(&mlDsa87PublicKey, &cbs)) {
+            return "Bad signing key: " + key.moveMessage();
+        }
+        if (!MLDSA87_verify(&mlDsa87PublicKey, signature->value().data(), signature->value().size(),
+                            signatureInput.data(), signatureInput.size(), nullptr, 0)) {
             return "Signature verification failed";
         }
     }
