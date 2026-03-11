@@ -25,6 +25,7 @@
 #include <cppbor.h>
 #include <cppbor_parse.h>
 #include <openssl/bn.h>
+#include <openssl/bytestring.h>
 #include <openssl/cipher.h>
 #include <openssl/curve25519.h>
 #include <openssl/digest.h>
@@ -33,6 +34,7 @@
 #include <openssl/hkdf.h>
 #include <openssl/hmac.h>
 #include <openssl/mem.h>
+#include <openssl/mldsa.h>
 #include <openssl/nid.h>
 #include <openssl/sha.h>
 
@@ -82,16 +84,21 @@ enum CoseKeyAlgorithm : int {
     EDDSA = -8,
     ECDH_ES_HKDF_256 = -25,
     ES384 = -35,  // ECDSA with SHA-384
+    ML_DSA_65 = -49,
+    ML_DSA_87 = -50,
 };
 
 enum CoseKeyCurve : int { P256 = 1, P384 = 2, X25519 = 4, ED25519 = 6 };
-enum CoseKeyType : int { OCTET_KEY_PAIR = 1, EC2 = 2, SYMMETRIC_KEY = 4 };
+enum CoseKeyType : int { OCTET_KEY_PAIR = 1, EC2 = 2, SYMMETRIC_KEY = 4, ALGORITHM_KEY_PAIR = 7 };
 enum CoseKeyOps : int { SIGN = 1, VERIFY = 2, ENCRYPT = 3, DECRYPT = 4 };
 
 constexpr int kAesGcmNonceLength = 12;
 constexpr int kAesGcmTagSize = 16;
 constexpr int kAesGcmKeySize = 32;
 constexpr int kAesGcmKeySizeBits = 256;
+
+constexpr int kMldsa65PublicKeyLength = 1952;
+constexpr int kMldsa87PublicKeyLength = 2592;
 
 template <typename T> class ErrMsgOr {
   public:
@@ -185,6 +192,8 @@ class CoseKey {
         PUBKEY_X = -2,
         PUBKEY_Y = -3,
         PRIVATE_KEY = -4,
+        AKP_PUBLIC_KEY = -1,
+        AKP_PRIVATE_KEY = -2,
         TEST_KEY = -70000  // Application-defined
     };
 
@@ -268,6 +277,45 @@ class CoseKey {
         return key;
     }
 
+    static ErrMsgOr<CoseKey> parseAkp(const bytevec& coseKey, CoseKeyAlgorithm expectedAlgorithm) {
+        auto key = parse(coseKey);
+        if (!key) {
+            return key;
+        }
+
+        if (!key->checkIntValue(CoseKey::KEY_TYPE, ALGORITHM_KEY_PAIR) ||
+            !key->checkIntValue(CoseKey::ALGORITHM, expectedAlgorithm)) {
+            return "Unexpected key type or algorithm:";
+        }
+
+        return key;
+    }
+
+    static ErrMsgOr<CoseKey> parseMldsa65(const bytevec& coseKey) {
+        auto key = parseAkp(coseKey, ML_DSA_65);
+        if (!key) return key;
+
+        auto& pubkey = key->getMap().get(AKP_PUBLIC_KEY);
+        if (!pubkey || !pubkey->asBstr() ||
+            pubkey->asBstr()->value().size() != kMldsa65PublicKeyLength) {
+            return "Invalid ML-DSA 65 public key";
+        }
+
+        return key;
+    }
+
+    static ErrMsgOr<CoseKey> parseMldsa87(const bytevec& coseKey) {
+        auto key = parseAkp(coseKey, ML_DSA_87);
+        if (!key) return key;
+
+        auto& pubkey = key->getMap().get(AKP_PUBLIC_KEY);
+        if (!pubkey || !pubkey->asBstr() ||
+            pubkey->asBstr()->value().size() != kMldsa87PublicKeyLength) {
+            return "Invalid ML-DSA 87 public key";
+        }
+        return key;
+    }
+
     static ErrMsgOr<bytevec> getEcPublicKey(const bytevec& pubX, const bytevec& pubY) {
         if (pubX.empty() || pubY.empty()) {
             return "Missing input parameters";
@@ -332,10 +380,16 @@ ErrMsgOr<bytevec /* payload */> verifyAndParseCoseMac0(const cppbor::Item* macIt
 
 ErrMsgOr<bytevec> createCoseSign1Signature(const bytevec& key, const bytevec& protectedParams,
                                            const bytevec& payload, const bytevec& aad);
+ErrMsgOr<bytevec> createCoseSign1Signature(const bytevec& key, const bytevec& protectedParams,
+                                           const bytevec& payload, const bytevec& aad,
+                                           const CoseKeyAlgorithm algorithm);
 ErrMsgOr<cppbor::Array> constructCoseSign1(const bytevec& key, const bytevec& payload,
                                            const bytevec& aad);
 ErrMsgOr<cppbor::Array> constructCoseSign1(const bytevec& key, cppbor::Map extraProtectedFields,
                                            const bytevec& payload, const bytevec& aad);
+ErrMsgOr<cppbor::Array> constructCoseSign1(const bytevec& key, cppbor::Map extraProtectedFields,
+                                           const bytevec& payload, const bytevec& aad,
+                                           const CoseKeyAlgorithm algorithm);
 ErrMsgOr<cppbor::Array> constructECDSACoseSign1(const bytevec& key,
                                                 cppbor::Map extraProtectedFields,
                                                 const bytevec& payload, const bytevec& aad);
