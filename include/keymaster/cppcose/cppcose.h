@@ -378,20 +378,17 @@ ErrMsgOr<cppbor::Array> constructCoseMac0(HmacSha256Function macFunction,
 ErrMsgOr<bytevec /* payload */> verifyAndParseCoseMac0(const cppbor::Item* macItem,
                                                        const bytevec& macKey);
 
-ErrMsgOr<bytevec> createCoseSign1Signature(const bytevec& key, const bytevec& protectedParams,
-                                           const bytevec& payload, const bytevec& aad);
+ErrMsgOr<bytevec> createEdDSACoseSign1Signature(const bytevec& key, const bytevec& protectedParams,
+                                                const bytevec& payload, const bytevec& aad);
 ErrMsgOr<bytevec> createCoseSign1Signature(const bytevec& key, const bytevec& protectedParams,
                                            const bytevec& payload, const bytevec& aad,
                                            const CoseKeyAlgorithm algorithm);
-ErrMsgOr<cppbor::Array> constructCoseSign1(const bytevec& key, const bytevec& payload,
-                                           const bytevec& aad);
-ErrMsgOr<cppbor::Array> constructCoseSign1(const bytevec& key, cppbor::Map extraProtectedFields,
-                                           const bytevec& payload, const bytevec& aad);
-ErrMsgOr<cppbor::Array> constructCoseSign1(const bytevec& key, cppbor::Map extraProtectedFields,
+ErrMsgOr<cppbor::Array> constructEdDsaCoseSign1(const bytevec& key, cppbor::Map protectedParams,
+                                                const bytevec& payload, const bytevec& aad);
+ErrMsgOr<cppbor::Array> constructCoseSign1(const bytevec& key, cppbor::Map protectedParams,
                                            const bytevec& payload, const bytevec& aad,
                                            const CoseKeyAlgorithm algorithm);
-ErrMsgOr<cppbor::Array> constructECDSACoseSign1(const bytevec& key,
-                                                cppbor::Map extraProtectedFields,
+ErrMsgOr<cppbor::Array> constructECDSACoseSign1(const bytevec& key, cppbor::Map protectedParams,
                                                 const bytevec& payload, const bytevec& aad);
 
 /**

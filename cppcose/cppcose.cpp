@@ -305,8 +305,8 @@ ErrMsgOr<bytevec> createECDSACoseSign1Signature(const bytevec& key, const byteve
     return createCoseSign1Signature(key, protectedParams, payload, aad, ES256);
 }
 
-ErrMsgOr<bytevec> createCoseSign1Signature(const bytevec& key, const bytevec& protectedParams,
-                                           const bytevec& payload, const bytevec& aad) {
+ErrMsgOr<bytevec> createEdDSACoseSign1Signature(const bytevec& key, const bytevec& protectedParams,
+                                                const bytevec& payload, const bytevec& aad) {
     return createCoseSign1Signature(key, protectedParams, payload, aad, EDDSA);
 }
 
@@ -386,14 +386,9 @@ ErrMsgOr<cppbor::Array> constructECDSACoseSign1(const bytevec& key, cppbor::Map 
     return constructCoseSign1(key, std::move(protectedParams), payload, aad, ES256);
 }
 
-ErrMsgOr<cppbor::Array> constructCoseSign1(const bytevec& key, cppbor::Map protectedParameters,
-                                           const bytevec& payload, const bytevec& aad) {
+ErrMsgOr<cppbor::Array> constructEdDsaCoseSign1(const bytevec& key, cppbor::Map protectedParameters,
+                                                const bytevec& payload, const bytevec& aad) {
     return constructCoseSign1(key, std::move(protectedParameters), payload, aad, EDDSA);
-}
-
-ErrMsgOr<cppbor::Array> constructCoseSign1(const bytevec& key, const bytevec& payload,
-                                           const bytevec& aad) {
-    return constructCoseSign1(key, {} /* protectedParams */, payload, aad, EDDSA);
 }
 
 ErrMsgOr<bytevec> verifyAndParseCoseSign1(const cppbor::Array* coseSign1,

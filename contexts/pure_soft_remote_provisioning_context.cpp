@@ -31,7 +31,7 @@
 namespace keymaster {
 namespace {
 
-using cppcose::constructCoseSign1;
+using cppcose::constructEdDsaCoseSign1;
 using cppcose::CoseKey;
 using cppcose::ED25519;
 using cppcose::EDDSA;
@@ -151,9 +151,9 @@ PureSoftRemoteProvisioningContext::GenerateBcc(bool testMode) const {
                                  std::vector<uint8_t>{0x20} /* keyCertSign = 1<<5 */)
                             .canonicalize()
                             .encode();
-    auto coseSign1 = constructCoseSign1(privKey,       /* signing key */
-                                        cppbor::Map(), /* extra protected */
-                                        sign1Payload, {} /* AAD */);
+    auto coseSign1 = constructEdDsaCoseSign1(privKey,       /* signing key */
+                                             cppbor::Map(), /* extra protected */
+                                             sign1Payload, {} /* AAD */);
     assert(coseSign1);
 
     return {privKey, cppbor::Array().add(std::move(coseKey)).add(coseSign1.moveValue())};
@@ -176,7 +176,7 @@ ErrMsgOr<std::vector<uint8_t>> PureSoftRemoteProvisioningContext::BuildProtected
         }
         bcc = std::move(*clone->asArray());
     }
-    auto sign1 = constructCoseSign1(devicePrivKey, macKey, aad);
+    auto sign1 = constructEdDsaCoseSign1(devicePrivKey, {}, macKey, aad);
     if (!sign1) {
         return sign1.moveMessage();
     }
@@ -216,7 +216,8 @@ PureSoftRemoteProvisioningContext::BuildCsr(const std::vector<uint8_t>& challeng
                           .add(std::move(deviceInfo))
                           .add(std::move(keysToSign));
     auto signedDataPayload = cppbor::Array().add(challenge).add(cppbor::Bstr(csrPayload.encode()));
-    auto signedData = constructCoseSign1(devicePrivKey_, signedDataPayload.encode(), {} /* aad */);
+    auto signedData =
+        constructEdDsaCoseSign1(devicePrivKey_, {}, signedDataPayload.encode(), {} /* aad */);
 
     return cppbor::Array()
         .add(1 /* version */)
