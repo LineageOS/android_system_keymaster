@@ -746,7 +746,7 @@ keymaster_error_t auth_list_add_param(keymaster_key_param_t& param, ASN1_INTEGER
         if (!value.get()) {
             return KM_ERROR_MEMORY_ALLOCATION_FAILED;
         }
-        if (!ASN1_INTEGER_set(value.get(), get_uint32_value(param))) {
+        if (!ASN1_INTEGER_set_uint64(value.get(), get_uint32_value(param))) {
             return TranslateLastOpenSslError();
         }
 
